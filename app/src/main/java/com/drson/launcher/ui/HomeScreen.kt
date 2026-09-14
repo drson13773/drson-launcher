@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
+import com.drson.launcher.model.HomeSlotContent
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 
@@ -41,8 +42,6 @@ fun HomeScreen(
     val context = LocalContext.current
     var isEditMode by remember { mutableStateOf(false) }
     var isAppDrawerOpen by remember { mutableStateOf(false) }
-
-    // Tự động gán Focus vào ô đầu tiên khi mở Launcher
     val initialFocusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
@@ -52,7 +51,6 @@ fun HomeScreen(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Hình nền xe chạy
         DrivingRoadBackground()
 
         Column(
@@ -61,7 +59,7 @@ fun HomeScreen(
         ) {
             Spacer(Modifier.height(10.dp))
 
-            // Lưới Desktop bên phải (Grid Slots)
+            // Lưới Desktop bên phải
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -74,7 +72,7 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.End
                 ) {
-                    val chunkedSlots = remember(viewModel.homeSlots) {
+                    val chunkedSlots = remember(viewModel.homeSlots.toList()) {
                         viewModel.homeSlots.chunked(3)
                     }
                     var isFirstSlot = true
@@ -85,26 +83,14 @@ fun HomeScreen(
                         ) {
                             for (slot in rowSlots) {
                                 val pkgName = when (slot) {
-                                    null -> null
-                                    is String -> slot
-                                    else -> {
-                                        try {
-                                            val field = slot.javaClass.getDeclaredField("packageName")
-                                            field.isAccessible = true
-                                            field.get(slot) as? String
-                                        } catch (_: Exception) {
-                                            slot.toString()
-                                        }
-                                    }
+                                    is HomeSlotContent.App -> slot.packageName
+                                    else -> null
                                 }
-
-                                val app = if (pkgName != null) viewModel.appFor(pkgName) else null
+                                val app = viewModel.appFor(pkgName)
                                 val currentModifier = if (isFirstSlot) {
                                     isFirstSlot = false
                                     Modifier.focusRequester(initialFocusRequester)
-                                } else {
-                                    Modifier
-                                }
+                                } else Modifier
 
                                 FocusableDesktopSlot(
                                     app = app,
@@ -224,7 +210,7 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút mở App Drawer
+        // Nút Menu
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -250,24 +236,9 @@ private fun BottomDock(
             )
         }
 
-        // Các slot trên Dock
-        viewModel.dockSlots.forEachIndexed { index, slotItem ->
-            val pkgName = when (slotItem) {
-                null -> null
-                is String -> slotItem
-                else -> {
-                    try {
-                        val field = slotItem.javaClass.getDeclaredField("packageName")
-                        field.isAccessible = true
-                        field.get(slotItem) as? String
-                    } catch (_: Exception) {
-                        slotItem.toString()
-                    }
-                }
-            }
-
-            val app = if (pkgName != null) viewModel.appFor(pkgName) else null
-
+        // Cụm ô Dock Slots
+        viewModel.dockSlots.forEachIndexed { index, packageName ->
+            val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
                 app = app,
                 isEditMode = isEditMode,
@@ -283,7 +254,6 @@ private fun BottomDock(
 
         Spacer(Modifier.weight(1f))
 
-        // Thanh điều khiển nhạc
         NowPlayingBar(modifier = Modifier)
     }
 }
