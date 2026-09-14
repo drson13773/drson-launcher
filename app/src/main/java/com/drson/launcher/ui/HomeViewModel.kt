@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawable.toBitmap
+import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.drson.launcher.data.HomeLayoutRepository
