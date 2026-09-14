@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -40,14 +41,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -71,10 +76,11 @@ import java.util.Date
 import java.util.Locale
 
 private val GOLD = Color(0xFFC99E5C)
-private val GOLD_BRIGHT = Color(0xFFE6C178)
+private val GOLD_BRIGHT = Color(0xFFFFF0B8) // Tăng sáng ánh kim để chữ nổi bật hơn
+private val GOLD_SOLID = Color(0xFFFFD56B)
 private val SKY_TOP = Color(0xFF16130E)
-private val SKY_HORIZON = Color(0xFF3A342C) // sáng hơn gần đường chân trời, giống ảnh mẫu
-private val ROAD_SURFACE = Color(0xFF2E2B27) // sáng hơn hẳn để phân biệt rõ với bầu trời/nhà
+private val SKY_HORIZON = Color(0xFF3A342C)
+private val ROAD_SURFACE = Color(0xFF2E2B27)
 
 private data class Window(
     val xFraction: Float,
@@ -91,17 +97,6 @@ private data class Building(
     val windows: List<Window>,
 )
 
-/**
- * Nền "đang lái xe": chỉ vạch kẻ giữa đường di chuyển (mô phỏng xe chạy tới trước) - dãy nhà xa
- * đứng YÊN vì xe đi thẳng, nhà ở khoảng cách xa gần như không có thị sai ngang thực tế (nhà trôi
- * ngang sẽ trông giống xe đang rẽ, không hợp lý khi đường phía trước thẳng).
- * Ảnh xe là ảnh THẬT do người dùng cung cấp (car_photo.png), giữ nguyên không chỉnh sửa.
- *
- * Đây là HÌNH NỀN DUY NHẤT của launcher (luôn hiển thị, không có lựa chọn nào khác), nên đồng hồ
- * giờ + đồng hồ tốc độ thật (GPS) được vẽ LUÔN vào đây - hiện thường trực phía sau Home Screen /
- * Dock, không cần vuốt sang trang riêng mới thấy. Vùng bên trái màn hình (nơi đặt 2 đồng hồ này)
- * được `HomeScreen.kt` chừa trống, không gán app/widget vào đó để tránh icon đè lên.
- */
 @Composable
 fun DrivingRoadBackground(modifier: Modifier = Modifier) {
     val buildings = remember {
@@ -140,14 +135,12 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
         animationSpec = infiniteRepeatable(tween(1700, easing = LinearEasing), RepeatMode.Restart),
         label = "dash",
     )
-    // Đồng hồ thời gian toàn cục (mili-giây) để tính nhịp nhấp nháy riêng cho từng cửa sổ.
     val timeMs by infinite.animateFloat(
         initialValue = 0f, targetValue = 600_000f,
         animationSpec = infiniteRepeatable(tween(600_000, easing = LinearEasing), RepeatMode.Restart),
         label = "time",
     )
 
-    // ---------- Dữ liệu lái xe THẬT (tốc độ + GPS qua LocationManager) ----------
     val context = LocalContext.current
     var hasLocationPermission by remember {
         mutableStateOf(
@@ -166,11 +159,10 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        // Kích thước logo giữ nguyên tỉ lệ cũ (9% bề rộng màn hình); quầng sáng toả rộng hơn
-        // logo khoảng 2.6 lần để tạo hiệu ứng hào quang giống ảnh nền lớn ở Home Screen.
-        val logoWidth = maxWidth * 0.09f
-        val glowSize = logoWidth * 2.6f
+        val logoWidth = (maxWidth * 0.08f).coerceIn(60.dp, 92.dp)
+        val glowSize = logoWidth * 2.2f
         val glowInset = (glowSize - logoWidth) / 2
+        val gaugeSize = (maxHeight * 0.50f).coerceIn(180.dp, 280.dp)
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
@@ -180,7 +172,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             drawRect(Brush.verticalGradient(listOf(SKY_TOP, SKY_HORIZON), startY = 0f, endY = horizonY * 1.15f))
             drawRect(Brush.verticalGradient(listOf(SKY_HORIZON, ROAD_SURFACE), startY = horizonY * 0.6f, endY = horizonY))
 
-            // --- Dãy núi mờ xa phía sau toà nhà - tạo chiều sâu như ảnh tham khảo ---
             val mountainPath = Path().apply {
                 moveTo(0f, horizonY)
                 var x = 0f
@@ -198,7 +189,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             }
             drawPath(mountainPath, color = Color(0xFF221E1A))
 
-            // Dải trời sáng hơn ngay trên đường chân trời (giống sương sớm/hoàng hôn của CarWebGuru)
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(Color.Transparent, Color(0.16f, 0.15f, 0.14f, 0.55f)),
@@ -208,7 +198,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 size = androidx.compose.ui.geometry.Size(w, horizonY * 0.65f),
             )
 
-            // --- Skyline: ĐỨNG YÊN, đen đậm để nổi khối rõ nét trên nền trời sáng hơn ---
             buildings.forEach { b ->
                 val bx = b.xFraction * w
                 val bw = b.widthFraction * w
@@ -219,7 +208,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                     topLeft = Offset(bx, top),
                     size = androidx.compose.ui.geometry.Size(bw, bh + 4f),
                 )
-                // viền sáng nhẹ bên trái toà nhà (cạnh hắt sáng) để tách khối rõ hơn
                 drawRect(
                     color = Color(0xFF3A342C).copy(alpha = 0.9f),
                     topLeft = Offset(bx, top),
@@ -231,12 +219,11 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                         val wy = top + win.yFraction * bh
                         val winW = (bw * 0.16f).coerceAtLeast(2f)
                         val winH = (bh * 0.09f).coerceAtLeast(2f)
-                        // Nhấp nháy: mỗi cửa sổ có chu kỳ + lệch pha riêng nên không sáng/tắt đồng loạt.
                         val t = (timeMs / win.blinkPeriodMs + win.blinkPhase) % 1f
-                        val pulse = kotlin.math.abs(kotlin.math.sin(Math.PI * t)).toFloat()
+                        val pulse = abs(sin(Math.PI * t)).toFloat()
                         val winAlpha = 0.25f + 0.6f * pulse
                         drawRect(
-                            color = GOLD_BRIGHT.copy(alpha = winAlpha),
+                            color = GOLD_SOLID.copy(alpha = winAlpha),
                             topLeft = Offset(wx - winW / 2, wy - winH / 2),
                             size = androidx.compose.ui.geometry.Size(winW, winH),
                         )
@@ -244,7 +231,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 }
             }
 
-            // sương mờ trước chân trời cho có chiều sâu
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(Color.Transparent, Color(0f, 0f, 0f, 0.30f), Color.Transparent),
@@ -254,7 +240,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 size = androidx.compose.ui.geometry.Size(w, 75f),
             )
 
-            // --- Mặt đường ---
             val cx = w / 2f
             val bottomHalfW = w * 0.60f
             val topHalfW = w * 0.028f
@@ -267,8 +252,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             }
             drawPath(roadPath, color = ROAD_SURFACE)
 
-            // Texture ánh sáng hắt trên mặt đường (các dải sáng-tối xen kẽ toả từ điểm hội tụ,
-            // giống hiệu ứng đèn pha lên nhựa đường trong ảnh tham khảo CarWebGuru)
             val nStripes = 5
             for (i in 0 until nStripes) {
                 val frac0 = i.toFloat() / nStripes
@@ -290,7 +273,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 drawLine(Color(0.35f, 0.29f, 0.19f), pBottom, pTop, strokeWidth = 5f)
             }
 
-            // đèn pha hắt sáng lên mặt đường
             val glowPath = Path().apply {
                 moveTo(cx - w * 0.135f, h)
                 lineTo(cx + w * 0.135f, h)
@@ -301,12 +283,11 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             drawPath(
                 glowPath,
                 brush = Brush.verticalGradient(
-                    colors = listOf(GOLD_BRIGHT.copy(alpha = 0.16f), Color.Transparent),
+                    colors = listOf(GOLD_SOLID.copy(alpha = 0.16f), Color.Transparent),
                     startY = h, endY = horizonY,
                 ),
             )
 
-            // --- Vạch kẻ giữa đường - ĐỘNG, lướt chậm rãi về phía người xem ---
             val nDashes = 7
             for (i in 0 until nDashes) {
                 val phase = (dashProgress + i.toFloat() / nDashes) % 1f
@@ -329,120 +310,135 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             }
         }
 
-        // Ảnh xe THẬT của bạn - đặt cố định phía dưới, giữ nguyên không chỉnh sửa.
-        // Giảm nhẹ kích thước (0.315 -> 0.27) để có khoảng trống thật giữa chân trời và nóc xe,
-        // đủ chỗ cho đồng hồ/tốc độ của cụm đồng hồ không bị đè lên xe.
         Image(
             painter = painterResource(id = R.drawable.car_photo),
             contentDescription = null,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .fillMaxWidth(0.27f)
-                .padding(bottom = 150.dp),
+                .fillMaxWidth(0.24f)
+                .padding(bottom = 120.dp),
             contentScale = ContentScale.FillWidth,
         )
 
-        // Xoay chậm liên tục các tia sáng quanh logo - dùng chung "infinite transition" đã có
-        // ở trên (vạch kẻ đường / cửa sổ nhấp nháy) để khỏi tạo thêm Composition riêng.
         val logoGlowRotation by infinite.animateFloat(
             initialValue = 0f, targetValue = 360f,
             animationSpec = infiniteRepeatable(tween(70_000, easing = LinearEasing), RepeatMode.Restart),
             label = "logoGlowRotation",
         )
 
-        // Logo thương hiệu "Dr Sơn" - góc trên-trái, bản glyph trong suốt (không viền đen),
-        // đặt trong quầng sáng + tia sáng vàng đồng toả ra, giống hiệu ứng hào quang quanh
-        // logo lớn ở ảnh nền Home Screen.
-        Box(
+        // --- CỤM LOGO & ĐỒNG HỒ SỐ GÓC TRÊN TRÁI ---
+        Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .offset(x = 14.dp - glowInset, y = 14.dp - glowInset)
-                .size(glowSize),
-            contentAlignment = Alignment.Center,
+                .padding(start = 18.dp, top = 26.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val center = Offset(size.width / 2f, size.height / 2f)
-                val maxR = size.minDimension / 2f
+            // 1. Logo Dr Sơn với nét chữ rõ nét + bóng đổ tương phản
+            Box(
+                modifier = Modifier.size(logoWidth),
+                contentAlignment = Alignment.Center
+            ) {
+                Canvas(modifier = Modifier.size(glowSize)) {
+                    val center = Offset(size.width / 2f, size.height / 2f)
+                    val maxR = size.minDimension / 2f
 
-                // Quầng sáng mờ lan toả từ tâm logo ra ngoài.
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            GOLD_BRIGHT.copy(alpha = 0.32f),
-                            GOLD_BRIGHT.copy(alpha = 0.12f),
-                            Color.Transparent,
+                    // Quầng sáng mềm dịu (giảm độ che phủ tâm để chữ không bị lóa)
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                GOLD_SOLID.copy(alpha = 0.20f),
+                                GOLD_SOLID.copy(alpha = 0.08f),
+                                Color.Transparent,
+                            ),
+                            center = center,
+                            radius = maxR,
                         ),
-                        center = center,
                         radius = maxR,
-                    ),
-                    radius = maxR,
-                    center = center,
-                )
+                        center = center,
+                    )
 
-                // Các tia sáng mảnh toả đều quanh logo, dài ngắn xen kẽ, xoay chậm liên tục.
-                val nRays = 24
-                for (i in 0 until nRays) {
-                    val angleDeg = logoGlowRotation + i * (360f / nRays)
-                    val angleRad = Math.toRadians(angleDeg.toDouble())
-                    val rayLen = maxR * (0.55f + 0.35f * abs(sin(Math.toRadians((angleDeg * 2).toDouble()))).toFloat())
-                    val innerR = maxR * 0.26f
-                    val p1 = Offset(
-                        center.x + (innerR * cos(angleRad)).toFloat(),
-                        center.y + (innerR * sin(angleRad)).toFloat(),
+                    // Các tia sáng mảnh xoay nhẹ
+                    val nRays = 24
+                    for (i in 0 until nRays) {
+                        val angleDeg = logoGlowRotation + i * (360f / nRays)
+                        val angleRad = Math.toRadians(angleDeg.toDouble())
+                        val rayLen = maxR * (0.55f + 0.35f * abs(sin(Math.toRadians((angleDeg * 2).toDouble()))).toFloat())
+                        val innerR = maxR * 0.32f
+                        val p1 = Offset(
+                            center.x + (innerR * cos(angleRad)).toFloat(),
+                            center.y + (innerR * sin(angleRad)).toFloat(),
+                        )
+                        val p2 = Offset(
+                            center.x + (rayLen * cos(angleRad)).toFloat(),
+                            center.y + (rayLen * sin(angleRad)).toFloat(),
+                        )
+                        drawLine(
+                            color = GOLD_BRIGHT.copy(alpha = 0.22f),
+                            start = p1,
+                            end = p2,
+                            strokeWidth = 2.0f,
+                        )
+                    }
+                }
+
+                // Chữ Dr Sơn sắc nét dạng Text vẽ vector (độ tương phản cao & bóng đổ viền đen)
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = "Dr Sơn",
+                        color = Color.Black.copy(alpha = 0.9f),
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily(Font(R.font.alex_brush)),
+                        modifier = Modifier.offset(x = 1.5.dp, y = 1.5.dp)
                     )
-                    val p2 = Offset(
-                        center.x + (rayLen * cos(angleRad)).toFloat(),
-                        center.y + (rayLen * sin(angleRad)).toFloat(),
-                    )
-                    drawLine(
-                        color = GOLD_BRIGHT.copy(alpha = 0.18f),
-                        start = p1,
-                        end = p2,
-                        strokeWidth = 2.2f,
+                    Text(
+                        text = "Dr Sơn",
+                        color = GOLD_BRIGHT,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily(Font(R.font.alex_brush)),
+                        style = TextStyle(
+                            shadow = Shadow(
+                                color = Color.Black.copy(alpha = 0.85f),
+                                offset = Offset(2f, 2f),
+                                blurRadius = 4f
+                            )
+                        )
                     )
                 }
             }
-            Image(
-                painter = painterResource(id = R.drawable.brand_glyph),
-                contentDescription = "Dr Sơn",
-                modifier = Modifier.size(logoWidth),
-                contentScale = ContentScale.FillWidth,
-            )
+
+            Spacer(Modifier.width(18.dp))
+
+            // 2. Đồng hồ số bên cạnh
+            BigClockWidget()
         }
 
-        // ---------- Cụm đồng hồ giờ + đồng hồ tốc độ THẬT - LUÔN hiển thị ----------
-        // Đặt bên trái màn hình, dưới hàng status bar thật (chừa top đủ lớn để không bị đè) và
-        // trên khu vực Dock (chừa bottom đủ lớn) - vị trí tính theo % bề rộng/cao màn hình
-        // (maxWidth/maxHeight của chính BoxWithConstraints này) nên tự co giãn theo màn hình xe.
+        // --- CỤM ĐỒNG HỒ TỐC ĐỘ VÀ GPS ---
         if (!hasLocationPermission) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 24.dp, bottom = 130.dp),
+                    .padding(start = 24.dp, bottom = 100.dp),
             ) {
                 LocationPermissionPrompt(onRequest = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) })
             }
         } else {
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(start = (this@BoxWithConstraints.maxWidth * 0.19f), top = 84.dp),
-            ) {
-                BigClockWidget()
-            }
-
-            Box(
-                modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = 20.dp),
+                    .padding(start = 24.dp, top = 40.dp),
             ) {
-                SpeedGauge(speedKmh = drivingData.speedKmh, size = (this@BoxWithConstraints.maxWidth * 0.34f).coerceAtMost(480.dp))
+                SpeedGauge(
+                    speedKmh = drivingData.speedKmh,
+                    size = gaugeSize
+                )
             }
 
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 36.dp, bottom = 130.dp),
+                    .padding(start = 24.dp, bottom = 95.dp),
             ) {
                 GpsInfoCard(data = drivingData)
             }
@@ -454,31 +450,31 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
 private fun LocationPermissionPrompt(onRequest: () -> Unit) {
     Column(
         modifier = Modifier
-            .widthIn(max = 280.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color.Black.copy(alpha = 0.55f))
-            .padding(16.dp),
+            .widthIn(max = 260.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.Black.copy(alpha = 0.65f))
+            .padding(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("Cần quyền vị trí", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-        Spacer(Modifier.height(6.dp))
+        Text("Cần quyền vị trí", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(4.dp))
         Text(
-            "Để hiện tốc độ thật, launcher cần quyền truy cập vị trí của thiết bị.",
+            "Để hiển thị tốc độ thật, vui lòng cấp quyền vị trí thiết bị.",
             color = Color.White.copy(alpha = 0.75f),
             fontSize = 11.sp,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(10.dp))
         Text(
             "Cấp quyền",
             color = Color.White,
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(GOLD)
                 .clickable(onClick = onRequest)
-                .padding(horizontal = 14.dp, vertical = 7.dp),
+                .padding(horizontal = 14.dp, vertical = 6.dp),
         )
     }
 }
@@ -493,49 +489,62 @@ private fun BigClockWidget() {
         }
     }
     val timeFmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
-    val dateFmt = remember { SimpleDateFormat("EEEE, d MMMM", Locale("vi", "VN")) }
+    val dateFmt = remember { SimpleDateFormat("EEEE, d 'thg' M", Locale("vi", "VN")) }
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.Start
+    ) {
         Text(
-            timeFmt.format(now),
-            color = Color(0xFFE6C178),
-            fontSize = 88.sp,
+            text = timeFmt.format(now),
+            color = GOLD_BRIGHT,
+            fontSize = 38.sp,
             fontWeight = FontWeight.Light,
             fontFamily = FontFamily.Serif,
             fontStyle = FontStyle.Italic,
+            lineHeight = 40.sp,
+            style = TextStyle(
+                shadow = Shadow(
+                    color = Color.Black.copy(alpha = 0.8f),
+                    offset = Offset(2f, 2f),
+                    blurRadius = 6f
+                )
+            )
         )
-        Spacer(Modifier.height(8.dp))
         Text(
-            dateFmt.format(now).replaceFirstChar { it.uppercase() },
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = 15.sp,
+            text = dateFmt.format(now).replaceFirstChar { it.uppercase() },
+            color = Color.White.copy(alpha = 0.85f),
+            fontSize = 13.sp,
             fontFamily = FontFamily.Serif,
             fontStyle = FontStyle.Italic,
-            textAlign = TextAlign.Center,
+            style = TextStyle(
+                shadow = Shadow(
+                    color = Color.Black.copy(alpha = 0.8f),
+                    offset = Offset(1f, 1f),
+                    blurRadius = 4f
+                )
+            )
         )
     }
 }
 
 @Composable
-private fun SpeedGauge(speedKmh: Float, size: Dp = 190.dp) {
+private fun SpeedGauge(speedKmh: Float, size: Dp = 220.dp) {
     val speed = speedKmh.coerceIn(0f, 180f)
     val maxSpeed = 180
     val majorStep = 20
     val startAngle = 135f
     val sweep = 270f
-    val scale = size.value / 190f // co dan cac chi tiet (tick, chu, kim) theo kich thuoc thuc te
+    val scale = size.value / 220f
 
     Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val center = Offset(this.size.width / 2f, this.size.height / 2f)
             val outerR = this.size.minDimension / 2f
 
-            // Bóng đổ ngoài cùng - tạo cảm giác vòng kim loại nổi khối
             drawCircle(color = Color.Black.copy(alpha = 0.5f), radius = outerR, center = center)
 
-            // Vòng bezel kim loại dạng khối - dùng sweepGradient mô phỏng ánh sáng phản chiếu
-            // quanh vòng kim loại (thay vì 1 màu phẳng), cho cảm giác "hầm hố" hơn.
-            val bezelWidth = 22f * scale
+            val bezelWidth = 20f * scale
             val bezelBrush = Brush.sweepGradient(
                 colors = listOf(
                     Color(0xFF3A2E1C), Color(0xFFE6C178), Color(0xFFC99E5C),
@@ -548,44 +557,42 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 190.dp) {
                 brush = bezelBrush,
                 radius = outerR - bezelWidth / 2,
                 center = center,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = bezelWidth),
+                style = Stroke(width = bezelWidth),
             )
-            // Viền chỉ mảnh sáng + tối áp sát 2 bên bezel để tách khối rõ hơn (hiệu ứng vát cạnh)
             drawCircle(
                 color = Color.White.copy(alpha = 0.25f),
                 radius = outerR - 2f,
                 center = center,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f * scale),
+                style = Stroke(width = 1.5f * scale),
             )
             drawCircle(
                 color = Color.Black.copy(alpha = 0.5f),
                 radius = outerR - bezelWidth - 1f,
                 center = center,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f * scale),
+                style = Stroke(width = 2f * scale),
             )
 
-            // Viền phát sáng nhẹ ngay trong bezel (giữ lại hiệu ứng glow cũ, thu nhỏ lại)
             for (i in 4 downTo 1) {
                 drawCircle(
                     color = Color(0xFFC99E5C).copy(alpha = 0.06f * i),
                     radius = outerR - bezelWidth - i * 2f * scale,
                     center = center,
-                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f * scale),
+                    style = Stroke(width = 3f * scale),
                 )
             }
-            drawCircle(color = Color(0xFF0A0908), radius = outerR - bezelWidth - 10f * scale, center = center)
+            drawCircle(color = Color(0xFF0A0908), radius = outerR - bezelWidth - 8f * scale, center = center)
             drawCircle(
                 color = Color(0xFFC99E5C).copy(alpha = 0.6f),
-                radius = outerR - bezelWidth - 10f * scale,
+                radius = outerR - bezelWidth - 8f * scale,
                 center = center,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f * scale),
+                style = Stroke(width = 2.5f * scale),
             )
 
-            val faceR = outerR - bezelWidth - 10f * scale
-            val tickOuterR = faceR - 12f * scale
-            val majorTickInnerR = tickOuterR - 16f * scale
-            val minorTickInnerR = tickOuterR - 9f * scale
-            val ticksTotal = maxSpeed / (majorStep / 4) // vạch phụ, 4 vạch phụ mỗi khoảng chính
+            val faceR = outerR - bezelWidth - 8f * scale
+            val tickOuterR = faceR - 10f * scale
+            val majorTickInnerR = tickOuterR - 14f * scale
+            val minorTickInnerR = tickOuterR - 8f * scale
+            val ticksTotal = maxSpeed / (majorStep / 4)
 
             for (i in 0..ticksTotal) {
                 val value = i * (majorStep / 4)
@@ -608,16 +615,16 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 190.dp) {
                     strokeWidth = (if (isMajor) 3.5f else 1.8f) * scale,
                 )
                 if (isMajor) {
-                    val labelR = majorTickInnerR - 20f * scale
+                    val labelR = majorTickInnerR - 16f * scale
                     val lx = center.x + (labelR * cos(angleRad)).toFloat()
                     val ly = center.y + (labelR * sin(angleRad)).toFloat()
                     drawContext.canvas.nativeCanvas.drawText(
                         value.toString(),
                         lx,
-                        ly + 5f * scale, // căn giữa dọc gần đúng theo baseline chữ
+                        ly + 4.5f * scale,
                         android.graphics.Paint().apply {
                             color = android.graphics.Color.WHITE
-                            textSize = 38f * scale
+                            textSize = 30f * scale
                             textAlign = android.graphics.Paint.Align.CENTER
                             isAntiAlias = true
                             isFakeBoldText = true
@@ -626,14 +633,13 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 190.dp) {
                 }
             }
 
-            // Kim chỉ tốc độ - tam giác thon dài, giống kim đồng hồ tốc độ analog thật.
             val needleAngleDeg = startAngle + sweep * (speed / maxSpeed)
             val needleAngleRad = Math.toRadians(needleAngleDeg.toDouble())
-            val needleLen = majorTickInnerR - 6f * scale
+            val needleLen = majorTickInnerR - 4f * scale
             val tipX = center.x + (needleLen * cos(needleAngleRad)).toFloat()
             val tipY = center.y + (needleLen * sin(needleAngleRad)).toFloat()
             val perpAngle = needleAngleRad + Math.PI / 2
-            val baseWidth = 5f * scale
+            val baseWidth = 4.5f * scale
             val b1 = Offset(
                 center.x + (baseWidth * cos(perpAngle)).toFloat(),
                 center.y + (baseWidth * sin(perpAngle)).toFloat(),
@@ -650,27 +656,40 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 190.dp) {
             }
             drawPath(needlePath, color = Color(0xFFE6C178))
 
-            // Trục kim (hub)
-            drawCircle(color = Color(0xFF0A0908), radius = 16f * scale, center = center)
-            drawCircle(color = Color(0xFFC99E5C), radius = 16f * scale, center = center, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f * scale))
+            drawCircle(color = Color(0xFF0A0908), radius = 14f * scale, center = center)
+            drawCircle(color = Color(0xFFC99E5C), radius = 14f * scale, center = center, style = Stroke(width = 2f * scale))
         }
 
-        // Chữ ký "Dr Sơn" ngay dưới trục kim - dùng đúng font chữ ký trong logo thương hiệu.
-        Text(
-            "Dr Sơn",
-            color = Color(0xFFE6C178),
-            fontSize = (22f * scale).sp,
-            fontFamily = FontFamily(Font(R.font.alex_brush)),
-            modifier = Modifier.align(Alignment.Center).padding(top = (30f * scale).dp),
-        )
+        // Chữ Dr Sơn trên mặt đồng hồ tốc độ (có đổ bóng)
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(top = (26f * scale).dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                "Dr Sơn",
+                color = Color.Black.copy(alpha = 0.9f),
+                fontSize = (21f * scale).sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily(Font(R.font.alex_brush)),
+                modifier = Modifier.offset(x = 1.dp, y = 1.dp)
+            )
+            Text(
+                "Dr Sơn",
+                color = GOLD_BRIGHT,
+                fontSize = (21f * scale).sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily(Font(R.font.alex_brush)),
+            )
+        }
 
-        // Số km/h nhỏ, đặt gần đáy mặt đồng hồ - giống vị trí số odometer trong ảnh tham khảo.
         Column(
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = (34f * scale).dp),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = (26f * scale).dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("${speed.toInt()}", color = Color.White, fontSize = (20f * scale).sp, fontWeight = FontWeight.Medium)
-            Text("km/h", color = Color.White.copy(alpha = 0.6f), fontSize = (10f * scale).sp)
+            Text("${speed.toInt()}", color = Color.White, fontSize = (18f * scale).sp, fontWeight = FontWeight.Medium)
+            Text("km/h", color = Color.White.copy(alpha = 0.6f), fontSize = (9f * scale).sp)
         }
     }
 }
@@ -679,22 +698,22 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 190.dp) {
 private fun GpsInfoCard(data: DrivingData) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color.White.copy(alpha = 0.1f))
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(18.dp),
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.Black.copy(alpha = 0.55f))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (data.hasGpsFix && data.latitude != null && data.longitude != null) {
             Text(
                 String.format(Locale.US, "%.4f, %.4f", data.latitude, data.longitude),
-                color = Color.White.copy(alpha = 0.85f),
-                fontSize = 11.sp,
+                color = Color.White.copy(alpha = 0.9f),
+                fontSize = 10.sp,
             )
             data.altitudeMeters?.let {
-                Text("${it.toInt()} m", color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp)
+                Text("${it.toInt()} m", color = Color.White.copy(alpha = 0.9f), fontSize = 10.sp)
             }
         } else {
-            Text("Đang định vị GPS...", color = Color.White.copy(alpha = 0.6f), fontSize = 11.sp)
+            Text("Đang định vị GPS...", color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp)
         }
     }
 }
