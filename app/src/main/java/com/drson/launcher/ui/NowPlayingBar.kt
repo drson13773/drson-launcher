@@ -21,20 +21,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.drson.launcher.R
-import com.drson.launcher.media.MediaControlRepository
 
 private val GOLD_ACCENT = Color(0xFFD4AF37)
 
 @Composable
 fun NowPlayingBar(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val mediaRepo = remember { MediaControlRepository.getInstance(context) }
-    val playbackState by mediaRepo.playbackState.collectAsState()
 
     fun sendMediaKey(keyCode: Int) {
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
@@ -47,7 +43,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Ô bìa bài hát / Icon app nhạc
+        // Ô chứa Icon App Nhạc - Chạm vào để mở nhanh ứng dụng nghe nhạc
         Box(
             modifier = Modifier
                 .size(40.dp)
@@ -55,32 +51,29 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
                 .background(Color.White.copy(alpha = 0.08f))
                 .clickable {
                     try {
-                        val intent = Intent(MediaStore.INTENT_ACTION_MUSIC_PLAYER)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        val intent = Intent(MediaStore.INTENT_ACTION_MUSIC_PLAYER).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
                         context.startActivity(intent)
-                    } catch (_: Exception) {}
+                    } catch (_: Exception) {
+                        try {
+                            val intent = context.packageManager.getLaunchIntentForPackage("com.zing.mp3")
+                            intent?.let { context.startActivity(it) }
+                        } catch (_: Exception) {}
+                    }
                 },
             contentAlignment = Alignment.Center
         ) {
-            val art = playbackState.albumArt
-            if (art != null) {
-                Image(
-                    bitmap = art.asImageBitmap(),
-                    contentDescription = "Album Art",
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Image(
-                    painter = painterResource(id = R.drawable.icon_music),
-                    contentDescription = "Music App",
-                    modifier = Modifier
-                        .size(26.dp)
-                        .clip(RoundedCornerShape(6.dp))
-                )
-            }
+            Image(
+                painter = painterResource(id = R.drawable.icon_music),
+                contentDescription = "Music App",
+                modifier = Modifier
+                    .size(26.dp)
+                    .clip(RoundedCornerShape(6.dp))
+            )
         }
 
-        // Nút Previous
+        // Nút Lùi bài (Previous)
         Box(
             modifier = Modifier
                 .size(30.dp)
@@ -97,7 +90,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
             )
         }
 
-        // Nút Play / Pause
+        // Nút Phát / Tạm dừng (Play / Pause)
         Box(
             modifier = Modifier
                 .size(36.dp)
@@ -114,7 +107,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
             )
         }
 
-        // Nút Next
+        // Nút Bài kế tiếp (Next)
         Box(
             modifier = Modifier
                 .size(30.dp)
