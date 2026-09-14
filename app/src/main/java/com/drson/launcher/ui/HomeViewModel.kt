@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.drson.launcher.R
 import com.drson.launcher.data.HomeLayoutRepository
 import com.drson.launcher.data.IconMapping
 import com.drson.launcher.data.LabelMapping
@@ -20,10 +21,10 @@ import kotlinx.coroutines.launch
 class HomeViewModel : ViewModel() {
 
     val apps = mutableStateListOf<AppItem>()
-
-    // Vị trí cố định trên Home Screen (app hoặc widget - null = ô trống) + Dock (chỉ app).
     val homeSlots = mutableStateListOf<HomeSlotContent?>().apply { repeat(com.drson.launcher.data.HOME_SLOT_COUNT) { add(null) } }
-    val dockSlots = mutableStateListOf<String?>().apply { repeat(com.drson.launcher.data.DOCK_SLOT_COUNT) { add(null) } }
+    
+    // Cố định đúng 4 ô cho Dock (ngoài nút Menu)
+    val dockSlots = mutableStateListOf<String?>().apply { repeat(4) { add(null) } }
 
     private var layoutRepo: HomeLayoutRepository? = null
 
@@ -39,18 +40,33 @@ class HomeViewModel : ViewModel() {
 
         val items = resolved.map { info ->
             val pkg = info.activityInfo.packageName
-            val customIconRes = IconMapping.packageToIcon[pkg]
+            val activityName = info.activityInfo.name
+
+            // Phân biệt icon riêng cho từng Activity con
+            val customIconRes = when {
+                activityName.contains("DialerActivity") -> R.drawable.icon_dialer
+                activityName.contains("DrSonMusicActivity") -> R.drawable.icon_music
+                else -> IconMapping.packageToIcon[pkg]
+            }
+
             val iconBitmap = if (customIconRes != null) {
                 androidx.core.content.res.ResourcesCompat.getDrawable(appContext.resources, customIconRes, null)
-                    ?.toBitmap()?.asImageBitmap()
+                    ?.toBitmap(96, 96)?.asImageBitmap()
             } else {
-                info.loadIcon(pm).toBitmap().asImageBitmap()
+                info.loadIcon(pm).toBitmap(96, 96).asImageBitmap()
             }
+
+            val label = when {
+                activityName.contains("DialerActivity") -> "Điện thoại"
+                activityName.contains("DrSonMusicActivity") -> "Dr Sơn Music"
+                else -> LabelMapping.packageToLabel[pkg] ?: info.loadLabel(pm).toString()
+            }
+
             AppItem(
-                label = LabelMapping.packageToLabel[pkg] ?: info.loadLabel(pm).toString(),
+                label = label,
                 packageName = pkg,
-                activityClassName = info.activityInfo.name,
-                icon = iconBitmap ?: info.loadIcon(pm).toBitmap().asImageBitmap(),
+                activityClassName = activityName,
+                icon = iconBitmap ?: info.loadIcon(pm).toBitmap(96, 96).asImageBitmap(),
             )
         }
         apps.clear()
@@ -58,26 +74,24 @@ class HomeViewModel : ViewModel() {
 
         val savedHome = lRepo.loadHomeSlots()
         homeSlots.clear(); homeSlots.addAll(savedHome)
-        val savedDock = lRepo.loadDockSlots()
-        dockSlots.clear(); dockSlots.addAll(savedDock)
+        
+        val savedDock = lRepo.loadDockSlots().take(4)
+        dockSlots.clear()
+        while (dockSlots.size < 4) dockSlots.add(null)
+        savedDock.forEachIndexed { index, s -> if (index < 4) dockSlots[index] = s }
 
-        // Lần đầu mở app: Gán sẵn Điện thoại (Slot 0) và Dr Sơn Music (Slot 1) vào Dock
-        if (savedDock.all { it == null }) {
-            // 1. Gán ô 0: Điện thoại (Dialer)
-            val phone = apps.find { it.activityClassName.contains("DialerActivity") || it.packageName == appContext.packageName }
+        // Khởi tạo mặc định: Gán sẵn Điện thoại và Dr Sơn Music vào 2 ô đầu tiên
+        if (dockSlots.all { it == null }) {
+            val phone = apps.find { it.activityClassName.contains("DialerActivity") }
             if (phone != null) setDockSlot(context, 0, phone.packageName)
 
-            // 2. Gán ô 1: Dr Sơn Music
-            val music = apps.find { it.activityClassName.contains("DrSonMusicActivity") || it.label.contains("Music", ignoreCase = true) }
-            if (music != null) {
-                setDockSlot(context, 1, music.packageName)
-            }
+            val music = apps.find { it.activityClassName.contains("DrSonMusicActivity") }
+            if (music != null) setDockSlot(context, 1, music.packageName)
         }
     }
 
     fun appFor(packageName: String?): AppItem? = packageName?.let { pn -> apps.find { it.packageName == pn } }
 
-    /** Gán app hoặc widget vào 1 ô Home Screen (`content = null` để gỡ ô về trạng thái trống). */
     fun setHomeSlot(context: Context, index: Int, content: HomeSlotContent?) {
         if (index !in homeSlots.indices) return
         val old = homeSlots[index]
@@ -89,12 +103,8 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch { lRepo.setHomeSlot(index, content) }
     }
 
-    fun setHomeSlotApp(context: Context, index: Int, packageName: String?) {
-        setHomeSlot(context, index, packageName?.let { HomeSlotContent.App(it) })
-    }
-
     fun setDockSlot(context: Context, index: Int, packageName: String?) {
-        if (index !in dockSlots.indices) return
+        if (index !in 0..3) return
         dockSlots[index] = packageName
         val lRepo = layoutRepo ?: HomeLayoutRepository(context.applicationContext).also { layoutRepo = it }
         viewModelScope.launch { lRepo.setDockSlot(index, packageName) }
@@ -109,7 +119,7 @@ class HomeViewModel : ViewModel() {
         val started = try {
             context.startActivity(explicitIntent)
             true
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             false
         }
         if (!started) {
@@ -118,19 +128,5 @@ class HomeViewModel : ViewModel() {
                 context.startActivity(fallback)
             }
         }
-        trackRecentApp(app.packageName)
-    }
-
-    val recentApps = mutableStateListOf<AppItem>()
-
-    private fun trackRecentApp(packageName: String) {
-        val app = apps.find { it.packageName == packageName } ?: return
-        recentApps.removeAll { it.packageName == packageName }
-        recentApps.add(0, app)
-        while (recentApps.size > 8) recentApps.removeAt(recentApps.size - 1)
-    }
-
-    fun removeFromRecents(app: AppItem) {
-        recentApps.remove(app)
     }
 }
