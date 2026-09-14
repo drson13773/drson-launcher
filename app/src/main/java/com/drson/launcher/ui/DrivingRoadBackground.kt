@@ -426,7 +426,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
-                    .padding(start = maxWidth * 0.19f, top = 84.dp),
+                    .padding(start = (this@BoxWithConstraints.maxWidth * 0.19f), top = 84.dp),
             ) {
                 BigClockWidget()
             }
@@ -436,7 +436,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                     .align(Alignment.CenterStart)
                     .padding(start = 20.dp),
             ) {
-                SpeedGauge(speedKmh = drivingData.speedKmh, size = (maxWidth * 0.34f).coerceAtMost(480.dp))
+                SpeedGauge(speedKmh = drivingData.speedKmh, size = (this@BoxWithConstraints.maxWidth * 0.34f).coerceAtMost(480.dp))
             }
 
             Box(
