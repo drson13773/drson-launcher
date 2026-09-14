@@ -40,7 +40,7 @@ fun HomeScreen(
     var isEditMode by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Hình nền đường chạy xe động
+        // Hình nền đường xe chạy động
         DrivingRoadBackground()
 
         Column(
@@ -81,25 +81,25 @@ fun HomeScreen(
                 }
             }
 
-            // Thanh Dock dưới đáy màn hình
+            // Thanh Dock dưới đáy
             BottomDock(
                 viewModel = viewModel,
                 isEditMode = isEditMode,
-                onOpenMenu = { viewModel.openAppDrawer() },
-                onSwipeUpToOpenAppSwitcher = { /* Mở Recents */ },
+                onOpenMenu = { viewModel.isAppDrawerOpen = true },
+                onSwipeUpToOpenAppSwitcher = { },
                 onEmptyDockSlotTap = { _ -> },
                 onLongPressSlot = { isEditMode = !isEditMode }
             )
         }
 
-        // Bảng danh sách ứng dụng App Drawer Overlay (Nền logo góc dưới bên trái)
+        // Bảng danh sách ứng dụng App Drawer
         AppDrawerOverlay(
             isOpen = viewModel.isAppDrawerOpen,
             apps = viewModel.installedApps,
-            onDismiss = { viewModel.closeAppDrawer() },
+            onDismiss = { viewModel.isAppDrawerOpen = false },
             onPick = { app ->
                 viewModel.launchApp(context, app)
-                viewModel.closeAppDrawer()
+                viewModel.isAppDrawerOpen = false
             }
         )
     }
@@ -212,7 +212,7 @@ private fun BottomDock(
             )
         }
 
-        // Các ô slot trên Dock
+        // Các slot trên Dock
         viewModel.dockSlots.forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
@@ -230,7 +230,7 @@ private fun BottomDock(
 
         Spacer(Modifier.weight(1f))
 
-        // Thanh điều khiển nhạc (Đã truyền modifier mặc định)
+        // Thanh điều khiển nhạc
         NowPlayingBar(modifier = Modifier)
     }
 }
