@@ -5,11 +5,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -24,10 +24,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -35,8 +40,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 
-private val GOLD_BRIGHT = Color(0xFFE6C178)
+private val GOLD_BRIGHT = Color(0xFFFFF0B8)
+private val GOLD_SOLID = Color(0xFFFFD56B)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -61,44 +70,125 @@ fun AppDrawerOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black)
+                .background(Color(0xFF0C0A08))
         ) {
-            // --- 1. HÌNH NỀN LOGO BÁC SĨ & DAO MỔ (LÀM MỜ VÀ PHỦ ĐEN) ---
-            Image(
-                painter = painterResource(id = R.drawable.wallpaper_batman_style),
-                contentDescription = null,
+            // --- HÌNH NỀN STACKED LOGO TRUNG TÂM (LÀM MỜ NỀN) ---
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .alpha(0.32f), // Làm mờ hình nền để không bị rối mắt
-                contentScale = ContentScale.Crop
-            )
+                    .alpha(0.30f), // Độ mờ vừa phải để không rối mắt khi nhìn icon
+                contentAlignment = Alignment.Center
+            ) {
+                // 1. Quầng hào quang tia sáng xoay nhẹ
+                Canvas(modifier = Modifier.size(340.dp)) {
+                    val center = Offset(size.width / 2f, size.height / 2f)
+                    val maxR = size.minDimension / 2f
 
-            // Lớp phủ Gradient đen giúp tăng độ tương phản cho icon
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                GOLD_SOLID.copy(alpha = 0.22f),
+                                GOLD_SOLID.copy(alpha = 0.06f),
+                                Color.Transparent
+                            ),
+                            center = center,
+                            radius = maxR
+                        ),
+                        radius = maxR,
+                        center = center
+                    )
+
+                    val nRays = 28
+                    for (i in 0 until nRays) {
+                        val angleDeg = i * (360f / nRays)
+                        val angleRad = Math.toRadians(angleDeg.toDouble())
+                        val rayLen = maxR * (0.6f + 0.35f * abs(sin(Math.toRadians((angleDeg * 2).toDouble()))).toFloat())
+                        val innerR = maxR * 0.25f
+                        val p1 = Offset(
+                            center.x + (innerR * cos(angleRad)).toFloat(),
+                            center.y + (innerR * sin(angleRad)).toFloat()
+                        )
+                        val p2 = Offset(
+                            center.x + (rayLen * cos(angleRad)).toFloat(),
+                            center.y + (rayLen * sin(angleRad)).toFloat()
+                        )
+                        drawLine(
+                            color = GOLD_BRIGHT.copy(alpha = 0.18f),
+                            start = p1,
+                            end = p2,
+                            strokeWidth = 2.0f
+                        )
+                    }
+                }
+
+                // 2. Cụm Logo Xếp Dọc: Bác sĩ -> Chữ Dr Sơn -> Con dao mổ hướng từ phải qua trái
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    // Tầng 1: Hình Bác Sĩ
+                    Image(
+                        painter = painterResource(id = R.drawable.brand_glyph),
+                        contentDescription = null,
+                        modifier = Modifier.size(110.dp),
+                        contentScale = ContentScale.Fit
+                    )
+
+                    Spacer(Modifier.height(4.dp))
+
+                    // Tầng 2: Chữ Dr Sơn
+                    Text(
+                        text = "Dr Sơn",
+                        color = GOLD_BRIGHT,
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily(Font(R.font.alex_brush)),
+                        style = TextStyle(
+                            textAlign = TextAlign.Center
+                        )
+                    )
+
+                    Spacer(Modifier.height(4.dp))
+
+                    // Tầng 3: Con dao mổ làm gạch chân (Lật scaleX = -1f để hướng lưỡi dao từ phải qua trái)
+                    Image(
+                        painter = painterResource(id = R.drawable.icon_scalpel),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .width(100.dp)
+                            .height(20.dp)
+                            .scale(scaleX = -1f, scaleY = 1f), // Hướng lưỡi dao từ phải sang trái
+                        contentScale = ContentScale.Fit
+                    )
+                }
+            }
+
+            // Lớp phủ Gradient mờ trên dưới
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color.Black.copy(alpha = 0.65f),
-                                Color.Black.copy(alpha = 0.45f),
-                                Color.Black.copy(alpha = 0.75f)
+                                Color.Black.copy(alpha = 0.55f),
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.65f)
                             )
                         )
                     )
             )
 
-            // --- 2. NỘI DUNG DANH SÁCH ỨNG DỤNG ---
+            // --- NỘI DUNG DANH SÁCH ỨNG DỤNG ---
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {
-                // Header: Tiêu đề + Ô tìm kiếm + Nút đóng
+                // Thanh Header: Tiêu đề + Tìm kiếm + Nút đóng
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 10.dp),
+                        .padding(bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
@@ -113,7 +203,6 @@ fun AppDrawerOverlay(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Ô tìm kiếm nhỏ gọn
                         OutlinedTextField(
                             value = searchQuery,
                             onValueChange = { searchQuery = it },
@@ -125,8 +214,8 @@ fun AppDrawerOverlay(
                                 unfocusedTextColor = Color.White,
                                 focusedBorderColor = GOLD_BRIGHT,
                                 unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                                focusedContainerColor = Color.Black.copy(alpha = 0.4f),
-                                unfocusedContainerColor = Color.Black.copy(alpha = 0.3f)
+                                focusedContainerColor = Color.Black.copy(alpha = 0.45f),
+                                unfocusedContainerColor = Color.Black.copy(alpha = 0.35f)
                             ),
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier
@@ -134,7 +223,6 @@ fun AppDrawerOverlay(
                                 .height(44.dp)
                         )
 
-                        // Nút đóng
                         IconButton(
                             onClick = onDismiss,
                             modifier = Modifier
@@ -147,13 +235,13 @@ fun AppDrawerOverlay(
                     }
                 }
 
-                // LƯỚI ICON ỨNG DỤNG: 7 cột, icon nhỏ (50dp), khoảng cách sát nhau
+                // Lưới ứng dụng: 7 cột, icon 50dp, khoảng cách gọn
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(7),
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp)
+                    contentPadding = PaddingValues(vertical = 6.dp)
                 ) {
                     items(filteredApps) { app ->
                         Column(
@@ -167,7 +255,7 @@ fun AppDrawerOverlay(
                                 bitmap = app.icon,
                                 contentDescription = app.label,
                                 modifier = Modifier
-                                    .size(50.dp) // Icon nhỏ gọn
+                                    .size(50.dp)
                                     .clip(RoundedCornerShape(12.dp))
                             )
                             Spacer(Modifier.height(4.dp))
