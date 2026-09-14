@@ -5,16 +5,19 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
 
-    <!-- Control Center: âm lượng, độ sáng, Bluetooth, Wi-Fi, máy bay, Data di động -->
+    <!-- Control Center & StatusBar: âm lượng, độ sáng, Bluetooth, Wi-Fi, máy bay, Data di động -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        tools:targetApi="31" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
     <!-- 3 quyền dưới đây là quyền hệ thống: KHÔNG có màn hình Cài đặt nào để bật tay được, chỉ
          có tác dụng nếu được cấp qua lệnh ADB một lần (xem README, mục "Bật/tắt Wi-Fi, máy bay,
          Data ngay lập tức"). Nếu chưa cấp, app tự rơi về mở đúng màn hình Cài đặt như bình thường. -->
