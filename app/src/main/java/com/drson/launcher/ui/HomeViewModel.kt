@@ -23,7 +23,7 @@ class HomeViewModel : ViewModel() {
     val apps = mutableStateListOf<AppItem>()
     val homeSlots = mutableStateListOf<HomeSlotContent?>().apply { repeat(com.drson.launcher.data.HOME_SLOT_COUNT) { add(null) } }
     
-    // Cố định đúng 4 ô cho Dock (ngoài nút Menu)
+    // Cố định đúng 4 ô cho thanh Dock
     val dockSlots = mutableStateListOf<String?>().apply { repeat(4) { add(null) } }
 
     private var layoutRepo: HomeLayoutRepository? = null
@@ -34,15 +34,25 @@ class HomeViewModel : ViewModel() {
 
         val pm = appContext.packageManager
         val intent = Intent(Intent.ACTION_MAIN, null).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
+        
         val resolved = pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
-            .filterNot { it.activityInfo.packageName == appContext.packageName && it.activityInfo.name.endsWith(".MainActivity") }
+            .filterNot { 
+                val pkg = it.activityInfo.packageName.lowercase()
+                val label = it.loadLabel(pm).toString().lowercase()
+
+                // Loại trừ chính launcher
+                (pkg == appContext.packageName && it.activityInfo.name.endsWith(".MainActivity")) ||
+                // Bỏ Máy ảnh (Camera)
+                pkg.contains("camera") || label.contains("máy ảnh") || label.contains("camera") ||
+                // Bỏ Thư viện ảnh (Gallery / Photos)
+                pkg.contains("gallery") || pkg.contains("photos") || label.contains("thư viện") || label.contains("gallery") || label.contains("ảnh")
+            }
             .sortedBy { it.loadLabel(pm).toString().lowercase() }
 
         val items = resolved.map { info ->
             val pkg = info.activityInfo.packageName
             val activityName = info.activityInfo.name
 
-            // Phân biệt icon riêng cho từng Activity con
             val customIconRes = when {
                 activityName.contains("DialerActivity") -> R.drawable.icon_dialer
                 activityName.contains("DrSonMusicActivity") -> R.drawable.icon_music
@@ -80,7 +90,7 @@ class HomeViewModel : ViewModel() {
         while (dockSlots.size < 4) dockSlots.add(null)
         savedDock.forEachIndexed { index, s -> if (index < 4) dockSlots[index] = s }
 
-        // Khởi tạo mặc định: Gán sẵn Điện thoại và Dr Sơn Music vào 2 ô đầu tiên
+        // Mặc định gán Điện thoại và Dr Sơn Music vào 2 ô đầu tiên
         if (dockSlots.all { it == null }) {
             val phone = apps.find { it.activityClassName.contains("DialerActivity") }
             if (phone != null) setDockSlot(context, 0, phone.packageName)
