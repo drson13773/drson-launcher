@@ -38,17 +38,9 @@ class MainActivity : ComponentActivity() {
         homeViewModel.loadInstalledApps(this)
     }
 
-    // Bắt và điều hướng các nút bấm vật lý trên cụm Mazda Commander
+    // Bắt phím vật lý trên vô lăng và cụm Mazda Commander
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return when (keyCode) {
-            KeyEvent.KEYCODE_BACK -> {
-                if (homeViewModel.isAppDrawerOpen) {
-                    homeViewModel.closeAppDrawer()
-                    true
-                } else {
-                    super.onKeyDown(keyCode, event)
-                }
-            }
             KeyEvent.KEYCODE_MUSIC, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
                 val launchIntent = packageManager.getLaunchIntentForPackage("com.zing.mp3")
                 if (launchIntent != null) {
@@ -67,16 +59,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Bắt trục lăn xoay tròn (Scroll Wheel) của núm Commander
+    // Bắt trục xoay tròn dạng cuộn (Scroll Wheel) của núm xoay Commander
     override fun onGenericMotionEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_SCROLL) {
             val scrollY = event.getAxisValue(MotionEvent.AXIS_VSCROLL)
             val scrollX = event.getAxisValue(MotionEvent.AXIS_HSCROLL)
             if (scrollY > 0 || scrollX > 0) {
+                // Vặn theo chiều kim đồng hồ -> Chuyển focus sang phải
                 window.decorView.rootView.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_RIGHT))
                 window.decorView.rootView.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_RIGHT))
                 return true
             } else if (scrollY < 0 || scrollX < 0) {
+                // Vặn ngược chiều kim đồng hồ -> Chuyển focus sang trái
                 window.decorView.rootView.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_DPAD_LEFT))
                 window.decorView.rootView.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_DPAD_LEFT))
                 return true
