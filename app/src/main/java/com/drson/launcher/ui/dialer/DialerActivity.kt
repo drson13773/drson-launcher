@@ -46,7 +46,9 @@ class DialerActivity : ComponentActivity() {
                     val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$number")).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
-                    try { startActivity(intent) } catch (_: Exception) {}
+                    try {
+                        startActivity(intent)
+                    } catch (_: Exception) {}
                 },
                 onBack = { finish() }
             )
@@ -74,7 +76,7 @@ fun DialerScreen(
                 .padding(horizontal = 24.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header Tab: Nhật ký / Yêu thích / Danh bạ
+            // Header Tab
             Row(
                 modifier = Modifier
                     .fillMaxWidth(0.55f)
@@ -99,7 +101,7 @@ fun DialerScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Màn hình hiển thị số đang bấm
+            // Màn hình hiển thị số
             Row(
                 modifier = Modifier
                     .fillMaxWidth(0.5f)
@@ -132,8 +134,8 @@ fun DialerScreen(
 
             Spacer(Modifier.height(10.dp))
 
-            // BÀN PHÍM ĐA GIÁC BATMAN STYLE
-            BatmanDialPad(
+            // Bàn phím số phong cách Luxury Hexagonal
+            LuxuryHexDialPad(
                 onKeyClick = { key -> phoneNumber += key },
                 onCall = { if (phoneNumber.isNotEmpty()) onCall(phoneNumber) }
             )
@@ -142,7 +144,7 @@ fun DialerScreen(
 }
 
 @Composable
-private fun BatmanDialPad(
+private fun LuxuryHexDialPad(
     onKeyClick: (String) -> Unit,
     onCall: () -> Unit
 ) {
@@ -164,7 +166,7 @@ private fun BatmanDialPad(
                 horizontalArrangement = Arrangement.Center
             ) {
                 row.forEach { (digit, letters, shape) ->
-                    BatmanKey(
+                    LuxuryKey(
                         digit = digit,
                         letters = letters,
                         shape = shape,
@@ -176,7 +178,7 @@ private fun BatmanDialPad(
 
         Spacer(Modifier.height(8.dp))
 
-        // Nút Gọi điện thoại
+        // Nút Gọi
         Box(
             modifier = Modifier
                 .size(52.dp)
@@ -193,7 +195,7 @@ private fun BatmanDialPad(
 private enum class KeyShape { LEFT_WING, CENTER_HEX, RIGHT_WING }
 
 @Composable
-private fun BatmanKey(
+private fun LuxuryKey(
     digit: String,
     letters: String,
     shape: KeyShape,
@@ -202,12 +204,12 @@ private fun BatmanKey(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val width = if (shape == KeyShape.CENTER_HEX) 115.dp else 95.dp
-    val height = 46.dp
+    val keyWidth = if (shape == KeyShape.CENTER_HEX) 115.dp else 95.dp
+    val keyHeight = 46.dp
 
     Box(
         modifier = Modifier
-            .size(width = width, height = height)
+            .size(width = keyWidth, height = keyHeight)
             .focusable(interactionSource = interactionSource)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
@@ -215,50 +217,47 @@ private fun BatmanKey(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
-            val path = Path()
+            val keyPath = Path()
 
             when (shape) {
                 KeyShape.CENTER_HEX -> {
-                    // Đa giác hình lục giác vát chéo trung tâm
-                    path.moveTo(w * 0.18f, 0f)
-                    lineTo(w * 0.82f, 0f)
-                    lineTo(w, h * 0.5f)
-                    lineTo(w * 0.82f, h)
-                    lineTo(w * 0.18f, h)
-                    lineTo(0f, h * 0.5f)
-                    path.close()
+                    keyPath.moveTo(w * 0.18f, 0f)
+                    keyPath.lineTo(w * 0.82f, 0f)
+                    keyPath.lineTo(w, h * 0.5f)
+                    keyPath.lineTo(w * 0.82f, h)
+                    keyPath.lineTo(w * 0.18f, h)
+                    keyPath.lineTo(0f, h * 0.5f)
+                    keyPath.close()
                 }
                 KeyShape.LEFT_WING -> {
-                    // Cánh trái vát chéo ôm theo tâm
-                    path.moveTo(0f, 0f)
-                    lineTo(w * 0.95f, 0f)
-                    lineTo(w * 0.82f, h * 0.5f)
-                    lineTo(w * 0.95f, h)
-                    lineTo(0f, h)
-                    path.close()
+                    keyPath.moveTo(0f, 0f)
+                    keyPath.lineTo(w * 0.95f, 0f)
+                    keyPath.lineTo(w * 0.82f, h * 0.5f)
+                    keyPath.lineTo(w * 0.95f, h)
+                    keyPath.lineTo(0f, h)
+                    keyPath.close()
                 }
                 KeyShape.RIGHT_WING -> {
-                    // Cánh phải vát chéo ôm theo tâm
-                    path.moveTo(w * 0.05f, 0f)
-                    lineTo(w, 0f)
-                    lineTo(w, h)
-                    lineTo(w * 0.05f, h)
-                    lineTo(w * 0.18f, h * 0.5f)
-                    path.close()
+                    keyPath.moveTo(w * 0.05f, 0f)
+                    keyPath.lineTo(w, 0f)
+                    keyPath.lineTo(w, h)
+                    keyPath.lineTo(w * 0.05f, h)
+                    keyPath.lineTo(w * 0.18f, h * 0.5f)
+                    keyPath.close()
                 }
             }
 
-            // Đổ nền nút
-            drawPath(path, color = if (isFocused) Color(0xFF2A2418) else KEY_BG)
-            // Vẽ viền kim loại ánh vàng Batman
             drawPath(
-                path = path,
+                path = keyPath,
+                color = if (isFocused) Color(0xFF2A2418) else KEY_BG
+            )
+            drawPath(
+                path = keyPath,
                 color = if (isFocused) GOLD_BRIGHT else GOLD_BORDER.copy(alpha = 0.65f),
                 style = Stroke(width = if (isFocused) 2.5f else 1.2f)
             )
         }
 
-        // Ký tự số & chữ phụ
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
