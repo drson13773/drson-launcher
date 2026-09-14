@@ -28,14 +28,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            DrSonLauncherTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    HomeScreen(viewModel = homeViewModel)
-                }
-            }
+            MainContent(homeViewModel)
         }
     }
 
@@ -90,5 +83,17 @@ class MainActivity : ComponentActivity() {
             }
         }
         return super.onGenericMotionEvent(event)
+    }
+}
+
+@Composable
+private fun MainContent(viewModel: HomeViewModel) {
+    DrSonLauncherTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            HomeScreen(viewModel = viewModel)
+        }
     }
 }
