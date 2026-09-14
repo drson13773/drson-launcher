@@ -1,7 +1,6 @@
 package com.drson.launcher.ui
 
 import android.content.Context
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -138,19 +137,13 @@ private fun FocusableDesktopSlot(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    // Ẩn hoàn toàn khung nền nếu ô trống không có app
-    val backgroundModifier = if (app != null) {
-        Modifier.background(Color.Black.copy(alpha = 0.45f))
-    } else {
-        Modifier.background(Color.Transparent)
-    }
-
     Box(
         modifier = modifier
             .size(72.dp)
             .clip(RoundedCornerShape(16.dp))
-            .then(backgroundModifier)
-            .focusable(interactionSource = interactionSource)
+            .background(if (app != null) Color.Black.copy(alpha = 0.45f) else Color.Transparent)
+            // CHỈ cho phép nhận focus của núm xoay khi ô ĐANG CÓ APP (bỏ qua ô trống hoàn toàn)
+            .focusable(enabled = (app != null), interactionSource = interactionSource)
             .then(
                 if (isFocused && app != null) {
                     Modifier.border(2.5.dp, GOLD_BRIGHT, RoundedCornerShape(16.dp))
@@ -158,7 +151,7 @@ private fun FocusableDesktopSlot(
                     Modifier
                 }
             )
-            .clickable(enabled = app != null, onClick = onClick)
+            .clickable(enabled = (app != null), onClick = onClick)
             .padding(6.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -209,13 +202,13 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 1. Nút Menu chính
+        // Nút Menu chính (luôn focusable)
         Box(
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(14.dp))
                 .background(Color(0xFF1E1912))
-                .focusable(interactionSource = menuInteractionSource)
+                .focusable(enabled = true, interactionSource = menuInteractionSource)
                 .then(
                     if (isMenuFocused) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(14.dp))
                     else Modifier.border(1.dp, GOLD_BRIGHT.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
@@ -232,7 +225,7 @@ private fun BottomDock(
             )
         }
 
-        // 2. Đúng 4 ô Ứng dụng trên Dock
+        // 4 ô Ứng dụng trên Dock (chỉ focusable khi ô có app)
         viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
@@ -250,7 +243,7 @@ private fun BottomDock(
 
         Spacer(Modifier.width(8.dp))
 
-        // 3. Thanh phát nhạc & Âm lượng kéo dài
+        // Thanh phát nhạc & Âm lượng kéo dài
         ExpandedNowPlayingBar(modifier = Modifier.weight(1f))
     }
 }
@@ -270,9 +263,10 @@ private fun FocusableDockSlotCell(
             .size(48.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(if (app != null) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.03f))
-            .focusable(interactionSource = interactionSource)
+            // Chỉ bắt focus khi có app gán vào ô
+            .focusable(enabled = (app != null), interactionSource = interactionSource)
             .then(
-                if (isFocused) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(14.dp))
+                if (isFocused && app != null) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(14.dp))
                 else Modifier.border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(14.dp))
             )
             .clickable(onClick = onTap)
