@@ -3,52 +3,71 @@ package com.drson.launcher.ui.dialer
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Backspace
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val GOLD_BORDER = Color(0xFFC99E5C)
+private val BAT_DARK = Color(0xFF0A0907)
+private val BAT_CARBON = Color(0xFF161410)
+private val GOLD_HUD = Color(0xFFFFD700)
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
-private val BG_DARK = Color(0xFF0D0F12)
-private val KEY_BG = Color(0xFF14181F)
+private val GOLD_DARK = Color(0xFF8B7500)
 
 class DialerActivity : ComponentActivity() {
+
+    private var dialedNumber by mutableStateOf("")
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            DialerScreen(
-                onCall = { number ->
-                    val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$number")).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            BatmobileDialerScreen(
+                dialedNumber = dialedNumber,
+                onDigitPress = { digit ->
+                    if (dialedNumber.length < 15) dialedNumber += digit
+                },
+                onBackspace = {
+                    if (dialedNumber.isNotEmpty()) dialedNumber = dialedNumber.dropLast(1)
+                },
+                onClearAll = { dialedNumber = "" },
+                onCall = {
+                    if (dialedNumber.isNotBlank()) {
+                        val callIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:$dialedNumber")).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        try {
+                            startActivity(callIntent)
+                        } catch (_: Exception) {
+                            val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$dialedNumber")).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(dialIntent)
+                        }
                     }
-                    try {
-                        startActivity(intent)
-                    } catch (_: Exception) {}
                 },
                 onBack = { finish() }
             )
@@ -57,225 +76,208 @@ class DialerActivity : ComponentActivity() {
 }
 
 @Composable
-fun DialerScreen(
-    onCall: (String) -> Unit,
+fun BatmobileDialerScreen(
+    dialedNumber: String,
+    onDigitPress: (String) -> Unit,
+    onBackspace: () -> Unit,
+    onClearAll: () -> Unit,
+    onCall: () -> Unit,
     onBack: () -> Unit
 ) {
-    var phoneNumber by remember { mutableStateOf("") }
-    var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("NHẬT KÝ", "YÊU THÍCH", "DANH BẠ")
+    val keypadKeys = listOf(
+        listOf("1" to "", "2" to "ABC", "3" to "DEF"),
+        listOf("4" to "GHI", "5" to "JKL", "6" to "MNO"),
+        listOf("7" to "PQRS", "8" to "TUV", "9" to "WXYZ"),
+        listOf("*" to "", "0" to "+", "#" to "")
+    )
 
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxSize()
-            .background(BG_DARK)
+            .background(BAT_DARK)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        // CỘT TRÁI: Màn hình HUD buồng lái siêu xe hiển thị số gọi
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .weight(1f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Header Tab
-            Row(
+            // Nút Thoát
+            IconButton(
+                onClick = onBack,
                 modifier = Modifier
-                    .fillMaxWidth(0.55f)
-                    .height(38.dp)
-                    .background(Color.Black.copy(alpha = 0.6f)),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+                    .size(42.dp)
+                    .clip(CutCornerShape(8.dp))
+                    .background(BAT_CARBON)
+                    .border(1.dp, GOLD_DARK, CutCornerShape(8.dp))
             ) {
-                tabs.forEachIndexed { index, tabName ->
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = GOLD_BRIGHT)
+            }
+
+            // Màn hình hiển thị số kiểu HUD Cockpit
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(vertical = 12.dp)
+                    .clip(CutCornerShape(16.dp))
+                    .background(
+                        Brush.verticalGradient(listOf(Color(0xFF14120D), Color(0xFF080705)))
+                    )
+                    .border(1.5.dp, GOLD_HUD.copy(alpha = 0.6f), CutCornerShape(16.dp))
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
                     Text(
-                        text = tabName,
-                        color = if (selectedTab == index) GOLD_BRIGHT else Color.Gray,
-                        fontSize = 13.sp,
-                        fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium,
-                        fontFamily = FontFamily.Default,
-                        modifier = Modifier
-                            .clickable { selectedTab = index }
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                        text = "MAZDA COCKPIT DIALER",
+                        color = GOLD_DARK,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    Text(
+                        text = if (dialedNumber.isEmpty()) "NHẬP SỐ ĐIỆN THOẠI" else dialedNumber,
+                        color = if (dialedNumber.isEmpty()) Color.Gray.copy(alpha = 0.5f) else GOLD_BRIGHT,
+                        fontSize = if (dialedNumber.length > 10) 24.sp else 30.sp,
+                        fontWeight = FontWeight.Black,
+                        fontFamily = FontFamily.Monospace,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
 
-            Spacer(Modifier.height(12.dp))
-
-            // Màn hình hiển thị số
+            // Nút Gọi khẩn cấp / Gọi điện siêu xe
             Row(
                 modifier = Modifier
-                    .fillMaxWidth(0.5f)
-                    .height(48.dp)
-                    .padding(horizontal = 8.dp),
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clip(CutCornerShape(12.dp))
+                    .background(
+                        Brush.horizontalGradient(listOf(Color(0xFFB8860B), Color(0xFFFFD700)))
+                    )
+                    .border(2.dp, GOLD_BRIGHT, CutCornerShape(12.dp))
+                    .clickable(onClick = onCall),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
+                Icon(Icons.Default.Call, contentDescription = "Call", tint = Color.Black, modifier = Modifier.size(26.dp))
+                Spacer(Modifier.width(10.dp))
                 Text(
-                    text = phoneNumber.ifEmpty { "Nhập số điện thoại" },
-                    color = if (phoneNumber.isEmpty()) Color.Gray else GOLD_BRIGHT,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    fontFamily = FontFamily.Default,
-                    maxLines = 1,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
+                    text = "BẮT ĐẦU CUỘC GỌI",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 14.sp,
+                    letterSpacing = 1.sp
                 )
-                if (phoneNumber.isNotEmpty()) {
-                    Icon(
-                        imageVector = Icons.Default.Backspace,
-                        contentDescription = "Xóa",
-                        tint = GOLD_BORDER,
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clickable { phoneNumber = phoneNumber.dropLast(1) }
-                    )
+            }
+        }
+
+        // CỘT PHẢI: Bàn phím số Batman / Supercar góc cạnh
+        Column(
+            modifier = Modifier
+                .weight(1.3f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.SpaceEvenly
+        ) {
+            for (row in keypadKeys) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    for ((digit, subText) in row) {
+                        BatKeypadButton(
+                            digit = digit,
+                            subText = subText,
+                            modifier = Modifier.weight(1f),
+                            onClick = { onDigitPress(digit) }
+                        )
+                    }
                 }
             }
 
-            Spacer(Modifier.height(10.dp))
-
-            // Bàn phím số phong cách Luxury Hexagonal
-            LuxuryHexDialPad(
-                onKeyClick = { key -> phoneNumber += key },
-                onCall = { if (phoneNumber.isNotEmpty()) onCall(phoneNumber) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun LuxuryHexDialPad(
-    onKeyClick: (String) -> Unit,
-    onCall: () -> Unit
-) {
-    val keyRows = listOf(
-        listOf(Triple("1", "oo", KeyShape.LEFT_WING), Triple("2", "ABC", KeyShape.CENTER_HEX), Triple("3", "DEF", KeyShape.RIGHT_WING)),
-        listOf(Triple("4", "GHI", KeyShape.LEFT_WING), Triple("5", "JKL", KeyShape.CENTER_HEX), Triple("6", "MNO", KeyShape.RIGHT_WING)),
-        listOf(Triple("7", "PQRS", KeyShape.LEFT_WING), Triple("8", "TUV", KeyShape.CENTER_HEX), Triple("9", "WXYZ", KeyShape.RIGHT_WING)),
-        listOf(Triple("*", "", KeyShape.LEFT_WING), Triple("0", "+", KeyShape.CENTER_HEX), Triple("#", "", KeyShape.RIGHT_WING))
-    )
-
-    Column(
-        modifier = Modifier.width(360.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        keyRows.forEach { row ->
+            // Dòng phím chức năng Xóa lùi / Xóa sạch
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                row.forEach { (digit, letters, shape) ->
-                    LuxuryKey(
-                        digit = digit,
-                        letters = letters,
-                        shape = shape,
-                        onClick = { onKeyClick(digit) }
-                    )
+                Button(
+                    onClick = onClearAll,
+                    shape = CutCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = BAT_CARBON),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .border(1.dp, Color.White.copy(alpha = 0.15f), CutCornerShape(10.dp))
+                ) {
+                    Text("XÓA HẾT", color = Color.Gray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = onBackspace,
+                    shape = CutCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = BAT_CARBON),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(44.dp)
+                        .border(1.dp, GOLD_DARK, CutCornerShape(10.dp))
+                ) {
+                    Icon(Icons.Default.Backspace, contentDescription = "Backspace", tint = GOLD_BRIGHT, modifier = Modifier.size(18.dp))
                 }
             }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        // Nút Gọi
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
-                .background(Brush.verticalGradient(listOf(Color(0xFF2E7D32), Color(0xFF1B5E20))))
-                .clickable(onClick = onCall),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.Call, contentDescription = "Gọi", tint = Color.White, modifier = Modifier.size(26.dp))
         }
     }
 }
 
-private enum class KeyShape { LEFT_WING, CENTER_HEX, RIGHT_WING }
-
 @Composable
-private fun LuxuryKey(
+private fun BatKeypadButton(
     digit: String,
-    letters: String,
-    shape: KeyShape,
-    onClick: () -> Unit
+    subText: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
-    val keyWidth = if (shape == KeyShape.CENTER_HEX) 115.dp else 95.dp
-    val keyHeight = 46.dp
-
     Box(
-        modifier = Modifier
-            .size(width = keyWidth, height = keyHeight)
+        modifier = modifier
+            .height(52.dp)
+            .clip(CutCornerShape(10.dp))
+            .background(if (isFocused) Color(0xFF2E2619) else BAT_CARBON)
             .focusable(interactionSource = interactionSource)
+            .border(
+                width = if (isFocused) 2.dp else 1.dp,
+                color = if (isFocused) GOLD_BRIGHT else GOLD_DARK.copy(alpha = 0.4f),
+                shape = CutCornerShape(10.dp)
+            )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            val keyPath = Path()
-
-            when (shape) {
-                KeyShape.CENTER_HEX -> {
-                    keyPath.moveTo(w * 0.18f, 0f)
-                    keyPath.lineTo(w * 0.82f, 0f)
-                    keyPath.lineTo(w, h * 0.5f)
-                    keyPath.lineTo(w * 0.82f, h)
-                    keyPath.lineTo(w * 0.18f, h)
-                    keyPath.lineTo(0f, h * 0.5f)
-                    keyPath.close()
-                }
-                KeyShape.LEFT_WING -> {
-                    keyPath.moveTo(0f, 0f)
-                    keyPath.lineTo(w * 0.95f, 0f)
-                    keyPath.lineTo(w * 0.82f, h * 0.5f)
-                    keyPath.lineTo(w * 0.95f, h)
-                    keyPath.lineTo(0f, h)
-                    keyPath.close()
-                }
-                KeyShape.RIGHT_WING -> {
-                    keyPath.moveTo(w * 0.05f, 0f)
-                    keyPath.lineTo(w, 0f)
-                    keyPath.lineTo(w, h)
-                    keyPath.lineTo(w * 0.05f, h)
-                    keyPath.lineTo(w * 0.18f, h * 0.5f)
-                    keyPath.close()
-                }
-            }
-
-            drawPath(
-                path = keyPath,
-                color = if (isFocused) Color(0xFF2A2418) else KEY_BG
-            )
-            drawPath(
-                path = keyPath,
-                color = if (isFocused) GOLD_BRIGHT else GOLD_BORDER.copy(alpha = 0.65f),
-                style = Stroke(width = if (isFocused) 2.5f else 1.2f)
-            )
-        }
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = digit,
-                color = GOLD_BRIGHT,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Default
+                color = if (isFocused) GOLD_BRIGHT else Color.White,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Monospace
             )
-            if (letters.isNotEmpty()) {
+            if (subText.isNotEmpty()) {
                 Text(
-                    text = letters,
-                    color = Color.White.copy(alpha = 0.55f),
+                    text = subText,
+                    color = GOLD_HUD.copy(alpha = 0.7f),
                     fontSize = 8.sp,
-                    fontWeight = FontWeight.Normal,
-                    fontFamily = FontFamily.Default
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
