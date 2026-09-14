@@ -14,7 +14,6 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,10 +39,10 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Ô vuông bìa nhạc: nếu không có album art thì hiển thị icon app Nhạc
+        // Ô vuông hiển thị album art hoặc icon app Nhạc
         Box(
             modifier = Modifier
-                .size(42.dp)
+                .size(40.dp)
                 .clip(RoundedCornerShape(10.dp))
                 .background(Color.White.copy(alpha = 0.08f))
                 .clickable {
@@ -55,9 +54,10 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
                 },
             contentAlignment = Alignment.Center
         ) {
-            if (playbackState.albumArt != null) {
+            val art = playbackState.albumArt
+            if (art != null) {
                 Image(
-                    bitmap = playbackState.albumArt!!.asImageBitmap(),
+                    bitmap = art.asImageBitmap(),
                     contentDescription = "Album Art",
                     modifier = Modifier.fillMaxSize()
                 )
@@ -66,7 +66,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
                     painter = painterResource(id = R.drawable.icon_music),
                     contentDescription = "Music App",
                     modifier = Modifier
-                        .size(30.dp)
+                        .size(26.dp)
                         .clip(RoundedCornerShape(6.dp))
                 )
             }
@@ -75,53 +75,51 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
         // Nút Previous
         Box(
             modifier = Modifier
-                .size(32.dp)
+                .size(30.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.12f))
-                .clickable { mediaRepo.skipToPrevious() },
+                .clickable { mediaRepo.previous() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.SkipPrevious,
                 contentDescription = "Previous",
                 tint = GOLD_ACCENT,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
 
         // Nút Play / Pause
         Box(
             modifier = Modifier
-                .size(38.dp)
+                .size(36.dp)
                 .clip(CircleShape)
                 .background(GOLD_ACCENT)
-                .clickable {
-                    if (playbackState.isPlaying) mediaRepo.pause() else mediaRepo.play()
-                },
+                .clickable { mediaRepo.playPause() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                 contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
                 tint = Color.Black,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
 
         // Nút Next
         Box(
             modifier = Modifier
-                .size(32.dp)
+                .size(30.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.12f))
-                .clickable { mediaRepo.skipToNext() },
+                .clickable { mediaRepo.next() },
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.SkipNext,
                 contentDescription = "Next",
                 tint = GOLD_ACCENT,
-                modifier = Modifier.size(18.dp)
+                modifier = Modifier.size(16.dp)
             )
         }
     }
