@@ -1,125 +1,183 @@
 package com.drson.launcher.ui
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
+import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
 
-private val GOLD = Color(0xFFC99E5C)
 private val GOLD_BRIGHT = Color(0xFFE6C178)
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AppDrawerOverlay(
     isOpen: Boolean,
     apps: List<AppItem>,
-    title: String,
+    title: String = "Tất cả ứng dụng",
     onDismiss: () -> Unit,
     onPick: (AppItem) -> Unit,
 ) {
-    var query by remember { mutableStateOf("") }
-    val filtered = remember(apps, query) {
-        if (query.isBlank()) apps else apps.filter { it.label.contains(query, ignoreCase = true) }
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredApps = remember(apps, searchQuery) {
+        if (searchQuery.isBlank()) apps
+        else apps.filter { it.label.contains(searchQuery, ignoreCase = true) }
     }
 
     AnimatedVisibility(
         visible = isOpen,
-        enter = fadeIn(tween(150)),
-        exit = fadeOut(tween(150)),
-        modifier = Modifier.zIndex(40f),
+        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 }),
+        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 4 })
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.75f))
-                .clickable(onClick = onDismiss),
+                .background(Color.Black)
         ) {
+            // --- 1. HÌNH NỀN LOGO BÁC SĨ & DAO MỔ (LÀM MỜ VÀ PHỦ ĐEN) ---
+            Image(
+                painter = painterResource(id = R.drawable.wallpaper_batman_style),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .alpha(0.32f), // Làm mờ hình nền để không bị rối mắt
+                contentScale = ContentScale.Crop
+            )
+
+            // Lớp phủ Gradient đen giúp tăng độ tương phản cho icon
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Black.copy(alpha = 0.65f),
+                                Color.Black.copy(alpha = 0.45f),
+                                Color.Black.copy(alpha = 0.75f)
+                            )
+                        )
+                    )
+            )
+
+            // --- 2. NỘI DUNG DANH SÁCH ỨNG DỤNG ---
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(28.dp)
-                    .clickable(enabled = false) {},
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {
+                // Header: Tiêu đề + Ô tìm kiếm + Nút đóng
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(title, color = Color.White, fontSize = 16.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
-                    Text(
-                        "Đóng",
-                        color = GOLD_BRIGHT,
-                        fontSize = 13.sp,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable(onClick = onDismiss)
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
-                    )
-                }
-                Spacer(Modifier.height(12.dp))
-                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    if (query.isEmpty()) {
-                        Text("Tìm ứng dụng", color = Color.White.copy(alpha = 0.4f), fontSize = 13.sp)
-                    }
-                    BasicTextField(
-                        value = query,
-                        onValueChange = { query = it },
-                        textStyle = TextStyle(color = Color.White, fontSize = 13.sp),
-                        cursorBrush = SolidColor(GOLD),
-                        modifier = Modifier.fillMaxWidth(),
+                    Text(
+                        text = title,
+                        color = GOLD_BRIGHT,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Ô tìm kiếm nhỏ gọn
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text("Tìm ứng dụng...", fontSize = 12.sp, color = Color.White.copy(alpha = 0.5f)) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = GOLD_BRIGHT, modifier = Modifier.size(16.dp)) },
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedBorderColor = GOLD_BRIGHT,
+                                unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
+                                focusedContainerColor = Color.Black.copy(alpha = 0.4f),
+                                unfocusedContainerColor = Color.Black.copy(alpha = 0.3f)
+                            ),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .width(220.dp)
+                                .height(44.dp)
+                        )
+
+                        // Nút đóng
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(Color.White.copy(alpha = 0.12f))
+                        ) {
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(20.dp))
+                        }
+                    }
                 }
-                Spacer(Modifier.height(16.dp))
+
+                // LƯỚI ICON ỨNG DỤNG: 7 cột, icon nhỏ (50dp), khoảng cách sát nhau
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(5),
-                    horizontalArrangement = Arrangement.spacedBy(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(22.dp),
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    columns = GridCells.Fixed(7),
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
-                    items(filtered, key = { it.packageName }) { app ->
+                    items(filteredApps) { app ->
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.clickable { onPick(app) },
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { onPick(app) }
+                                .padding(vertical = 4.dp, horizontal = 2.dp)
                         ) {
                             Image(
                                 bitmap = app.icon,
                                 contentDescription = app.label,
-                                modifier = Modifier.size(64.dp).clip(RoundedCornerShape(16.dp)),
+                                modifier = Modifier
+                                    .size(50.dp) // Icon nhỏ gọn
+                                    .clip(RoundedCornerShape(12.dp))
                             )
-                            Spacer(Modifier.height(6.dp))
+                            Spacer(Modifier.height(4.dp))
                             Text(
-                                app.label,
+                                text = app.label,
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 maxLines = 1,
-                                textAlign = TextAlign.Center,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
