@@ -8,14 +8,9 @@ import android.view.MotionEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.drson.launcher.ui.HomeScreen
 import com.drson.launcher.ui.HomeViewModel
-import com.drson.launcher.ui.theme.DrSonLauncherTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -27,14 +22,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            DrSonLauncherTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    HomeScreen(viewModel = homeViewModel)
-                }
-            }
+            HomeScreen(viewModel = homeViewModel)
         }
     }
 
