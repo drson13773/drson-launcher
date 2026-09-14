@@ -1,11 +1,13 @@
 package com.drson.launcher.ui
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
@@ -21,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -31,9 +34,27 @@ import androidx.compose.ui.unit.sp
 import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
 import com.drson.launcher.model.HomeSlotContent
+import java.lang.reflect.Method
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
+
+@SuppressLint("WrongConstant")
+fun openSystemQuickSettings(context: Context) {
+    try {
+        val statusBarService = context.getSystemService("statusbar")
+        val statusBarManager = Class.forName("android.app.StatusBarManager")
+        // Mở Trung tâm điều khiển / Quick Settings Panel
+        val expandMethod: Method = try {
+            statusBarManager.getMethod("expandSettingsPanel")
+        } catch (_: Exception) {
+            statusBarManager.getMethod("expandNotificationsPanel")
+        }
+        expandMethod.invoke(statusBarService)
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
 
 @Composable
 fun HomeScreen(
@@ -51,7 +72,18 @@ fun HomeScreen(
         } catch (_: Exception) {}
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            // Bắt cử chỉ vuốt từ trên xuống ở khu vực màn hình
+            .pointerInput(Unit) {
+                detectVerticalDragGestures { _, dragAmount ->
+                    if (dragAmount > 35f) { // Khi ngón tay kéo xuống từ mép trên
+                        openSystemQuickSettings(context)
+                    }
+                }
+            }
+    ) {
         DrivingRoadBackground()
 
         Column(
@@ -142,7 +174,6 @@ private fun FocusableDesktopSlot(
             .size(72.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(if (app != null) Color.Black.copy(alpha = 0.45f) else Color.Transparent)
-            // CHỈ cho phép nhận focus của núm xoay khi ô ĐANG CÓ APP (bỏ qua ô trống hoàn toàn)
             .focusable(enabled = (app != null), interactionSource = interactionSource)
             .then(
                 if (isFocused && app != null) {
@@ -202,7 +233,7 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu chính (luôn focusable)
+        // Nút Menu chính
         Box(
             modifier = Modifier
                 .size(48.dp)
@@ -225,7 +256,7 @@ private fun BottomDock(
             )
         }
 
-        // 4 ô Ứng dụng trên Dock (chỉ focusable khi ô có app)
+        // 4 ô Ứng dụng trên Dock
         viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
@@ -263,7 +294,6 @@ private fun FocusableDockSlotCell(
             .size(48.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(if (app != null) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.03f))
-            // Chỉ bắt focus khi có app gán vào ô
             .focusable(enabled = (app != null), interactionSource = interactionSource)
             .then(
                 if (isFocused && app != null) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(14.dp))
