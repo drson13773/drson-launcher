@@ -129,18 +129,19 @@ private fun WidgetProviderCell(info: AppWidgetProviderInfo, onClick: () -> Unit)
             .clickable(onClick = onClick)
             .padding(vertical = 14.dp, horizontal = 8.dp),
     ) {
-        if (icon != null) {
+        val currentIcon = icon
+        if (currentIcon != null) {
             Image(
-                bitmap = icon,
+                bitmap = currentIcon,
                 contentDescription = label,
-                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(14.dp)),
+                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(14.dp))
             )
         } else {
             Box(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(Color.White.copy(alpha = 0.1f)),
+                    .background(Color.White.copy(alpha = 0.1f))
             )
         }
         Spacer(Modifier.height(8.dp))
