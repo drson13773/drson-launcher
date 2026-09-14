@@ -42,8 +42,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -164,7 +166,8 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val logoWidth = (maxWidth * 0.065f).coerceIn(48.dp, 68.dp)
+        // Tăng kích thước logo để hiển thị chi tiết rõ nét
+        val logoWidth = (maxWidth * 0.075f).coerceIn(60.dp, 80.dp)
         val glowSize = logoWidth * 3.2f
         val gaugeSize = (maxHeight * 0.48f).coerceIn(170.dp, 250.dp)
 
@@ -324,17 +327,18 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             contentScale = ContentScale.FillWidth,
         )
 
-        // CỤM LOGO & ĐỒNG HỒ SỐ GÓC TRÊN TRÁI
+        // --- CỤM LOGO (CHỈ 1 CHỮ DR SƠN TRONG LOGO) & ĐỒNG HỒ SỐ ---
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(start = 16.dp, top = 22.dp),
+                .padding(start = 16.dp, top = 20.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier.size(logoWidth),
                 contentAlignment = Alignment.Center
             ) {
+                // Tia sáng xoay nền
                 Canvas(modifier = Modifier.size(glowSize)) {
                     val center = Offset(size.width / 2f, size.height / 2f)
                     val baseR = size.minDimension / 2f
@@ -385,33 +389,22 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                     }
                 }
 
+                // Hình ảnh logo sắc nét
                 Image(
                     painter = painterResource(id = R.drawable.brand_glyph),
                     contentDescription = "Dr Sơn",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit,
+                    colorFilter = ColorFilter.tint(
+                        color = GOLD_BRIGHT,
+                        blendMode = BlendMode.SrcIn
+                    )
                 )
             }
 
-            Spacer(Modifier.width(10.dp))
+            Spacer(Modifier.width(16.dp))
 
-            Text(
-                text = "Dr Sơn",
-                color = GOLD_BRIGHT,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily(Font(R.font.alex_brush)),
-                style = TextStyle(
-                    shadow = Shadow(
-                        color = Color.Black.copy(alpha = 0.85f),
-                        offset = Offset(1.5f, 1.5f),
-                        blurRadius = 3f
-                    )
-                )
-            )
-
-            Spacer(Modifier.width(18.dp))
-
+            // Đồng hồ số bên cạnh
             BigClockWidget()
         }
 
