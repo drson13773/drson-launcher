@@ -1,7 +1,10 @@
 package com.drson.launcher.ui
 
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.provider.MediaStore
+import android.view.KeyEvent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,7 +13,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Icon
@@ -34,12 +36,18 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
     val mediaRepo = remember { MediaControlRepository.getInstance(context) }
     val playbackState by mediaRepo.playbackState.collectAsState()
 
+    fun sendMediaKey(keyCode: Int) {
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        audioManager?.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+        audioManager?.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
+    }
+
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Ô vuông hiển thị album art hoặc icon app Nhạc
+        // Ô bìa bài hát / Icon app nhạc
         Box(
             modifier = Modifier
                 .size(40.dp)
@@ -78,7 +86,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
                 .size(30.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.12f))
-                .clickable { mediaRepo.previous() },
+                .clickable { sendMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS) },
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -95,12 +103,12 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(GOLD_ACCENT)
-                .clickable { mediaRepo.playPause() },
+                .clickable { sendMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) },
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = "Play/Pause",
                 tint = Color.Black,
                 modifier = Modifier.size(20.dp)
             )
@@ -112,7 +120,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
                 .size(30.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.12f))
-                .clickable { mediaRepo.next() },
+                .clickable { sendMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT) },
             contentAlignment = Alignment.Center
         ) {
             Icon(
