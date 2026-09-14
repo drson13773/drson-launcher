@@ -25,7 +25,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,12 +41,25 @@ import java.lang.reflect.Method
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
 
+// Hàm mở Bảng Thông Báo (Vuốt bên Trái)
 @SuppressLint("WrongConstant")
-fun openSystemQuickSettings(context: Context) {
+fun openNotificationPanel(context: Context) {
     try {
         val statusBarService = context.getSystemService("statusbar")
         val statusBarManager = Class.forName("android.app.StatusBarManager")
-        // Mở Trung tâm điều khiển / Quick Settings Panel
+        val expandMethod: Method = statusBarManager.getMethod("expandNotificationsPanel")
+        expandMethod.invoke(statusBarService)
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+
+// Hàm mở Trung Tâm Điều Khiển / Quick Settings (Vuốt bên Phải)
+@SuppressLint("WrongConstant")
+fun openQuickSettingsPanel(context: Context) {
+    try {
+        val statusBarService = context.getSystemService("statusbar")
+        val statusBarManager = Class.forName("android.app.StatusBarManager")
         val expandMethod: Method = try {
             statusBarManager.getMethod("expandSettingsPanel")
         } catch (_: Exception) {
@@ -66,6 +81,10 @@ fun HomeScreen(
     var isAppDrawerOpen by remember { mutableStateOf(false) }
     val initialFocusRequester = remember { FocusRequester() }
 
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+
     LaunchedEffect(Unit) {
         try {
             initialFocusRequester.requestFocus()
@@ -75,13 +94,23 @@ fun HomeScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            // Bắt cử chỉ vuốt từ trên xuống ở khu vực màn hình
+            // Nhận diện vuốt trái / phải độc lập
             .pointerInput(Unit) {
-                detectVerticalDragGestures { _, dragAmount ->
-                    if (dragAmount > 35f) { // Khi ngón tay kéo xuống từ mép trên
-                        openSystemQuickSettings(context)
+                detectVerticalDragGestures(
+                    onVerticalDrag = { change, dragAmount ->
+                        // Chỉ kích hoạt khi vuốt xuống một đoạn rõ ràng (> 30px)
+                        if (dragAmount > 30f) {
+                            val touchX = change.position.x
+                            if (touchX < screenWidthPx / 2) {
+                                // Nửa bên TRÁI -> Bảng thông báo
+                                openNotificationPanel(context)
+                            } else {
+                                // Nửa bên PHẢI -> Trung tâm điều khiển
+                                openQuickSettingsPanel(context)
+                            }
+                        }
                     }
-                }
+                )
             }
     ) {
         DrivingRoadBackground()
