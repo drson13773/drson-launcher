@@ -56,7 +56,6 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -161,9 +160,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
         val logoWidth = (maxWidth * 0.065f).coerceIn(48.dp, 68.dp)
         val glowSize = logoWidth * 2.1f
         val glowInset = (glowSize - logoWidth) / 2
-        
-        // Kích thước chuẩn lọt vừa khoảng tam giác trống bên trái
-        val gaugeSize = (maxHeight * 0.46f).coerceIn(160.dp, 240.dp)
+        val gaugeSize = (maxHeight * 0.48f).coerceIn(170.dp, 250.dp)
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
@@ -317,7 +314,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth(0.24f)
-                .padding(bottom = 120.dp),
+                .padding(bottom = 105.dp),
             contentScale = ContentScale.FillWidth,
         )
 
@@ -327,14 +324,13 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             label = "logoGlowRotation",
         )
 
-        // --- CỤM LOGO (CẢ HÌNH BÁC SĨ + CHỮ TRÊN 1 DÒNG) & ĐỒNG HỒ SỐ ---
+        // Cụm Logo & Đồng hồ số góc trên trái
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(start = 16.dp, top = 22.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Logo Bác sĩ Dr Sơn kèm quầng sáng
             Box(
                 modifier = Modifier.size(logoWidth),
                 contentAlignment = Alignment.Center
@@ -380,7 +376,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                     }
                 }
 
-                // Hình ảnh bác sĩ và chữ ký gốc
                 Image(
                     painter = painterResource(id = R.drawable.brand_glyph),
                     contentDescription = "Dr Sơn",
@@ -391,7 +386,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
 
             Spacer(Modifier.width(10.dp))
 
-            // 2. Chữ "Dr Sơn" trên 1 dòng đơn nét rõ ràng
             Text(
                 text = "Dr Sơn",
                 color = GOLD_BRIGHT,
@@ -409,16 +403,15 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
 
             Spacer(Modifier.width(18.dp))
 
-            // 3. Đồng hồ số bên cạnh
             BigClockWidget()
         }
 
-        // --- ĐỒNG HỒ TỐC ĐỘ VÀ GPS: NẰM GỌN TRONG KHOẢNG TAM GIÁC TRÁI ---
+        // Cụm đồng hồ tốc độ (đã loại bỏ dòng tọa độ GPS)
         if (!hasLocationPermission) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 100.dp),
+                    .padding(start = 16.dp, bottom = 90.dp),
             ) {
                 LocationPermissionPrompt(onRequest = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) })
             }
@@ -426,20 +419,12 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = 14.dp, top = 65.dp),
+                    .padding(start = 16.dp, top = 50.dp),
             ) {
                 SpeedGauge(
                     speedKmh = drivingData.speedKmh,
                     size = gaugeSize
                 )
-            }
-
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 95.dp),
-            ) {
-                GpsInfoCard(data = drivingData)
             }
         }
     }
@@ -659,7 +644,6 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 200.dp) {
             drawCircle(color = Color(0xFFC99E5C), radius = 12f * scale, center = center, style = Stroke(width = 2f * scale))
         }
 
-        // Chữ Dr Sơn trong mặt đồng hồ: hạ thấp hẳn xuống dưới (không dính vào gốc kim)
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -683,37 +667,12 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 200.dp) {
             )
         }
 
-        // Số km/h
         Column(
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = (20f * scale).dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text("${speed.toInt()}", color = Color.White, fontSize = (16f * scale).sp, fontWeight = FontWeight.Medium)
             Text("km/h", color = Color.White.copy(alpha = 0.6f), fontSize = (8.5f * scale).sp)
-        }
-    }
-}
-
-@Composable
-private fun GpsInfoCard(data: DrivingData) {
-    Row(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.Black.copy(alpha = 0.55f))
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        if (data.hasGpsFix && data.latitude != null && data.longitude != null) {
-            Text(
-                String.format(Locale.US, "%.4f, %.4f", data.latitude, data.longitude),
-                color = Color.White.copy(alpha = 0.9f),
-                fontSize = 9.5.sp,
-            )
-            data.altitudeMeters?.let {
-                Text("${it.toInt()} m", color = Color.White.copy(alpha = 0.9f), fontSize = 9.5.sp)
-            }
-        } else {
-            Text("Đang định vị GPS...", color = Color.White.copy(alpha = 0.6f), fontSize = 9.5.sp)
         }
     }
 }
