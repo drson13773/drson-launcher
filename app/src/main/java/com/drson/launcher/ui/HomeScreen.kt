@@ -86,7 +86,6 @@ fun HomeScreen(viewModel: HomeViewModel) {
     var widgetTargetIndex by remember { mutableStateOf<Int?>(null) }
     var pendingWidget by remember { mutableStateOf<PendingWidget?>(null) }
 
-    // Trạng thái bật/tắt hiển thị ô trống (chỉ hiện khi nhấn giữ)
     var isEditMode by remember { mutableStateOf(false) }
     var dragHorizontalAccumulated by remember { mutableFloatStateOf(0f) }
 
@@ -166,14 +165,12 @@ fun HomeScreen(viewModel: HomeViewModel) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            // 1. Nhấn giữ vào khoảng trống để hiện ô thêm app / Thoát khi tap nhẹ
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = { isEditMode = true },
                     onTap = { if (isEditMode) isEditMode = false }
                 )
             }
-            // 2. Vuốt sang trái từ màn hình chính để mở danh sách ứng dụng (App Drawer)
             .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onDragStart = { dragHorizontalAccumulated = 0f },
@@ -299,7 +296,6 @@ private fun StatusBar(
         }
     }
 
-    // Theo dõi trạng thái Wi-Fi thực tế
     var isWifiConnected by remember {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         val activeNetwork = cm?.activeNetwork
@@ -324,7 +320,6 @@ private fun StatusBar(
         onDispose { cm?.unregisterNetworkCallback(networkCallback) }
     }
 
-    // Theo dõi trạng thái Bluetooth thực tế
     var isBluetoothEnabled by remember {
         val adapter = BluetoothAdapter.getDefaultAdapter()
         mutableStateOf(adapter?.isEnabled == true)
@@ -352,7 +347,7 @@ private fun StatusBar(
         modifier = Modifier
             .fillMaxWidth()
             .onGloballyPositioned { barWidthPx = it.size.width.toFloat() }
-            .padding(horizontal = 24.dp, vertical = 8.dp)
+            .padding(horizontal = 24.dp, vertical = 6.dp)
             .pointerInputStatusBar(
                 onDragStartX = { dragStartX = it; triggered = false },
                 onDrag = { dragAmount ->
@@ -367,11 +362,11 @@ private fun StatusBar(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column {
-            Text(time, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium)
-            Text(date, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
+            Text(time, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+            Text(date, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
         }
         Row(
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -379,7 +374,7 @@ private fun StatusBar(
                 contentDescription = if (isWifiConnected) "Wi-Fi Connected" else "Wi-Fi Disconnected",
                 tint = if (isWifiConnected) GOLD_BRIGHT else Color.White.copy(alpha = 0.35f),
                 modifier = Modifier
-                    .size(22.dp)
+                    .size(20.dp)
                     .clip(CircleShape)
                     .clickable {
                         try {
@@ -393,7 +388,7 @@ private fun StatusBar(
                 contentDescription = if (isBluetoothEnabled) "Bluetooth On" else "Bluetooth Off",
                 tint = if (isBluetoothEnabled) GOLD_BRIGHT else Color.White.copy(alpha = 0.35f),
                 modifier = Modifier
-                    .size(22.dp)
+                    .size(20.dp)
                     .clip(CircleShape)
                     .clickable {
                         try {
@@ -430,7 +425,6 @@ private fun currentDateString(): String {
         .replaceFirstChar { it.titlecase(vietnamese) }
 }
 
-// Chừa 4 cột bên trái cho Speedometer và xe Mazda
 private const val HOME_GRID_RESERVED_COLUMNS = 4
 
 @Composable
@@ -448,7 +442,7 @@ private fun SlotGrid(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+            .padding(horizontal = 14.dp, vertical = 2.dp),
         verticalArrangement = Arrangement.SpaceEvenly,
     ) {
         repeat(rows) { rowIndex ->
@@ -527,14 +521,14 @@ private fun SlotCell(
                 bitmap = app.icon,
                 contentDescription = app.label,
                 modifier = Modifier
-                    .size(68.dp)
-                    .clip(RoundedCornerShape(16.dp)),
+                    .size(64.dp)
+                    .clip(RoundedCornerShape(15.dp)),
             )
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(3.dp))
             Text(
                 text = app.label,
                 color = Color.White,
-                fontSize = 12.sp,
+                fontSize = 11.5.sp,
                 maxLines = 1,
                 textAlign = TextAlign.Center
             )
@@ -551,15 +545,15 @@ private fun SlotCell(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(68.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(15.dp))
                         .background(Color.White.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("+", color = Color.White.copy(alpha = 0.6f), fontSize = 28.sp, fontWeight = FontWeight.Light)
+                    Text("+", color = Color.White.copy(alpha = 0.6f), fontSize = 26.sp, fontWeight = FontWeight.Light)
                 }
-                Spacer(Modifier.height(4.dp))
-                Text("Trống", color = Color.White.copy(alpha = 0.4f), fontSize = 11.sp)
+                Spacer(Modifier.height(3.dp))
+                Text("Trống", color = Color.White.copy(alpha = 0.4f), fontSize = 10.5.sp)
             }
         }
     }
@@ -578,22 +572,22 @@ private fun WidgetSlotCell(
         if (info != null) {
             AndroidView(
                 factory = { ctx -> WidgetHostController.createHostView(ctx, content.appWidgetId, info) },
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp)),
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)),
             )
         } else {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color.White.copy(alpha = 0.06f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     "Widget không khả dụng",
                     color = Color.White.copy(alpha = 0.4f),
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(6.dp),
+                    modifier = Modifier.padding(4.dp),
                 )
             }
         }
@@ -601,14 +595,14 @@ private fun WidgetSlotCell(
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .size(22.dp)
+                    .padding(3.dp)
+                    .size(20.dp)
                     .clip(RoundedCornerShape(50))
                     .background(Color.Black.copy(alpha = 0.7f))
                     .clickable(onClick = onRemove),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("×", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text("×", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -629,15 +623,15 @@ private fun SlotTypeChooserDialog(
     ) {
         Column(
             modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(18.dp))
                 .background(Color(0xFF141210))
                 .clickable(enabled = false) {}
-                .padding(20.dp),
+                .padding(18.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("Thêm gì vào ô này?", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-            Spacer(Modifier.height(16.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            Text("Thêm gì vào ô này?", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 SlotChooserOption(label = "Ứng dụng", onClick = onPickApp)
                 SlotChooserOption(label = "Widget", onClick = onPickWidget)
             }
@@ -649,14 +643,14 @@ private fun SlotTypeChooserDialog(
 private fun SlotChooserOption(label: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .width(130.dp)
-            .height(56.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .width(120.dp)
+            .height(50.dp)
+            .clip(RoundedCornerShape(12.dp))
             .background(Color.White.copy(alpha = 0.08f))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = GOLD_BRIGHT, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = GOLD_BRIGHT, fontSize = 13.5.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -675,24 +669,24 @@ private fun BottomDock(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(Color.Black.copy(alpha = 0.4f))
-            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .padding(horizontal = 18.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Color.Black.copy(alpha = 0.45f))
+            .padding(horizontal = 10.dp, vertical = 4.dp)
             .pointerInput(Unit) {
                 detectVerticalDragGestures { _, dragAmount ->
                     if (dragAmount < -6f) onSwipeUpToOpenAppSwitcher()
                 }
             },
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
             painter = painterResource(id = R.drawable.icon_menu_brand),
             contentDescription = "Menu ứng dụng",
             modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
                 .clickable(onClick = onOpenMenu),
         )
 
@@ -730,8 +724,8 @@ private fun DockSlotCell(
             bitmap = app.icon,
             contentDescription = app.label,
             modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
                 .combinedClickable(onClick = onTap, onLongClick = onLongPress),
         )
     } else {
@@ -742,13 +736,13 @@ private fun DockSlotCell(
         ) {
             Box(
                 modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(14.dp))
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(Color.White.copy(alpha = 0.1f))
                     .combinedClickable(onClick = onTap, onLongClick = onLongPress),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("+", color = Color.White.copy(alpha = 0.5f), fontSize = 20.sp, fontWeight = FontWeight.Light)
+                Text("+", color = Color.White.copy(alpha = 0.5f), fontSize = 18.sp, fontWeight = FontWeight.Light)
             }
         }
     }
