@@ -1,12 +1,9 @@
 package com.drson.launcher.ui
 
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
-import android.media.session.MediaController
-import android.media.session.MediaSessionManager
-import android.media.session.PlaybackState
+import android.os.SystemClock
 import android.provider.MediaStore
 import android.view.KeyEvent
 import androidx.compose.foundation.Image
@@ -30,7 +27,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.drson.launcher.R
-import com.drson.launcher.notifications.LauncherNotificationListenerService
 
 private val GOLD_ACCENT = Color(0xFFD4AF37)
 
@@ -39,35 +35,35 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var isPlaying by remember { mutableStateOf(false) }
 
-    fun getActiveMediaController(): MediaController? {
-        return try {
-            val sessionManager = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
-            val notificationListener = ComponentName(context, LauncherNotificationListenerService::class.java)
-            val controllers = sessionManager?.getActiveSessions(notificationListener)
-            // Tìm session đang phát hoặc session đầu tiên
-            controllers?.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-                ?: controllers?.firstOrNull()
-        } catch (_: Exception) {
-            null
-        }
-    }
+    fun sendMediaKey(keyCode: Int) {
+        val eventTime = SystemClock.uptimeMillis()
+        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
 
-    fun sendMediaCommand(action: (MediaController.TransportControls) -> Unit, fallbackKeyCode: Int) {
-        val controller = getActiveMediaController()
-        if (controller != null) {
-            action(controller.transportControls)
-        } else {
-            // Fallback gửi qua Broadcast toàn hệ thống
-            val downIntent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
-                putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(KeyEvent.ACTION_DOWN, fallbackKeyCode))
-            }
-            context.sendOrderedBroadcast(downIntent, null)
+        // 1. Dispatch trực tiếp qua AudioManager
+        audioManager?.dispatchMediaKeyEvent(KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, keyCode, 0))
+        audioManager?.dispatchMediaKeyEvent(KeyEvent(eventTime, eventTime, KeyEvent.ACTION_UP, keyCode, 0))
 
-            val upIntent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
-                putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(KeyEvent.ACTION_UP, fallbackKeyCode))
-            }
-            context.sendOrderedBroadcast(upIntent, null)
+        // 2. Broadcast nhắm đích đến Zing MP3
+        val zingIntentDown = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
+            setPackage("com.zing.mp3")
+            putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, keyCode, 0))
         }
+        val zingIntentUp = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
+            setPackage("com.zing.mp3")
+            putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(eventTime, eventTime, KeyEvent.ACTION_UP, keyCode, 0))
+        }
+        context.sendOrderedBroadcast(zingIntentDown, null)
+        context.sendOrderedBroadcast(zingIntentUp, null)
+
+        // 3. Broadcast toàn hệ thống
+        val globalDown = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
+            putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, keyCode, 0))
+        }
+        val globalUp = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
+            putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(eventTime, eventTime, KeyEvent.ACTION_UP, keyCode, 0))
+        }
+        context.sendOrderedBroadcast(globalDown, null)
+        context.sendOrderedBroadcast(globalUp, null)
     }
 
     Row(
@@ -75,7 +71,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Ô bìa / Icon App nhạc
+        // Icon App Nhạc: Chạm vào mở Zing MP3 hoặc App nhạc mặc định
         Box(
             modifier = Modifier
                 .size(40.dp)
@@ -83,13 +79,13 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
                 .background(Color.White.copy(alpha = 0.08f))
                 .clickable {
                     try {
-                        val controller = getActiveMediaController()
-                        if (controller != null && controller.sessionActivity != null) {
-                            controller.sessionActivity?.send()
+                        val launchIntent = context.packageManager.getLaunchIntentForPackage("com.zing.mp3")
+                        if (launchIntent != null) {
+                            context.startActivity(launchIntent)
                         } else {
-                            val intent = context.packageManager.getLaunchIntentForPackage("com.zing.mp3")
-                                ?: Intent(MediaStore.INTENT_ACTION_MUSIC_PLAYER)
-                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            val intent = Intent(MediaStore.INTENT_ACTION_MUSIC_PLAYER).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
                             context.startActivity(intent)
                         }
                     } catch (_: Exception) {}
@@ -105,14 +101,14 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
             )
         }
 
-        // Nút Lùi bài (Previous)
+        // Nút Previous
         Box(
             modifier = Modifier
                 .size(30.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.12f))
                 .clickable {
-                    sendMediaCommand({ it.skipToPrevious() }, KeyEvent.KEYCODE_MEDIA_PREVIOUS)
+                    sendMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -124,27 +120,15 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
             )
         }
 
-        // Nút Phát / Tạm dừng (Play / Pause)
+        // Nút Play / Pause
         Box(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
                 .background(GOLD_ACCENT)
                 .clickable {
-                    val controller = getActiveMediaController()
-                    if (controller != null) {
-                        val state = controller.playbackState?.state
-                        if (state == PlaybackState.STATE_PLAYING) {
-                            controller.transportControls.pause()
-                            isPlaying = false
-                        } else {
-                            controller.transportControls.play()
-                            isPlaying = true
-                        }
-                    } else {
-                        sendMediaCommand({ it.play() }, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-                        isPlaying = !isPlaying
-                    }
+                    sendMediaKey(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+                    isPlaying = !isPlaying
                 },
             contentAlignment = Alignment.Center
         ) {
@@ -156,14 +140,14 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
             )
         }
 
-        // Nút Bài kế tiếp (Next)
+        // Nút Next
         Box(
             modifier = Modifier
                 .size(30.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.12f))
                 .clickable {
-                    sendMediaCommand({ it.skipToNext() }, KeyEvent.KEYCODE_MEDIA_NEXT)
+                    sendMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT)
                 },
             contentAlignment = Alignment.Center
         ) {
