@@ -139,6 +139,13 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
         label = "time",
     )
 
+    // TĂNG TỐC ĐỘ QUAY CỦA TIA SÁNG (12 giây / vòng thay vì 70 giây)
+    val logoGlowRotation by infinite.animateFloat(
+        initialValue = 0f, targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(12_000, easing = LinearEasing), RepeatMode.Restart),
+        label = "logoGlowRotation",
+    )
+
     val context = LocalContext.current
     var hasLocationPermission by remember {
         mutableStateOf(
@@ -158,8 +165,8 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val logoWidth = (maxWidth * 0.065f).coerceIn(48.dp, 68.dp)
-        val glowSize = logoWidth * 2.1f
-        val glowInset = (glowSize - logoWidth) / 2
+        // Mở rộng kích thước vùng chứa hiệu ứng để tia sáng vươn dài thoải mái
+        val glowSize = logoWidth * 3.2f
         val gaugeSize = (maxHeight * 0.48f).coerceIn(170.dp, 250.dp)
 
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -318,13 +325,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             contentScale = ContentScale.FillWidth,
         )
 
-        val logoGlowRotation by infinite.animateFloat(
-            initialValue = 0f, targetValue = 360f,
-            animationSpec = infiniteRepeatable(tween(70_000, easing = LinearEasing), RepeatMode.Restart),
-            label = "logoGlowRotation",
-        )
-
-        // Cụm Logo & Đồng hồ số góc trên trái
+        // --- CỤM LOGO & ĐỒNG HỒ SỐ GÓC TRÊN TRÁI ---
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -335,30 +336,34 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 modifier = Modifier.size(logoWidth),
                 contentAlignment = Alignment.Center
             ) {
+                // VẼ TIA SÁNG DÀI HƠN VÀ QUAY NHANH
                 Canvas(modifier = Modifier.size(glowSize)) {
                     val center = Offset(size.width / 2f, size.height / 2f)
-                    val maxR = size.minDimension / 2f
+                    val baseR = size.minDimension / 2f
 
+                    // Quầng sáng tâm
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
-                                GOLD_SOLID.copy(alpha = 0.20f),
+                                GOLD_SOLID.copy(alpha = 0.25f),
                                 GOLD_SOLID.copy(alpha = 0.08f),
                                 Color.Transparent,
                             ),
                             center = center,
-                            radius = maxR,
+                            radius = baseR * 0.75f,
                         ),
-                        radius = maxR,
+                        radius = baseR * 0.75f,
                         center = center,
                     )
 
-                    val nRays = 24
+                    // 32 tia sáng dài hơn, tỏa rộng ra bên ngoài
+                    val nRays = 32
                     for (i in 0 until nRays) {
                         val angleDeg = logoGlowRotation + i * (360f / nRays)
                         val angleRad = Math.toRadians(angleDeg.toDouble())
-                        val rayLen = maxR * (0.55f + 0.35f * abs(sin(Math.toRadians((angleDeg * 2).toDouble()))).toFloat())
-                        val innerR = maxR * 0.32f
+                        // Chiều dài vươn dài (0.8 -> 1.45 lần baseR)
+                        val rayLen = baseR * (0.85f + 0.60f * abs(sin(Math.toRadians((angleDeg * 2.5).toDouble()))).toFloat())
+                        val innerR = baseR * 0.22f
                         val p1 = Offset(
                             center.x + (innerR * cos(angleRad)).toFloat(),
                             center.y + (innerR * sin(angleRad)).toFloat(),
@@ -367,11 +372,20 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                             center.x + (rayLen * cos(angleRad)).toFloat(),
                             center.y + (rayLen * sin(angleRad)).toFloat(),
                         )
+                        
+                        val isMainRay = i % 2 == 0
                         drawLine(
-                            color = GOLD_BRIGHT.copy(alpha = 0.22f),
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    GOLD_BRIGHT.copy(alpha = if (isMainRay) 0.35f else 0.20f),
+                                    Color.Transparent
+                                ),
+                                start = p1,
+                                end = p2
+                            ),
                             start = p1,
                             end = p2,
-                            strokeWidth = 2.0f,
+                            strokeWidth = if (isMainRay) 2.4f else 1.5f,
                         )
                     }
                 }
@@ -406,7 +420,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             BigClockWidget()
         }
 
-        // Cụm đồng hồ tốc độ (đã loại bỏ dòng tọa độ GPS)
+        // Cụm đồng hồ tốc độ
         if (!hasLocationPermission) {
             Box(
                 modifier = Modifier
