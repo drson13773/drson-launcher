@@ -35,7 +35,6 @@ import androidx.compose.ui.unit.sp
 import com.drson.launcher.R
 
 private val GOLD_ACCENT = Color(0xFFD4AF37)
-private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 
 @Composable
 fun NowPlayingBar(modifier: Modifier = Modifier) {
@@ -102,7 +101,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
             )
         }
 
-        // 2. Cụm Nút Điều Khiển Nhạc (Previous - Play/Pause - Next)
+        // 2. Cụm Nút Điều Khiển Nhạc
         Box(
             modifier = Modifier
                 .size(28.dp)
@@ -144,7 +143,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
             Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = GOLD_ACCENT, modifier = Modifier.size(15.dp))
         }
 
-        // 3. Thanh Trượt Tiến Trình Thời Gian (Seek Progress Bar)
+        // 3. Thanh Trượt Tiến Trình Thời Gian
         Column(
             modifier = Modifier
                 .width(130.dp)
