@@ -22,7 +22,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -31,7 +30,6 @@ import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
-private val GOLD_ACCENT = Color(0xFFD4AF37)
 
 @Composable
 fun HomeScreen(
@@ -42,17 +40,16 @@ fun HomeScreen(
     var isEditMode by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Hình nền xe & đường chạy động
+        // Hình nền đường chạy xe động
         DrivingRoadBackground()
 
-        // Nội dung chính của Launcher
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Spacer(Modifier.height(10.dp))
 
-            // Lưới các ô ứng dụng trên Desktop chính (có thể nhận Focus xoay)
+            // Lưới Desktop bên phải (Hỗ trợ focus núm xoay)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -90,12 +87,12 @@ fun HomeScreen(
                 isEditMode = isEditMode,
                 onOpenMenu = { viewModel.openAppDrawer() },
                 onSwipeUpToOpenAppSwitcher = { /* Mở Recents */ },
-                onEmptyDockSlotTap = { index -> /* Gán slot */ },
+                onEmptyDockSlotTap = { _ -> },
                 onLongPressSlot = { isEditMode = !isEditMode }
             )
         }
 
-        // Bảng danh sách ứng dụng App Drawer Overlay
+        // Bảng danh sách ứng dụng App Drawer Overlay (Nền logo góc dưới bên trái)
         AppDrawerOverlay(
             isOpen = viewModel.isAppDrawerOpen,
             apps = viewModel.installedApps,
@@ -189,7 +186,7 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu Danh Sách App (Hỗ trợ Focus xoay)
+        // Nút mở App Drawer
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -215,7 +212,7 @@ private fun BottomDock(
             )
         }
 
-        // Các slot trên Dock (Hỗ trợ Focus xoay)
+        // Các ô slot trên Dock
         viewModel.dockSlots.forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
@@ -233,8 +230,8 @@ private fun BottomDock(
 
         Spacer(Modifier.weight(1f))
 
-        // Thanh điều khiển nhạc
-        NowPlayingBar()
+        // Thanh điều khiển nhạc (Đã truyền modifier mặc định)
+        NowPlayingBar(modifier = Modifier)
     }
 }
 
