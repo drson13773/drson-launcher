@@ -9,7 +9,6 @@ android {
 
     defaultConfig {
         applicationId = "com.drson.launcher"
-        // Nhiều đầu màn hình Android ô tô (kiểu chạy CarWebGuru) dùng Android 9-12 (API 28-31).
         minSdk = 24
         targetSdk = 33
         versionCode = 1
@@ -58,6 +57,11 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.animation:animation")
+
+    // Media3 ExoPlayer cho Dr Sơn Music
+    implementation("androidx.media3:media3-exoplayer:1.3.1")
+    implementation("androidx.media3:media3-session:1.3.1")
+    implementation("androidx.media3:media3-ui:1.3.1")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
