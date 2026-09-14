@@ -23,6 +23,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -43,8 +44,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -671,7 +676,7 @@ private fun BottomDock(
             .fillMaxWidth()
             .padding(horizontal = 18.dp, vertical = 4.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(Color.Black.copy(alpha = 0.45f))
+            .background(Color.Black.copy(alpha = 0.5f))
             .padding(horizontal = 10.dp, vertical = 4.dp)
             .pointerInput(Unit) {
                 detectVerticalDragGestures { _, dragAmount ->
@@ -681,14 +686,44 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.icon_menu_brand),
-            contentDescription = "Menu ứng dụng",
+        // Nút mở menu ứng dụng siêu nét
+        Box(
             modifier = Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .clickable(onClick = onOpenMenu),
-        )
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF2A2215),
+                            Color(0xFF14100B)
+                        )
+                    )
+                )
+                .border(
+                    width = 1.dp,
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            GOLD_BRIGHT.copy(alpha = 0.85f),
+                            Color(0xFF8A6A35).copy(alpha = 0.45f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .clickable(onClick = onOpenMenu)
+                .padding(5.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.icon_menu_brand),
+                contentDescription = "Menu ứng dụng",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit,
+                colorFilter = ColorFilter.tint(
+                    color = GOLD_BRIGHT,
+                    blendMode = BlendMode.SrcIn
+                )
+            )
+        }
 
         viewModel.dockSlots.forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
