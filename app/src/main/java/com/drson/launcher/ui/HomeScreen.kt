@@ -1,3 +1,165 @@
+package com.drson.launcher.ui
+
+import android.content.Context
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.drson.launcher.R
+import com.drson.launcher.model.AppItem
+
+private val GOLD_BRIGHT = Color(0xFFFFF0B8)
+private val GOLD_ACCENT = Color(0xFFD4AF37)
+
+@Composable
+fun HomeScreen(
+    viewModel: HomeViewModel,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    var isEditMode by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        // Hình nền xe & đường chạy động
+        DrivingRoadBackground()
+
+        // Nội dung chính của Launcher
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Spacer(Modifier.height(10.dp))
+
+            // Lưới các ô ứng dụng trên Desktop chính (có thể nhận Focus xoay)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .weight(1f),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    viewModel.desktopSlots.chunked(3).forEach { rowSlots ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            rowSlots.forEach { packageName ->
+                                val app = viewModel.appFor(packageName)
+                                FocusableDesktopSlot(
+                                    app = app,
+                                    onClick = {
+                                        if (app != null) viewModel.launchApp(context, app)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Thanh Dock dưới đáy màn hình
+            BottomDock(
+                viewModel = viewModel,
+                isEditMode = isEditMode,
+                onOpenMenu = { viewModel.openAppDrawer() },
+                onSwipeUpToOpenAppSwitcher = { /* Mở Recents */ },
+                onEmptyDockSlotTap = { index -> /* Gán slot */ },
+                onLongPressSlot = { isEditMode = !isEditMode }
+            )
+        }
+
+        // Bảng danh sách ứng dụng App Drawer Overlay
+        AppDrawerOverlay(
+            isOpen = viewModel.isAppDrawerOpen,
+            apps = viewModel.installedApps,
+            onDismiss = { viewModel.closeAppDrawer() },
+            onPick = { app ->
+                viewModel.launchApp(context, app)
+                viewModel.closeAppDrawer()
+            }
+        )
+    }
+}
+
+@Composable
+private fun FocusableDesktopSlot(
+    app: AppItem?,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    Box(
+        modifier = modifier
+            .size(72.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.Black.copy(alpha = 0.45f))
+            .focusable(interactionSource = interactionSource)
+            .then(
+                if (isFocused) {
+                    Modifier.border(2.5.dp, GOLD_BRIGHT, RoundedCornerShape(16.dp))
+                } else {
+                    Modifier.border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                }
+            )
+            .clickable(onClick = onClick)
+            .padding(6.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (app != null) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Image(
+                    bitmap = app.icon,
+                    contentDescription = app.label,
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = app.label,
+                    color = Color.White,
+                    fontSize = 10.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BottomDock(
@@ -9,11 +171,13 @@ private fun BottomDock(
     onLongPressSlot: () -> Unit,
 ) {
     val context = LocalContext.current
+    val menuInteractionSource = remember { MutableInteractionSource() }
+    val isMenuFocused by menuInteractionSource.collectIsFocusedAsState()
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
             .clip(RoundedCornerShape(20.dp))
             .background(Color.Black.copy(alpha = 0.55f))
             .padding(horizontal = 10.dp, vertical = 4.dp)
@@ -25,16 +189,19 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // NÚT MỞ APP DRAWER: Giữ nguyên hình ảnh gốc, không bị mất hình
+        // Nút Menu Danh Sách App (Hỗ trợ Focus xoay)
         Box(
             modifier = Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF1E1912))
-                .border(
-                    width = 1.dp,
-                    color = GOLD_BRIGHT.copy(alpha = 0.6f),
-                    shape = RoundedCornerShape(12.dp)
+                .focusable(interactionSource = menuInteractionSource)
+                .then(
+                    if (isMenuFocused) {
+                        Modifier.border(2.5.dp, GOLD_BRIGHT, RoundedCornerShape(12.dp))
+                    } else {
+                        Modifier.border(1.dp, GOLD_BRIGHT.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                    }
                 )
                 .clickable(onClick = onOpenMenu)
                 .padding(3.dp),
@@ -48,9 +215,10 @@ private fun BottomDock(
             )
         }
 
+        // Các slot trên Dock (Hỗ trợ Focus xoay)
         viewModel.dockSlots.forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
-            DockSlotCell(
+            FocusableDockSlotCell(
                 app = app,
                 isEditMode = isEditMode,
                 onTap = {
@@ -65,6 +233,44 @@ private fun BottomDock(
 
         Spacer(Modifier.weight(1f))
 
+        // Thanh điều khiển nhạc
         NowPlayingBar()
+    }
+}
+
+@Composable
+private fun FocusableDockSlotCell(
+    app: AppItem?,
+    isEditMode: Boolean,
+    onTap: () -> Unit,
+    onLongPress: () -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isFocused by interactionSource.collectIsFocusedAsState()
+
+    Box(
+        modifier = Modifier
+            .size(44.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color.White.copy(alpha = 0.08f))
+            .focusable(interactionSource = interactionSource)
+            .then(
+                if (isFocused) {
+                    Modifier.border(2.5.dp, GOLD_BRIGHT, RoundedCornerShape(12.dp))
+                } else Modifier
+            )
+            .clickable(onClick = onTap)
+            .padding(4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (app != null) {
+            Image(
+                bitmap = app.icon,
+                contentDescription = app.label,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(8.dp))
+            )
+        }
     }
 }
