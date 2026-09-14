@@ -41,7 +41,6 @@ import java.lang.reflect.Method
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
 
-// Hàm mở Bảng Thông Báo (Vuốt bên Trái)
 @SuppressLint("WrongConstant")
 fun openNotificationPanel(context: Context) {
     try {
@@ -49,12 +48,9 @@ fun openNotificationPanel(context: Context) {
         val statusBarManager = Class.forName("android.app.StatusBarManager")
         val expandMethod: Method = statusBarManager.getMethod("expandNotificationsPanel")
         expandMethod.invoke(statusBarService)
-    } catch (e: Exception) {
-        e.printStackTrace()
-    }
+    } catch (_: Exception) {}
 }
 
-// Hàm mở Trung Tâm Điều Khiển / Quick Settings (Vuốt bên Phải)
 @SuppressLint("WrongConstant")
 fun openQuickSettingsPanel(context: Context) {
     try {
@@ -66,9 +62,7 @@ fun openQuickSettingsPanel(context: Context) {
             statusBarManager.getMethod("expandNotificationsPanel")
         }
         expandMethod.invoke(statusBarService)
-    } catch (e: Exception) {
-        e.printStackTrace()
-    }
+    } catch (_: Exception) {}
 }
 
 @Composable
@@ -94,18 +88,14 @@ fun HomeScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            // Nhận diện vuốt trái / phải độc lập
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
                     onVerticalDrag = { change, dragAmount ->
-                        // Chỉ kích hoạt khi vuốt xuống một đoạn rõ ràng (> 30px)
                         if (dragAmount > 30f) {
                             val touchX = change.position.x
                             if (touchX < screenWidthPx / 2) {
-                                // Nửa bên TRÁI -> Bảng thông báo
                                 openNotificationPanel(context)
                             } else {
-                                // Nửa bên PHẢI -> Trung tâm điều khiển
                                 openQuickSettingsPanel(context)
                             }
                         }
@@ -121,14 +111,14 @@ fun HomeScreen(
         ) {
             Spacer(Modifier.height(10.dp))
 
-            // Desktop Slots (Phía trên bên phải)
+            // Desktop Slots (Phía trên bên phải - chỉ hiện ô có app)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
                     .weight(1f),
                 horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -167,7 +157,7 @@ fun HomeScreen(
                 }
             }
 
-            // Thanh Dock 1 Menu + 4 Slot + Trình phát nhạc mở rộng
+            // Thanh Dock nằm gọn gàng dưới đáy màn hình
             BottomDock(
                 viewModel = viewModel,
                 isEditMode = isEditMode,
@@ -254,24 +244,25 @@ private fun BottomDock(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(Color.Black.copy(alpha = 0.7f))
-            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(22.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+            .height(64.dp) // Cố định chiều cao Dock 64dp
+            .padding(horizontal = 14.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.Black.copy(alpha = 0.75f))
+            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(18.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu chính
+        // 1. Nút Menu chính
         Box(
             modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
                 .background(Color(0xFF1E1912))
                 .focusable(enabled = true, interactionSource = menuInteractionSource)
                 .then(
-                    if (isMenuFocused) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(14.dp))
-                    else Modifier.border(1.dp, GOLD_BRIGHT.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
+                    if (isMenuFocused) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(12.dp))
+                    else Modifier.border(1.dp, GOLD_BRIGHT.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                 )
                 .clickable(onClick = onOpenMenu)
                 .padding(4.dp),
@@ -285,7 +276,7 @@ private fun BottomDock(
             )
         }
 
-        // 4 ô Ứng dụng trên Dock
+        // 2. Đúng 4 ô ứng dụng trên Dock
         viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
@@ -301,10 +292,14 @@ private fun BottomDock(
             )
         }
 
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(6.dp))
 
-        // Thanh phát nhạc & Âm lượng kéo dài
-        ExpandedNowPlayingBar(modifier = Modifier.weight(1f))
+        // 3. Trình điều khiển phát nhạc & âm lượng gọn gàng
+        ExpandedNowPlayingBar(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+        )
     }
 }
 
@@ -320,13 +315,13 @@ private fun FocusableDockSlotCell(
 
     Box(
         modifier = Modifier
-            .size(48.dp)
-            .clip(RoundedCornerShape(14.dp))
+            .size(44.dp)
+            .clip(RoundedCornerShape(12.dp))
             .background(if (app != null) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.03f))
             .focusable(enabled = (app != null), interactionSource = interactionSource)
             .then(
-                if (isFocused && app != null) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(14.dp))
-                else Modifier.border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(14.dp))
+                if (isFocused && app != null) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(12.dp))
+                else Modifier.border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
             )
             .clickable(onClick = onTap)
             .padding(4.dp),
@@ -336,7 +331,7 @@ private fun FocusableDockSlotCell(
             Image(
                 bitmap = app.icon,
                 contentDescription = app.label,
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp))
             )
         }
     }
@@ -350,24 +345,24 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
 
     Row(
         modifier = modifier
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(Color(0xFF14120E))
-            .border(1.dp, GOLD_ACCENT.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
-            .padding(horizontal = 14.dp, vertical = 4.dp),
+            .border(1.dp, GOLD_ACCENT.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 10.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Cụm nút Play / Pause / Next / Prev
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            IconButton(onClick = {}, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.SkipPrevious, contentDescription = "Prev", tint = GOLD_ACCENT, modifier = Modifier.size(20.dp))
+            IconButton(onClick = {}, modifier = Modifier.size(26.dp)) {
+                Icon(Icons.Default.SkipPrevious, contentDescription = "Prev", tint = GOLD_ACCENT, modifier = Modifier.size(18.dp))
             }
             Box(
                 modifier = Modifier
-                    .size(34.dp)
+                    .size(30.dp)
                     .clip(CircleShape)
                     .background(GOLD_ACCENT)
                     .clickable { isPlaying = !isPlaying },
@@ -377,20 +372,21 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = "Play",
                     tint = Color.Black,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
-            IconButton(onClick = {}, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = GOLD_ACCENT, modifier = Modifier.size(20.dp))
+            IconButton(onClick = {}, modifier = Modifier.size(26.dp)) {
+                Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = GOLD_ACCENT, modifier = Modifier.size(18.dp))
             }
         }
 
+        // Thanh kéo tua bài hát
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text("01:25", color = Color.Gray, fontSize = 10.sp)
+            Text("01:25", color = Color.Gray, fontSize = 9.sp)
             Slider(
                 value = trackProgress,
                 onValueChange = { trackProgress = it },
@@ -399,17 +395,18 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
                     activeTrackColor = GOLD_ACCENT,
                     inactiveTrackColor = Color.White.copy(alpha = 0.15f)
                 ),
-                modifier = Modifier.weight(1f).height(18.dp)
+                modifier = Modifier.weight(1f).height(16.dp)
             )
-            Text("04:10", color = Color.Gray, fontSize = 10.sp)
+            Text("04:10", color = Color.Gray, fontSize = 9.sp)
         }
 
+        // Thanh chỉnh âm lượng
         Row(
-            modifier = Modifier.width(130.dp),
+            modifier = Modifier.width(110.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Icon(Icons.Default.VolumeUp, contentDescription = "Volume", tint = GOLD_ACCENT, modifier = Modifier.size(18.dp))
+            Icon(Icons.Default.VolumeUp, contentDescription = "Volume", tint = GOLD_ACCENT, modifier = Modifier.size(16.dp))
             Slider(
                 value = volumeLevel,
                 onValueChange = { volumeLevel = it },
@@ -418,7 +415,7 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
                     activeTrackColor = GOLD_ACCENT,
                     inactiveTrackColor = Color.White.copy(alpha = 0.15f)
                 ),
-                modifier = Modifier.weight(1f).height(18.dp)
+                modifier = Modifier.weight(1f).height(16.dp)
             )
         }
     }
