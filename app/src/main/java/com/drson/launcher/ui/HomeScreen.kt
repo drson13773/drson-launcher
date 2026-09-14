@@ -38,6 +38,7 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     var isEditMode by remember { mutableStateOf(false) }
+    var isAppDrawerOpen by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize()) {
         // Hình nền đường xe chạy động
@@ -85,7 +86,7 @@ fun HomeScreen(
             BottomDock(
                 viewModel = viewModel,
                 isEditMode = isEditMode,
-                onOpenMenu = { viewModel.isAppDrawerOpen = true },
+                onOpenMenu = { isAppDrawerOpen = true },
                 onSwipeUpToOpenAppSwitcher = { },
                 onEmptyDockSlotTap = { _ -> },
                 onLongPressSlot = { isEditMode = !isEditMode }
@@ -94,12 +95,12 @@ fun HomeScreen(
 
         // Bảng danh sách ứng dụng App Drawer
         AppDrawerOverlay(
-            isOpen = viewModel.isAppDrawerOpen,
-            apps = viewModel.installedApps,
-            onDismiss = { viewModel.isAppDrawerOpen = false },
+            isOpen = isAppDrawerOpen,
+            apps = viewModel.apps,
+            onDismiss = { isAppDrawerOpen = false },
             onPick = { app ->
                 viewModel.launchApp(context, app)
-                viewModel.isAppDrawerOpen = false
+                isAppDrawerOpen = false
             }
         )
     }
@@ -162,8 +163,8 @@ private fun FocusableDesktopSlot(
 private fun BottomDock(
     viewModel: HomeViewModel,
     isEditMode: Boolean,
-    onSwipeUpToOpenAppSwitcher: () -> Unit,
     onOpenMenu: () -> Unit,
+    onSwipeUpToOpenAppSwitcher: () -> Unit,
     onEmptyDockSlotTap: (Int) -> Unit,
     onLongPressSlot: () -> Unit,
 ) {
