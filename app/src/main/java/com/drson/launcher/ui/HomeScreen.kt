@@ -7,12 +7,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -20,10 +22,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,6 +35,7 @@ import com.drson.launcher.model.AppItem
 import com.drson.launcher.model.HomeSlotContent
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
+private val GOLD_ACCENT = Color(0xFFD4AF37)
 
 @Composable
 fun HomeScreen(
@@ -59,7 +62,7 @@ fun HomeScreen(
         ) {
             Spacer(Modifier.height(10.dp))
 
-            // Lưới Desktop bên phải
+            // Desktop Slots (Phía trên bên phải)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -105,18 +108,16 @@ fun HomeScreen(
                 }
             }
 
-            // Thanh Dock dưới đáy
+            // Thanh Dock 1 Menu + 4 Slot + Trình phát nhạc mở rộng
             BottomDock(
                 viewModel = viewModel,
                 isEditMode = isEditMode,
                 onOpenMenu = { isAppDrawerOpen = true },
-                onSwipeUpToOpenAppSwitcher = { },
                 onEmptyDockSlotTap = { _ -> },
                 onLongPressSlot = { isEditMode = !isEditMode }
             )
         }
 
-        // App Drawer Menu
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -163,9 +164,7 @@ private fun FocusableDesktopSlot(
                 Image(
                     bitmap = app.icon,
                     contentDescription = app.label,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(RoundedCornerShape(10.dp))
+                    modifier = Modifier.size(42.dp).clip(RoundedCornerShape(10.dp))
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
@@ -181,12 +180,10 @@ private fun FocusableDesktopSlot(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun BottomDock(
     viewModel: HomeViewModel,
     isEditMode: Boolean,
-    onSwipeUpToOpenAppSwitcher: () -> Unit,
     onOpenMenu: () -> Unit,
     onEmptyDockSlotTap: (Int) -> Unit,
     onLongPressSlot: () -> Unit,
@@ -198,34 +195,27 @@ private fun BottomDock(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(Color.Black.copy(alpha = 0.55f))
-            .padding(horizontal = 10.dp, vertical = 4.dp)
-            .pointerInput(Unit) {
-                detectVerticalDragGestures { _, dragAmount ->
-                    if (dragAmount < -6f) onSwipeUpToOpenAppSwitcher()
-                }
-            },
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color.Black.copy(alpha = 0.7f))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(22.dp))
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu
+        // 1. Nút Menu chính
         Box(
             modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .size(48.dp)
+                .clip(RoundedCornerShape(14.dp))
                 .background(Color(0xFF1E1912))
                 .focusable(interactionSource = menuInteractionSource)
                 .then(
-                    if (isMenuFocused) {
-                        Modifier.border(2.5.dp, GOLD_BRIGHT, RoundedCornerShape(12.dp))
-                    } else {
-                        Modifier.border(1.dp, GOLD_BRIGHT.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                    }
+                    if (isMenuFocused) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(14.dp))
+                    else Modifier.border(1.dp, GOLD_BRIGHT.copy(alpha = 0.6f), RoundedCornerShape(14.dp))
                 )
                 .clickable(onClick = onOpenMenu)
-                .padding(3.dp),
+                .padding(4.dp),
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -236,8 +226,8 @@ private fun BottomDock(
             )
         }
 
-        // Cụm ô Dock Slots
-        viewModel.dockSlots.forEachIndexed { index, packageName ->
+        // 2. Đúng 4 ô Ứng dụng trên Dock
+        viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
                 app = app,
@@ -252,9 +242,10 @@ private fun BottomDock(
             )
         }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.width(8.dp))
 
-        NowPlayingBar(modifier = Modifier)
+        // 3. Thanh phát nhạc & Âm lượng kéo dài
+        ExpandedNowPlayingBar(modifier = Modifier.weight(1f))
     }
 }
 
@@ -270,14 +261,13 @@ private fun FocusableDockSlotCell(
 
     Box(
         modifier = Modifier
-            .size(44.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .size(48.dp)
+            .clip(RoundedCornerShape(14.dp))
             .background(Color.White.copy(alpha = 0.08f))
             .focusable(interactionSource = interactionSource)
             .then(
-                if (isFocused) {
-                    Modifier.border(2.5.dp, GOLD_BRIGHT, RoundedCornerShape(12.dp))
-                } else Modifier
+                if (isFocused) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(14.dp))
+                else Modifier.border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(14.dp))
             )
             .clickable(onClick = onTap)
             .padding(4.dp),
@@ -287,9 +277,92 @@ private fun FocusableDockSlotCell(
             Image(
                 bitmap = app.icon,
                 contentDescription = app.label,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
+    var isPlaying by remember { mutableStateOf(false) }
+    var trackProgress by remember { mutableFloatStateOf(0.35f) }
+    var volumeLevel by remember { mutableFloatStateOf(0.7f) }
+
+    Row(
+        modifier = modifier
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF14120E))
+            .border(1.dp, GOLD_ACCENT.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Nút Play/Pause & Điều hướng
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            IconButton(onClick = {}, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Default.SkipPrevious, contentDescription = "Prev", tint = GOLD_ACCENT, modifier = Modifier.size(20.dp))
+            }
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(8.dp))
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(GOLD_ACCENT)
+                    .clickable { isPlaying = !isPlaying },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = "Play",
+                    tint = Color.Black,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            IconButton(onClick = {}, modifier = Modifier.size(28.dp)) {
+                Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = GOLD_ACCENT, modifier = Modifier.size(20.dp))
+            }
+        }
+
+        // Thanh trượt bài hát kéo dài
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text("01:25", color = Color.Gray, fontSize = 10.sp)
+            Slider(
+                value = trackProgress,
+                onValueChange = { trackProgress = it },
+                colors = SliderDefaults.colors(
+                    thumbColor = GOLD_BRIGHT,
+                    activeTrackColor = GOLD_ACCENT,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                ),
+                modifier = Modifier.weight(1f).height(18.dp)
+            )
+            Text("04:10", color = Color.Gray, fontSize = 10.sp)
+        }
+
+        // Thanh chỉnh Âm lượng
+        Row(
+            modifier = Modifier.width(130.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Icon(Icons.Default.VolumeUp, contentDescription = "Volume", tint = GOLD_ACCENT, modifier = Modifier.size(18.dp))
+            Slider(
+                value = volumeLevel,
+                onValueChange = { volumeLevel = it },
+                colors = SliderDefaults.colors(
+                    thumbColor = GOLD_BRIGHT,
+                    activeTrackColor = GOLD_ACCENT,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                ),
+                modifier = Modifier.weight(1f).height(18.dp)
             )
         }
     }
