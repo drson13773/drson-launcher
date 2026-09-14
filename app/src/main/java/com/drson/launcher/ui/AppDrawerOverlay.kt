@@ -24,16 +24,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -72,107 +69,87 @@ fun AppDrawerOverlay(
                 .fillMaxSize()
                 .background(Color(0xFF0C0A08))
         ) {
-            // --- HÌNH NỀN STACKED LOGO TRUNG TÂM (LÀM MỜ NỀN) ---
+            // --- CỤM LOGO NỀN GÓC DƯỚI BÊN TRÁI ---
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .alpha(0.30f), // Độ mờ vừa phải để không rối mắt khi nhìn icon
-                contentAlignment = Alignment.Center
+                    .padding(start = 24.dp, bottom = 20.dp),
+                contentAlignment = Alignment.BottomStart
             ) {
-                // 1. Quầng hào quang tia sáng xoay nhẹ
-                Canvas(modifier = Modifier.size(340.dp)) {
-                    val center = Offset(size.width / 2f, size.height / 2f)
-                    val maxR = size.minDimension / 2f
-
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                GOLD_SOLID.copy(alpha = 0.22f),
-                                GOLD_SOLID.copy(alpha = 0.06f),
-                                Color.Transparent
-                            ),
-                            center = center,
-                            radius = maxR
-                        ),
-                        radius = maxR,
-                        center = center
-                    )
-
-                    val nRays = 28
-                    for (i in 0 until nRays) {
-                        val angleDeg = i * (360f / nRays)
-                        val angleRad = Math.toRadians(angleDeg.toDouble())
-                        val rayLen = maxR * (0.6f + 0.35f * abs(sin(Math.toRadians((angleDeg * 2).toDouble()))).toFloat())
-                        val innerR = maxR * 0.25f
-                        val p1 = Offset(
-                            center.x + (innerR * cos(angleRad)).toFloat(),
-                            center.y + (innerR * sin(angleRad)).toFloat()
-                        )
-                        val p2 = Offset(
-                            center.x + (rayLen * cos(angleRad)).toFloat(),
-                            center.y + (rayLen * sin(angleRad)).toFloat()
-                        )
-                        drawLine(
-                            color = GOLD_BRIGHT.copy(alpha = 0.18f),
-                            start = p1,
-                            end = p2,
-                            strokeWidth = 2.0f
-                        )
-                    }
-                }
-
-                // 2. Cụm Logo Xếp Dọc: Bác sĩ -> Chữ Dr Sơn -> Con dao mổ hướng từ phải qua trái
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                Box(
+                    modifier = Modifier
+                        .size(180.dp)
+                        .alpha(0.55f),
+                    contentAlignment = Alignment.Center
                 ) {
-                    // Tầng 1: Hình Bác Sĩ
+                    // Quầng sáng và tia hào quang tỏa ra từ góc dưới trái
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val center = Offset(size.width / 2f, size.height / 2f)
+                        val maxR = size.minDimension / 2f
+
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    GOLD_SOLID.copy(alpha = 0.28f),
+                                    GOLD_SOLID.copy(alpha = 0.08f),
+                                    Color.Transparent
+                                ),
+                                center = center,
+                                radius = maxR
+                            ),
+                            radius = maxR,
+                            center = center
+                        )
+
+                        val nRays = 24
+                        for (i in 0 until nRays) {
+                            val angleDeg = i * (360f / nRays)
+                            val angleRad = Math.toRadians(angleDeg.toDouble())
+                            val rayLen = maxR * (0.65f + 0.35f * abs(sin(Math.toRadians((angleDeg * 2).toDouble()))).toFloat())
+                            val innerR = maxR * 0.20f
+                            val p1 = Offset(
+                                center.x + (innerR * cos(angleRad)).toFloat(),
+                                center.y + (innerR * sin(angleRad)).toFloat()
+                            )
+                            val p2 = Offset(
+                                center.x + (rayLen * cos(angleRad)).toFloat(),
+                                center.y + (rayLen * sin(angleRad)).toFloat()
+                            )
+                            drawLine(
+                                color = GOLD_BRIGHT.copy(alpha = 0.25f),
+                                start = p1,
+                                end = p2,
+                                strokeWidth = 2.0f
+                            )
+                        }
+                    }
+
+                    // Hình ảnh logo đơn nhất, sắc nét với ánh kim
                     Image(
                         painter = painterResource(id = R.drawable.brand_glyph),
-                        contentDescription = null,
-                        modifier = Modifier.size(110.dp),
-                        contentScale = ContentScale.Fit
-                    )
-
-                    Spacer(Modifier.height(4.dp))
-
-                    // Tầng 2: Chữ Dr Sơn
-                    Text(
-                        text = "Dr Sơn",
-                        color = GOLD_BRIGHT,
-                        fontSize = 34.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily(Font(R.font.alex_brush)),
-                        style = TextStyle(
-                            textAlign = TextAlign.Center
-                        )
-                    )
-
-                    Spacer(Modifier.height(4.dp))
-
-                    // Tầng 3: Con dao mổ làm gạch chân (Lật scaleX = -1f để hướng lưỡi dao từ phải qua trái)
-                    Image(
-                        painter = painterResource(id = R.drawable.icon_scalpel),
-                        contentDescription = null,
+                        contentDescription = "Dr Sơn Brand",
                         modifier = Modifier
-                            .width(100.dp)
-                            .height(20.dp)
-                            .scale(scaleX = -1f, scaleY = 1f), // Hướng lưỡi dao từ phải sang trái
-                        contentScale = ContentScale.Fit
+                            .size(130.dp)
+                            .padding(bottom = 6.dp),
+                        contentScale = ContentScale.Fit,
+                        colorFilter = ColorFilter.tint(
+                            color = GOLD_BRIGHT,
+                            blendMode = BlendMode.SrcIn
+                        )
                     )
                 }
             }
 
-            // Lớp phủ Gradient mờ trên dưới
+            // Lớp phủ Gradient mờ
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                Color.Black.copy(alpha = 0.55f),
+                                Color.Black.copy(alpha = 0.50f),
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.65f)
+                                Color.Black.copy(alpha = 0.60f)
                             )
                         )
                     )
@@ -184,7 +161,7 @@ fun AppDrawerOverlay(
                     .fillMaxSize()
                     .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {
-                // Thanh Header: Tiêu đề + Tìm kiếm + Nút đóng
+                // Header: Tiêu đề + Tìm kiếm + Đóng
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -196,7 +173,7 @@ fun AppDrawerOverlay(
                         text = title,
                         color = GOLD_BRIGHT,
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                     )
 
                     Row(
@@ -235,7 +212,7 @@ fun AppDrawerOverlay(
                     }
                 }
 
-                // Lưới ứng dụng: 7 cột, icon 50dp, khoảng cách gọn
+                // Lưới icon ứng dụng (7 cột)
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(7),
                     modifier = Modifier.fillMaxSize(),
