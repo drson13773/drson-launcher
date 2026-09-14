@@ -6,8 +6,8 @@ import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.MotionEvent
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.lifecycleScope
 import com.drson.launcher.ui.HomeScreen
 import com.drson.launcher.ui.HomeViewModel
@@ -21,9 +21,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            HomeScreen(viewModel = homeViewModel)
+
+        val composeView = ComposeView(this).apply {
+            setContent {
+                HomeScreen(viewModel = homeViewModel)
+            }
         }
+        setContentView(composeView)
     }
 
     override fun onResume() {
