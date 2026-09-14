@@ -1,11 +1,14 @@
 package com.drson.launcher.ui.music
 
+import android.annotation.SuppressLint
 import android.os.Bundle
+import android.view.KeyEvent
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,10 +17,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -27,224 +27,344 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.drson.launcher.R
+import androidx.compose.ui.viewinterop.AndroidView
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
-private val BG_DARK = Color(0xFF0C0A08)
-private val CARD_DARK = Color(0xFF161410)
+private val BG_DARK = Color(0xFF0F0D0A)
 
-// Data Models
-data class MusicTrack(val id: String, val title: String, val artist: String, val duration: String)
-data class MusicAlbum(val id: String, val title: String, val trackCount: String)
-data class MusicArtist(val id: String, val name: String, val fans: String)
+data class YouTubeTrack(
+    val title: String,
+    val artist: String,
+    val videoId: String
+)
 
 class DrSonMusicActivity : ComponentActivity() {
+
+    private val defaultPlaylist = listOf(
+        YouTubeTrack("Tuyển Tập Nhạc Trẻ Remix Hay Nhất", "Dr Sơn Car Audio", "5qap5aO4i9A"),
+        YouTubeTrack("Nhạc Trữ Tình Bolero Lái Xe", "Acoustic Car Vibes", "jfKfPfyJRdk"),
+        YouTubeTrack("Deep Chill Driving Mix", "Relaxing Road", "7NOSDKb0HlU"),
+        YouTubeTrack("EDM Bass Boosted Nonstop", "Drive Bass", "kJQP7kiw5Fk")
+    )
+
+    private var currentTrackIndex by mutableIntStateOf(0)
+    private var isPlaying by mutableStateOf(true)
+    private var currentQuality by mutableStateOf("Auto")
+    private var webViewInstance: WebView? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
-            DrSonMusicScreen(onClose = { finish() })
+            DrSonMusicScreen(
+                playlist = defaultPlaylist,
+                currentIndex = currentTrackIndex,
+                isPlaying = isPlaying,
+                currentQuality = currentQuality,
+                onQualityChange = { qualityCode, qualityLabel ->
+                    currentQuality = qualityLabel
+                    setVideoQuality(qualityCode)
+                },
+                onTrackSelect = { index ->
+                    currentTrackIndex = index
+                    isPlaying = true
+                    playVideo(defaultPlaylist[index].videoId)
+                },
+                onPlayPauseToggle = {
+                    if (isPlaying) pauseVideo() else resumeVideo()
+                    isPlaying = !isPlaying
+                },
+                onNextTrack = {
+                    currentTrackIndex = (currentTrackIndex + 1) % defaultPlaylist.size
+                    isPlaying = true
+                    playVideo(defaultPlaylist[currentTrackIndex].videoId)
+                },
+                onPrevTrack = {
+                    currentTrackIndex = if (currentTrackIndex - 1 < 0) defaultPlaylist.size - 1 else currentTrackIndex - 1
+                    isPlaying = true
+                    playVideo(defaultPlaylist[currentTrackIndex].videoId)
+                },
+                onBack = { finish() },
+                onWebViewReady = { webViewInstance = it }
+            )
+        }
+    }
+
+    private fun playVideo(videoId: String) {
+        val htmlData = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { margin: 0; background-color: #000000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+                    iframe { width: 100%; height: 100%; border: none; }
+                </style>
+            </head>
+            <body>
+                <iframe id="player" src="https://www.youtube-nocookie.com/embed/$videoId?autoplay=1&enablejsapi=1&controls=1&fs=0&rel=0&iv_load_policy=3" allow="autoplay; encrypted-media"></iframe>
+            </body>
+            </html>
+        """.trimIndent()
+        webViewInstance?.loadDataWithBaseURL("https://www.youtube-nocookie.com", htmlData, "text/html", "utf-8", null)
+    }
+
+    private fun setVideoQuality(quality: String) {
+        // Gửi lệnh JavaScript thay đổi chất lượng stream
+        val js = "document.querySelector('iframe').contentWindow.postMessage('{\"event\":\"command\",\"func\":\"setPlaybackQuality\",\"args\":[\"$quality\"]}', '*');"
+        webViewInstance?.evaluateJavascript(js, null)
+    }
+
+    private fun pauseVideo() {
+        webViewInstance?.evaluateJavascript("document.querySelector('iframe').contentWindow.postMessage('{\"event\":\"command\",\"func\":\"pauseVideo\",\"args\":\"\"}', '*');", null)
+    }
+
+    private fun resumeVideo() {
+        webViewInstance?.evaluateJavascript("document.querySelector('iframe').contentWindow.postMessage('{\"event\":\"command\",\"func\":\"playVideo\",\"args\":\"\"}', '*');", null)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        webViewInstance?.destroy()
+        webViewInstance = null
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        return when (keyCode) {
+            KeyEvent.KEYCODE_MEDIA_NEXT -> {
+                currentTrackIndex = (currentTrackIndex + 1) % defaultPlaylist.size
+                playVideo(defaultPlaylist[currentTrackIndex].videoId)
+                true
+            }
+            KeyEvent.KEYCODE_MEDIA_PREVIOUS -> {
+                currentTrackIndex = if (currentTrackIndex - 1 < 0) defaultPlaylist.size - 1 else currentTrackIndex - 1
+                playVideo(defaultPlaylist[currentTrackIndex].videoId)
+                true
+            }
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                if (isPlaying) pauseVideo() else resumeVideo()
+                isPlaying = !isPlaying
+                true
+            }
+            else -> super.onKeyDown(keyCode, event)
         }
     }
 }
 
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun DrSonMusicScreen(onClose: () -> Unit) {
-    var selectedTab by remember { mutableIntStateOf(0) }
-    var searchQuery by remember { mutableStateOf("") }
-    var currentTrack by remember { mutableStateOf(MusicTrack("1", "Ghé Qua (Acoustic)", "Dick ft. PC & Tofu", "04:15")) }
-    var isPlaying by remember { mutableStateOf(true) }
-    var playbackProgress by remember { mutableFloatStateOf(0.42f) }
+fun DrSonMusicScreen(
+    playlist: List<YouTubeTrack>,
+    currentIndex: Int,
+    isPlaying: Boolean,
+    currentQuality: String,
+    onQualityChange: (String, String) -> Unit,
+    onTrackSelect: (Int) -> Unit,
+    onPlayPauseToggle: () -> Unit,
+    onNextTrack: () -> Unit,
+    onPrevTrack: () -> Unit,
+    onBack: () -> Unit,
+    onWebViewReady: (WebView) -> Unit
+) {
+    var showQualityMenu by remember { mutableStateOf(false) }
+    val qualityOptions = listOf(
+        "default" to "Tự động (Auto)",
+        "hd1080" to "1080p (Full HD)",
+        "hd720" to "720p (HD)",
+        "large" to "480p",
+        "medium" to "360p",
+        "small" to "240p / Tiết kiệm 4G"
+    )
 
-    // Mock Data YouTube Music
-    val tracks = remember {
-        listOf(
-            MusicTrack("1", "Ghé Qua (Acoustic)", "Dick ft. PC & Tofu", "04:15"),
-            MusicTrack("2", "Nấu Ăn Cho Em", "Đen Vâu ft. PiaLinh", "04:45"),
-            MusicTrack("3", "Bật Tình Yêu Lên", "Tăng Duy Tân x Hòa Minzy", "03:32"),
-            MusicTrack("4", "Cắt Đôi Nỗi Sầu (Speed Up)", "Tăng Duy Tân", "03:10"),
-            MusicTrack("5", "Ngày Chưa Giông Bão", "Bùi Lan Hương", "04:20"),
-            MusicTrack("6", "Chuyện Rằng", "Thịnh Suy", "03:55")
-        )
-    }
-
-    val albums = remember {
-        listOf(
-            MusicAlbum("1", "Acoustic Chill Việt Nam", "24 bài hát"),
-            MusicAlbum("2", "Top Hits Bolero Nhạc Xe", "30 bài hát"),
-            MusicAlbum("3", "EDM Nonstop Bay Bổng", "18 bài hát"),
-            MusicAlbum("4", "Đen Vâu Collection", "15 bài hát")
-        )
-    }
-
-    val artists = remember {
-        listOf(
-            MusicArtist("1", "Đen Vâu", "2.1M lượt nghe"),
-            MusicArtist("2", "Tăng Duy Tân", "1.5M lượt nghe"),
-            MusicArtist("3", "Thịnh Suy", "850K lượt nghe"),
-            MusicArtist("4", "Vũ.", "1.9M lượt nghe")
-        )
-    }
-
-    Box(modifier = Modifier.fillMaxSize().background(BG_DARK)) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // 1. TOP BAR: Branding + Search + Tabs + Close
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BG_DARK)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // CỘT TRÁI: Màn hình Video YouTube + Thanh điều khiển
+        Column(
+            modifier = Modifier
+                .weight(1.2f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Header Bar: Nút Back + Tiêu đề + Nút Chọn độ phân giải
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Logo Dr Sơn Music
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayCircleFilled,
-                        contentDescription = "Logo",
-                        tint = GOLD_ACCENT,
-                        modifier = Modifier.size(32.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.1f))
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = GOLD_BRIGHT)
+                    }
+                    Spacer(Modifier.width(10.dp))
                     Text(
-                        text = "DR SƠN MUSIC",
+                        text = "Dr Sơn Music (Online)",
                         color = GOLD_BRIGHT,
-                        fontSize = 18.sp,
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
 
-                // 3 Tabs: BÀI HÁT / ALBUM / NGHỆ SĨ
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    listOf("BÀI HÁT", "ALBUM / PLAYLIST", "NGHỆ SĨ").forEachIndexed { index, tabName ->
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (selectedTab == index) GOLD_ACCENT.copy(alpha = 0.22f) else Color.Transparent)
-                                .border(
-                                    1.dp,
-                                    if (selectedTab == index) GOLD_BRIGHT else Color.White.copy(alpha = 0.1f),
-                                    RoundedCornerShape(10.dp)
-                                )
-                                .clickable { selectedTab = index }
-                                .padding(horizontal = 14.dp, vertical = 6.dp)
-                        ) {
-                            Text(
-                                text = tabName,
-                                color = if (selectedTab == index) GOLD_BRIGHT else Color.Gray,
-                                fontSize = 12.sp,
-                                fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal
+                // Menu chọn chất lượng video
+                Box {
+                    Button(
+                        onClick = { showQualityMenu = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF221D17)),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.border(1.dp, GOLD_ACCENT.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                    ) {
+                        Icon(Icons.Default.HighQuality, contentDescription = null, tint = GOLD_BRIGHT, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(currentQuality, color = GOLD_BRIGHT, fontSize = 11.sp)
+                    }
+
+                    DropdownMenu(
+                        expanded = showQualityMenu,
+                        onDismissRequest = { showQualityMenu = false },
+                        modifier = Modifier.background(Color(0xFF1E1A14))
+                    ) {
+                        qualityOptions.forEach { (code, label) ->
+                            DropdownMenuItem(
+                                text = { Text(label, color = if (currentQuality == label) GOLD_BRIGHT else Color.White, fontSize = 12.sp) },
+                                onClick = {
+                                    onQualityChange(code, label)
+                                    showQualityMenu = false
+                                }
                             )
                         }
                     }
                 }
-
-                // Search Box
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Tìm nhạc YouTube...", fontSize = 11.sp, color = Color.Gray) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = GOLD_ACCENT, modifier = Modifier.size(16.dp)) },
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = GOLD_BRIGHT,
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.2f),
-                        focusedContainerColor = CARD_DARK,
-                        unfocusedContainerColor = CARD_DARK
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.width(220.dp).height(42.dp)
-                )
-
-                // Close Button
-                IconButton(
-                    onClick = onClose,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.1f))
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White, modifier = Modifier.size(20.dp))
-                }
             }
 
-            // 2. MAIN CONTENT AREA
+            // WebView nhúng Video YouTube
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(horizontal = 20.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(1.5.dp, GOLD_ACCENT.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                    .background(Color.Black)
             ) {
-                when (selectedTab) {
-                    0 -> { // TAB BÀI HÁT
-                        LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(tracks.filter { it.title.contains(searchQuery, ignoreCase = true) || it.artist.contains(searchQuery, ignoreCase = true) }) { track ->
-                                TrackItemRow(
-                                    track = track,
-                                    isSelected = track.id == currentTrack.id,
-                                    onClick = { currentTrack = track }
-                                )
-                            }
+                AndroidView(
+                    factory = { ctx ->
+                        WebView(ctx).apply {
+                            settings.javaScriptEnabled = true
+                            settings.domStorageEnabled = true
+                            settings.mediaPlaybackRequiresUserGesture = false
+                            settings.cacheMode = WebSettings.LOAD_DEFAULT
+                            webChromeClient = WebChromeClient()
+                            webViewClient = WebViewClient()
+                            onWebViewReady(this)
+                            
+                            val initialId = playlist[currentIndex].videoId
+                            val initialHtml = """
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <style>
+                                        body { margin: 0; background-color: #000000; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+                                        iframe { width: 100%; height: 100%; border: none; }
+                                    </style>
+                                </head>
+                                <body>
+                                    <iframe id="player" src="https://www.youtube-nocookie.com/embed/$initialId?autoplay=1&enablejsapi=1&controls=1&fs=0&rel=0&iv_load_policy=3" allow="autoplay; encrypted-media"></iframe>
+                                </body>
+                                </html>
+                            """.trimIndent()
+                            loadDataWithBaseURL("https://www.youtube-nocookie.com", initialHtml, "text/html", "utf-8", null)
                         }
-                    }
-                    1 -> { // TAB ALBUM
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(4),
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(albums) { album ->
-                                AlbumCard(album = album, onClick = {})
-                            }
-                        }
-                    }
-                    2 -> { // TAB NGHỆ SĨ
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(4),
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(14.dp),
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            items(artists) { artist ->
-                                ArtistCard(artist = artist, onClick = {})
-                            }
-                        }
-                    }
-                }
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
             }
 
-            // 3. BOTTOM NOW PLAYING CONTROLLER BAR
-            BottomPlayerBar(
-                currentTrack = currentTrack,
-                isPlaying = isPlaying,
-                progress = playbackProgress,
-                onPlayPauseToggle = { isPlaying = !isPlaying },
-                onProgressChange = { playbackProgress = it }
+            // Cụm nút Play / Pause / Next / Prev
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onPrevTrack, modifier = Modifier.size(46.dp)) {
+                    Icon(Icons.Default.SkipPrevious, contentDescription = "Prev", tint = GOLD_ACCENT, modifier = Modifier.size(30.dp))
+                }
+                Spacer(Modifier.width(20.dp))
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(GOLD_ACCENT)
+                        .clickable(onClick = onPlayPauseToggle),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = "Play/Pause",
+                        tint = Color.Black,
+                        modifier = Modifier.size(32.dp)
+                    )
+                }
+                Spacer(Modifier.width(20.dp))
+                IconButton(onClick = onNextTrack, modifier = Modifier.size(46.dp)) {
+                    Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = GOLD_ACCENT, modifier = Modifier.size(30.dp))
+                }
+            }
+        }
+
+        // CỘT PHẢI: Danh sách Playlist
+        Column(
+            modifier = Modifier
+                .weight(0.9f)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White.copy(alpha = 0.04f))
+                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                .padding(12.dp)
+        ) {
+            Text(
+                text = "Danh sách phát",
+                color = Color.White,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 10.dp)
             )
+
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                itemsIndexed(playlist) { index, track ->
+                    TrackPlaylistItem(
+                        track = track,
+                        isSelected = index == currentIndex,
+                        onClick = { onTrackSelect(index) }
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun TrackItemRow(
-    track: MusicTrack,
+private fun TrackPlaylistItem(
+    track: YouTubeTrack,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
@@ -254,200 +374,47 @@ private fun TrackItemRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) GOLD_ACCENT.copy(alpha = 0.16f) else CARD_DARK)
+            .clip(RoundedCornerShape(10.dp))
+            .background(
+                when {
+                    isSelected -> GOLD_ACCENT.copy(alpha = 0.25f)
+                    isFocused -> Color.White.copy(alpha = 0.15f)
+                    else -> Color.Transparent
+                }
+            )
             .focusable(interactionSource = interactionSource)
             .then(
-                if (isFocused) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(12.dp))
-                else Modifier.border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                if (isFocused) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(10.dp))
+                else if (isSelected) Modifier.border(1.dp, GOLD_ACCENT, RoundedCornerShape(10.dp))
+                else Modifier
             )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.weight(1f)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (isSelected) GOLD_ACCENT else Color.White.copy(alpha = 0.08f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (isSelected) Icons.Default.Equalizer else Icons.Default.MusicNote,
-                    contentDescription = null,
-                    tint = if (isSelected) Color.Black else GOLD_ACCENT,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Column {
-                Text(
-                    text = track.title,
-                    color = if (isSelected) GOLD_BRIGHT else Color.White,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = track.artist,
-                    color = Color.Gray,
-                    fontSize = 11.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-        }
-
-        Text(text = track.duration, color = Color.Gray, fontSize = 11.sp)
-    }
-}
-
-@Composable
-private fun AlbumCard(album: MusicAlbum, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(CARD_DARK)
-            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(10.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(85.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(Brush.linearGradient(listOf(Color(0xFF2B2215), Color(0xFF14120E)))),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.LibraryMusic, contentDescription = null, tint = GOLD_ACCENT, modifier = Modifier.size(38.dp))
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(text = album.title, color = GOLD_BRIGHT, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(text = album.trackCount, color = Color.Gray, fontSize = 10.sp)
-    }
-}
-
-@Composable
-private fun ArtistCard(artist: MusicArtist, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(CARD_DARK)
-            .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(70.dp)
-                .clip(CircleShape)
-                .background(Brush.radialGradient(listOf(GOLD_ACCENT.copy(alpha = 0.4f), Color(0xFF14120E)))),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.Person, contentDescription = null, tint = GOLD_BRIGHT, modifier = Modifier.size(34.dp))
-        }
-        Spacer(Modifier.height(8.dp))
-        Text(text = artist.name, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(text = artist.fans, color = Color.Gray, fontSize = 10.sp)
-    }
-}
-
-@Composable
-private fun BottomPlayerBar(
-    currentTrack: MusicTrack,
-    isPlaying: Boolean,
-    progress: Float,
-    onPlayPauseToggle: () -> Unit,
-    onProgressChange: (Float) -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .background(Color.Black.copy(alpha = 0.9f))
-            .border(width = 1.dp, color = GOLD_ACCENT.copy(alpha = 0.35f))
-            .padding(horizontal = 20.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        // Track info
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.width(220.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(GOLD_ACCENT),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Default.Headphones, contentDescription = null, tint = Color.Black, modifier = Modifier.size(20.dp))
-            }
-            Column {
-                Text(text = currentTrack.title, color = GOLD_BRIGHT, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(text = currentTrack.artist, color = Color.Gray, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-        }
-
-        // Center Controls
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            IconButton(onClick = {}, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.SkipPrevious, contentDescription = "Prev", tint = GOLD_ACCENT, modifier = Modifier.size(22.dp))
-            }
-
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .background(GOLD_ACCENT)
-                    .clickable(onClick = onPlayPauseToggle),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = "Play/Pause",
-                    tint = Color.Black,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
-            IconButton(onClick = {}, modifier = Modifier.size(28.dp)) {
-                Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = GOLD_ACCENT, modifier = Modifier.size(22.dp))
-            }
-        }
-
-        // Progress Slider
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.width(260.dp)
-        ) {
-            Text("01:45", color = Color.Gray, fontSize = 9.sp)
-            Slider(
-                value = progress,
-                onValueChange = onProgressChange,
-                colors = SliderDefaults.colors(
-                    thumbColor = GOLD_BRIGHT,
-                    activeTrackColor = GOLD_ACCENT,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.15f)
-                ),
-                modifier = Modifier.weight(1f).height(16.dp)
+        Icon(
+            imageVector = if (isSelected) Icons.Default.MusicNote else Icons.Default.PlayCircleOutline,
+            contentDescription = null,
+            tint = if (isSelected) GOLD_BRIGHT else Color.Gray,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = track.title,
+                color = if (isSelected) GOLD_BRIGHT else Color.White,
+                fontSize = 12.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
-            Text(currentTrack.duration, color = Color.Gray, fontSize = 9.sp)
+            Text(
+                text = track.artist,
+                color = Color.Gray,
+                fontSize = 10.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
     }
 }
