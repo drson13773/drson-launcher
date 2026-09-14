@@ -3,7 +3,16 @@ package com.drson.launcher.ui
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
+import android.bluetooth.BluetoothAdapter
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -21,7 +30,14 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.BluetoothDisabled
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material.icons.filled.WifiOff
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -271,6 +287,8 @@ private fun StatusBar(
     onSwipeDownLeft: () -> Unit,
     onSwipeDownRight: () -> Unit,
 ) {
+    val context = LocalContext.current
+
     var time by remember { mutableStateOf(currentTimeString()) }
     var date by remember { mutableStateOf(currentDateString()) }
     LaunchedEffect(Unit) {
@@ -279,6 +297,51 @@ private fun StatusBar(
             date = currentDateString()
             delay(1000)
         }
+    }
+
+    // Theo dõi trạng thái Wi-Fi thực tế
+    var isWifiConnected by remember {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val activeNetwork = cm?.activeNetwork
+        val caps = cm?.getNetworkCapabilities(activeNetwork)
+        mutableStateOf(caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true)
+    }
+
+    DisposableEffect(Unit) {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) {
+                isWifiConnected = caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
+            }
+            override fun onLost(network: Network) {
+                isWifiConnected = false
+            }
+        }
+        val request = NetworkRequest.Builder()
+            .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+            .build()
+        cm?.registerNetworkCallback(request, networkCallback)
+        onDispose { cm?.unregisterNetworkCallback(networkCallback) }
+    }
+
+    // Theo dõi trạng thái Bluetooth thực tế
+    var isBluetoothEnabled by remember {
+        val adapter = BluetoothAdapter.getDefaultAdapter()
+        mutableStateOf(adapter?.isEnabled == true)
+    }
+
+    DisposableEffect(Unit) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context?, intent: Intent?) {
+                if (intent?.action == BluetoothAdapter.ACTION_STATE_CHANGED) {
+                    val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
+                    isBluetoothEnabled = (state == BluetoothAdapter.STATE_ON)
+                }
+            }
+        }
+        val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
+        context.registerReceiver(receiver, filter)
+        onDispose { context.unregisterReceiver(receiver) }
     }
 
     var barWidthPx by remember { mutableStateOf(0f) }
@@ -307,9 +370,37 @@ private fun StatusBar(
             Text(time, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Medium)
             Text(date, color = Color.White.copy(alpha = 0.7f), fontSize = 12.sp)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Wi-Fi", color = Color.White.copy(alpha = 0.85f), fontSize = 15.sp)
-            Text("BT", color = Color.White.copy(alpha = 0.85f), fontSize = 15.sp)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = if (isWifiConnected) Icons.Default.Wifi else Icons.Default.WifiOff,
+                contentDescription = if (isWifiConnected) "Wi-Fi Connected" else "Wi-Fi Disconnected",
+                tint = if (isWifiConnected) GOLD_BRIGHT else Color.White.copy(alpha = 0.35f),
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .clickable {
+                        try {
+                            context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                        } catch (_: Exception) {}
+                    }
+            )
+
+            Icon(
+                imageVector = if (isBluetoothEnabled) Icons.Default.Bluetooth else Icons.Default.BluetoothDisabled,
+                contentDescription = if (isBluetoothEnabled) "Bluetooth On" else "Bluetooth Off",
+                tint = if (isBluetoothEnabled) GOLD_BRIGHT else Color.White.copy(alpha = 0.35f),
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .clickable {
+                        try {
+                            context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS))
+                        } catch (_: Exception) {}
+                    }
+            )
         }
     }
 }
@@ -339,7 +430,7 @@ private fun currentDateString(): String {
         .replaceFirstChar { it.titlecase(vietnamese) }
 }
 
-// Chừa 4 cột bên trái cho Speedometer và xe Mazda để không bị đè icon lên
+// Chừa 4 cột bên trái cho Speedometer và xe Mazda
 private const val HOME_GRID_RESERVED_COLUMNS = 4
 
 @Composable
@@ -449,7 +540,6 @@ private fun SlotCell(
             )
         }
     } else {
-        // Ô TRỐNG: Chỉ hiển thị khi đang ở chế độ chỉnh sửa (isEditMode)
         AnimatedVisibility(
             visible = isEditMode,
             enter = fadeIn() + scaleIn(),
