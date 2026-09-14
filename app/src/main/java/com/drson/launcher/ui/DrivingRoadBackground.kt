@@ -41,7 +41,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -76,7 +75,7 @@ import java.util.Date
 import java.util.Locale
 
 private val GOLD = Color(0xFFC99E5C)
-private val GOLD_BRIGHT = Color(0xFFFFF0B8) // Tăng sáng ánh kim để chữ nổi bật hơn
+private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_SOLID = Color(0xFFFFD56B)
 private val SKY_TOP = Color(0xFF16130E)
 private val SKY_HORIZON = Color(0xFF3A342C)
@@ -159,10 +158,12 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
     }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val logoWidth = (maxWidth * 0.08f).coerceIn(60.dp, 92.dp)
-        val glowSize = logoWidth * 2.2f
+        val logoWidth = (maxWidth * 0.065f).coerceIn(48.dp, 68.dp)
+        val glowSize = logoWidth * 2.1f
         val glowInset = (glowSize - logoWidth) / 2
-        val gaugeSize = (maxHeight * 0.50f).coerceIn(180.dp, 280.dp)
+        
+        // Kích thước chuẩn lọt vừa khoảng tam giác trống bên trái
+        val gaugeSize = (maxHeight * 0.46f).coerceIn(160.dp, 240.dp)
 
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
@@ -326,14 +327,14 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             label = "logoGlowRotation",
         )
 
-        // --- CỤM LOGO & ĐỒNG HỒ SỐ GÓC TRÊN TRÁI ---
+        // --- CỤM LOGO (CẢ HÌNH BÁC SĨ + CHỮ TRÊN 1 DÒNG) & ĐỒNG HỒ SỐ ---
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(start = 18.dp, top = 26.dp),
+                .padding(start = 16.dp, top = 22.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Logo Dr Sơn với nét chữ rõ nét + bóng đổ tương phản
+            // 1. Logo Bác sĩ Dr Sơn kèm quầng sáng
             Box(
                 modifier = Modifier.size(logoWidth),
                 contentAlignment = Alignment.Center
@@ -342,7 +343,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                     val center = Offset(size.width / 2f, size.height / 2f)
                     val maxR = size.minDimension / 2f
 
-                    // Quầng sáng mềm dịu (giảm độ che phủ tâm để chữ không bị lóa)
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -357,7 +357,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                         center = center,
                     )
 
-                    // Các tia sáng mảnh xoay nhẹ
                     val nRays = 24
                     for (i in 0 until nRays) {
                         val angleDeg = logoGlowRotation + i * (360f / nRays)
@@ -381,45 +380,45 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                     }
                 }
 
-                // Chữ Dr Sơn sắc nét dạng Text vẽ vector (độ tương phản cao & bóng đổ viền đen)
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "Dr Sơn",
-                        color = Color.Black.copy(alpha = 0.9f),
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily(Font(R.font.alex_brush)),
-                        modifier = Modifier.offset(x = 1.5.dp, y = 1.5.dp)
-                    )
-                    Text(
-                        text = "Dr Sơn",
-                        color = GOLD_BRIGHT,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily(Font(R.font.alex_brush)),
-                        style = TextStyle(
-                            shadow = Shadow(
-                                color = Color.Black.copy(alpha = 0.85f),
-                                offset = Offset(2f, 2f),
-                                blurRadius = 4f
-                            )
-                        )
-                    )
-                }
+                // Hình ảnh bác sĩ và chữ ký gốc
+                Image(
+                    painter = painterResource(id = R.drawable.brand_glyph),
+                    contentDescription = "Dr Sơn",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit,
+                )
             }
+
+            Spacer(Modifier.width(10.dp))
+
+            // 2. Chữ "Dr Sơn" trên 1 dòng đơn nét rõ ràng
+            Text(
+                text = "Dr Sơn",
+                color = GOLD_BRIGHT,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily(Font(R.font.alex_brush)),
+                style = TextStyle(
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.85f),
+                        offset = Offset(1.5f, 1.5f),
+                        blurRadius = 3f
+                    )
+                )
+            )
 
             Spacer(Modifier.width(18.dp))
 
-            // 2. Đồng hồ số bên cạnh
+            // 3. Đồng hồ số bên cạnh
             BigClockWidget()
         }
 
-        // --- CỤM ĐỒNG HỒ TỐC ĐỘ VÀ GPS ---
+        // --- ĐỒNG HỒ TỐC ĐỘ VÀ GPS: NẰM GỌN TRONG KHOẢNG TAM GIÁC TRÁI ---
         if (!hasLocationPermission) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 24.dp, bottom = 100.dp),
+                    .padding(start = 16.dp, bottom = 100.dp),
             ) {
                 LocationPermissionPrompt(onRequest = { permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION) })
             }
@@ -427,7 +426,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = 24.dp, top = 40.dp),
+                    .padding(start = 14.dp, top = 65.dp),
             ) {
                 SpeedGauge(
                     speedKmh = drivingData.speedKmh,
@@ -438,7 +437,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 24.dp, bottom = 95.dp),
+                    .padding(start = 16.dp, bottom = 95.dp),
             ) {
                 GpsInfoCard(data = drivingData)
             }
@@ -498,30 +497,30 @@ private fun BigClockWidget() {
         Text(
             text = timeFmt.format(now),
             color = GOLD_BRIGHT,
-            fontSize = 38.sp,
+            fontSize = 32.sp,
             fontWeight = FontWeight.Light,
             fontFamily = FontFamily.Serif,
             fontStyle = FontStyle.Italic,
-            lineHeight = 40.sp,
+            lineHeight = 34.sp,
             style = TextStyle(
                 shadow = Shadow(
                     color = Color.Black.copy(alpha = 0.8f),
-                    offset = Offset(2f, 2f),
-                    blurRadius = 6f
+                    offset = Offset(1.5f, 1.5f),
+                    blurRadius = 4f
                 )
             )
         )
         Text(
             text = dateFmt.format(now).replaceFirstChar { it.uppercase() },
             color = Color.White.copy(alpha = 0.85f),
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             fontFamily = FontFamily.Serif,
             fontStyle = FontStyle.Italic,
             style = TextStyle(
                 shadow = Shadow(
                     color = Color.Black.copy(alpha = 0.8f),
                     offset = Offset(1f, 1f),
-                    blurRadius = 4f
+                    blurRadius = 3f
                 )
             )
         )
@@ -529,13 +528,13 @@ private fun BigClockWidget() {
 }
 
 @Composable
-private fun SpeedGauge(speedKmh: Float, size: Dp = 220.dp) {
+private fun SpeedGauge(speedKmh: Float, size: Dp = 200.dp) {
     val speed = speedKmh.coerceIn(0f, 180f)
     val maxSpeed = 180
     val majorStep = 20
     val startAngle = 135f
     val sweep = 270f
-    val scale = size.value / 220f
+    val scale = size.value / 200f
 
     Box(modifier = Modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -544,7 +543,7 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 220.dp) {
 
             drawCircle(color = Color.Black.copy(alpha = 0.5f), radius = outerR, center = center)
 
-            val bezelWidth = 20f * scale
+            val bezelWidth = 18f * scale
             val bezelBrush = Brush.sweepGradient(
                 colors = listOf(
                     Color(0xFF3A2E1C), Color(0xFFE6C178), Color(0xFFC99E5C),
@@ -589,9 +588,9 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 220.dp) {
             )
 
             val faceR = outerR - bezelWidth - 8f * scale
-            val tickOuterR = faceR - 10f * scale
-            val majorTickInnerR = tickOuterR - 14f * scale
-            val minorTickInnerR = tickOuterR - 8f * scale
+            val tickOuterR = faceR - 8f * scale
+            val majorTickInnerR = tickOuterR - 12f * scale
+            val minorTickInnerR = tickOuterR - 7f * scale
             val ticksTotal = maxSpeed / (majorStep / 4)
 
             for (i in 0..ticksTotal) {
@@ -612,19 +611,19 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 220.dp) {
                     color = if (isMajor) Color(0xFFE6C178) else Color(0xFFE6C178).copy(alpha = 0.45f),
                     start = p1,
                     end = p2,
-                    strokeWidth = (if (isMajor) 3.5f else 1.8f) * scale,
+                    strokeWidth = (if (isMajor) 3.0f else 1.5f) * scale,
                 )
                 if (isMajor) {
-                    val labelR = majorTickInnerR - 16f * scale
+                    val labelR = majorTickInnerR - 14f * scale
                     val lx = center.x + (labelR * cos(angleRad)).toFloat()
                     val ly = center.y + (labelR * sin(angleRad)).toFloat()
                     drawContext.canvas.nativeCanvas.drawText(
                         value.toString(),
                         lx,
-                        ly + 4.5f * scale,
+                        ly + 4f * scale,
                         android.graphics.Paint().apply {
                             color = android.graphics.Color.WHITE
-                            textSize = 30f * scale
+                            textSize = 26f * scale
                             textAlign = android.graphics.Paint.Align.CENTER
                             isAntiAlias = true
                             isFakeBoldText = true
@@ -639,7 +638,7 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 220.dp) {
             val tipX = center.x + (needleLen * cos(needleAngleRad)).toFloat()
             val tipY = center.y + (needleLen * sin(needleAngleRad)).toFloat()
             val perpAngle = needleAngleRad + Math.PI / 2
-            val baseWidth = 4.5f * scale
+            val baseWidth = 4.0f * scale
             val b1 = Offset(
                 center.x + (baseWidth * cos(perpAngle)).toFloat(),
                 center.y + (baseWidth * sin(perpAngle)).toFloat(),
@@ -656,21 +655,21 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 220.dp) {
             }
             drawPath(needlePath, color = Color(0xFFE6C178))
 
-            drawCircle(color = Color(0xFF0A0908), radius = 14f * scale, center = center)
-            drawCircle(color = Color(0xFFC99E5C), radius = 14f * scale, center = center, style = Stroke(width = 2f * scale))
+            drawCircle(color = Color(0xFF0A0908), radius = 12f * scale, center = center)
+            drawCircle(color = Color(0xFFC99E5C), radius = 12f * scale, center = center, style = Stroke(width = 2f * scale))
         }
 
-        // Chữ Dr Sơn trên mặt đồng hồ tốc độ (có đổ bóng)
+        // Chữ Dr Sơn trong mặt đồng hồ: hạ thấp hẳn xuống dưới (không dính vào gốc kim)
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(top = (26f * scale).dp),
+                .padding(top = (42f * scale).dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 "Dr Sơn",
-                color = Color.Black.copy(alpha = 0.9f),
-                fontSize = (21f * scale).sp,
+                color = Color.Black.copy(alpha = 0.85f),
+                fontSize = (18f * scale).sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily(Font(R.font.alex_brush)),
                 modifier = Modifier.offset(x = 1.dp, y = 1.dp)
@@ -678,18 +677,19 @@ private fun SpeedGauge(speedKmh: Float, size: Dp = 220.dp) {
             Text(
                 "Dr Sơn",
                 color = GOLD_BRIGHT,
-                fontSize = (21f * scale).sp,
+                fontSize = (18f * scale).sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily(Font(R.font.alex_brush)),
             )
         }
 
+        // Số km/h
         Column(
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = (26f * scale).dp),
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = (20f * scale).dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text("${speed.toInt()}", color = Color.White, fontSize = (18f * scale).sp, fontWeight = FontWeight.Medium)
-            Text("km/h", color = Color.White.copy(alpha = 0.6f), fontSize = (9f * scale).sp)
+            Text("${speed.toInt()}", color = Color.White, fontSize = (16f * scale).sp, fontWeight = FontWeight.Medium)
+            Text("km/h", color = Color.White.copy(alpha = 0.6f), fontSize = (8.5f * scale).sp)
         }
     }
 }
@@ -700,20 +700,20 @@ private fun GpsInfoCard(data: DrivingData) {
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .background(Color.Black.copy(alpha = 0.55f))
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (data.hasGpsFix && data.latitude != null && data.longitude != null) {
             Text(
                 String.format(Locale.US, "%.4f, %.4f", data.latitude, data.longitude),
                 color = Color.White.copy(alpha = 0.9f),
-                fontSize = 10.sp,
+                fontSize = 9.5.sp,
             )
             data.altitudeMeters?.let {
-                Text("${it.toInt()} m", color = Color.White.copy(alpha = 0.9f), fontSize = 10.sp)
+                Text("${it.toInt()} m", color = Color.White.copy(alpha = 0.9f), fontSize = 9.5.sp)
             }
         } else {
-            Text("Đang định vị GPS...", color = Color.White.copy(alpha = 0.6f), fontSize = 10.sp)
+            Text("Đang định vị GPS...", color = Color.White.copy(alpha = 0.6f), fontSize = 9.5.sp)
         }
     }
 }
