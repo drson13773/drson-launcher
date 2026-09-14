@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
@@ -50,7 +51,6 @@ class HomeViewModel : ViewModel() {
             strokeCap = Paint.Cap.ROUND
             strokeWidth = 10f
         }
-        // Biểu tượng ống nghe điện thoại
         canvas.drawCircle(size * 0.42f, size * 0.42f, 14f, iconPaint)
         canvas.drawCircle(size * 0.58f, size * 0.58f, 14f, iconPaint)
         canvas.drawLine(size * 0.42f, size * 0.42f, size * 0.58f, size * 0.58f, iconPaint)
@@ -76,7 +76,6 @@ class HomeViewModel : ViewModel() {
             style = Paint.Style.FILL
             strokeWidth = 8f
         }
-        // Biểu tượng nốt nhạc vàng ánh kim
         canvas.drawCircle(size * 0.38f, size * 0.65f, 12f, goldPaint)
         canvas.drawCircle(size * 0.65f, size * 0.55f, 12f, goldPaint)
         canvas.drawLine(size * 0.46f, size * 0.65f, size * 0.46f, size * 0.30f, goldPaint)
@@ -97,11 +96,8 @@ class HomeViewModel : ViewModel() {
                 val pkg = it.activityInfo.packageName.lowercase()
                 val label = it.loadLabel(pm).toString().lowercase()
 
-                // Loại trừ launcher chính khỏi menu app
                 (pkg == appContext.packageName && it.activityInfo.name.endsWith(".MainActivity")) ||
-                // Bỏ Máy ảnh (Camera)
                 pkg.contains("camera") || label.contains("máy ảnh") || label.contains("camera") ||
-                // Bỏ Thư viện ảnh (Gallery / Photos)
                 pkg.contains("gallery") || pkg.contains("photos") || label.contains("thư viện") || label.contains("ảnh")
             }
             .sortedBy { it.loadLabel(pm).toString().lowercase() }
@@ -110,18 +106,24 @@ class HomeViewModel : ViewModel() {
             val pkg = info.activityInfo.packageName
             val activityName = info.activityInfo.name
 
-            val iconBitmap = when {
-                activityName.contains("DialerActivity") -> createPhoneIconBitmap().asImageBitmap()
-                activityName.contains("DrSonMusicActivity") -> createMusicIconBitmap().asImageBitmap()
+            val iconBitmap: ImageBitmap = when {
+                activityName.contains("DialerActivity") -> {
+                    createPhoneIconBitmap().asImageBitmap()
+                }
+                activityName.contains("DrSonMusicActivity") -> {
+                    createMusicIconBitmap().asImageBitmap()
+                }
                 else -> {
                     val customIconRes = IconMapping.packageToIcon[pkg]
-                    if (customIconRes != null) {
+                    val mappedBitmap = if (customIconRes != null) {
                         try {
                             androidx.core.content.res.ResourcesCompat.getDrawable(appContext.resources, customIconRes, null)
                                 ?.toBitmap(120, 120)?.asImageBitmap()
                         } catch (_: Exception) { null }
                     } else null
-                } ?: info.loadIcon(pm).toBitmap(120, 120).asImageBitmap()
+
+                    mappedBitmap ?: info.loadIcon(pm).toBitmap(120, 120).asImageBitmap()
+                }
             }
 
             val label = when {
@@ -148,7 +150,6 @@ class HomeViewModel : ViewModel() {
         while (dockSlots.size < 4) dockSlots.add(null)
         savedDock.forEachIndexed { index, s -> if (index < 4) dockSlots[index] = s }
 
-        // Mặc định gán Điện thoại và Dr Sơn Music vào 2 ô đầu tiên
         if (dockSlots.all { it == null }) {
             val phone = apps.find { it.activityClassName.contains("DialerActivity") }
             if (phone != null) setDockSlot(context, 0, phone.packageName)
