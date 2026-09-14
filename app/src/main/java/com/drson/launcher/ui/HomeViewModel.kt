@@ -4,12 +4,14 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.drson.launcher.R
 import com.drson.launcher.data.HomeLayoutRepository
 import com.drson.launcher.data.IconMapping
 import com.drson.launcher.data.LabelMapping
@@ -23,10 +25,65 @@ class HomeViewModel : ViewModel() {
     val apps = mutableStateListOf<AppItem>()
     val homeSlots = mutableStateListOf<HomeSlotContent?>().apply { repeat(com.drson.launcher.data.HOME_SLOT_COUNT) { add(null) } }
     
-    // Cố định đúng 4 ô cho thanh Dock
+    // Cố định đúng 4 ô ứng dụng trên Dock (ngoài nút Menu chính)
     val dockSlots = mutableStateListOf<String?>().apply { repeat(4) { add(null) } }
 
     private var layoutRepo: HomeLayoutRepository? = null
+
+    private fun createPhoneIconBitmap(): Bitmap {
+        val size = 120
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#1B5E20") }
+        canvas.drawRoundRect(8f, 8f, size - 8f, size - 8f, 26f, 26f, bgPaint)
+        
+        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#FFF0B8")
+            style = Paint.Style.STROKE
+            strokeWidth = 3f
+        }
+        canvas.drawRoundRect(8f, 8f, size - 8f, size - 8f, 26f, 26f, strokePaint)
+
+        val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#FFFFFF")
+            style = Paint.Style.FILL
+            strokeCap = Paint.Cap.ROUND
+            strokeWidth = 10f
+        }
+        // Biểu tượng ống nghe điện thoại
+        canvas.drawCircle(size * 0.42f, size * 0.42f, 14f, iconPaint)
+        canvas.drawCircle(size * 0.58f, size * 0.58f, 14f, iconPaint)
+        canvas.drawLine(size * 0.42f, size * 0.42f, size * 0.58f, size * 0.58f, iconPaint)
+        return bitmap
+    }
+
+    private fun createMusicIconBitmap(): Bitmap {
+        val size = 120
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#2B1E05") }
+        canvas.drawRoundRect(8f, 8f, size - 8f, size - 8f, 26f, 26f, bgPaint)
+
+        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#D4AF37")
+            style = Paint.Style.STROKE
+            strokeWidth = 3f
+        }
+        canvas.drawRoundRect(8f, 8f, size - 8f, size - 8f, 26f, 26f, strokePaint)
+
+        val goldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#FFF0B8")
+            style = Paint.Style.FILL
+            strokeWidth = 8f
+        }
+        // Biểu tượng nốt nhạc vàng ánh kim
+        canvas.drawCircle(size * 0.38f, size * 0.65f, 12f, goldPaint)
+        canvas.drawCircle(size * 0.65f, size * 0.55f, 12f, goldPaint)
+        canvas.drawLine(size * 0.46f, size * 0.65f, size * 0.46f, size * 0.30f, goldPaint)
+        canvas.drawLine(size * 0.73f, size * 0.55f, size * 0.73f, size * 0.20f, goldPaint)
+        canvas.drawLine(size * 0.46f, size * 0.30f, size * 0.73f, size * 0.20f, goldPaint)
+        return bitmap
+    }
 
     suspend fun load(context: Context) {
         val appContext = context.applicationContext
@@ -40,12 +97,12 @@ class HomeViewModel : ViewModel() {
                 val pkg = it.activityInfo.packageName.lowercase()
                 val label = it.loadLabel(pm).toString().lowercase()
 
-                // Loại trừ chính launcher
+                // Loại trừ launcher chính khỏi menu app
                 (pkg == appContext.packageName && it.activityInfo.name.endsWith(".MainActivity")) ||
                 // Bỏ Máy ảnh (Camera)
                 pkg.contains("camera") || label.contains("máy ảnh") || label.contains("camera") ||
                 // Bỏ Thư viện ảnh (Gallery / Photos)
-                pkg.contains("gallery") || pkg.contains("photos") || label.contains("thư viện") || label.contains("gallery") || label.contains("ảnh")
+                pkg.contains("gallery") || pkg.contains("photos") || label.contains("thư viện") || label.contains("ảnh")
             }
             .sortedBy { it.loadLabel(pm).toString().lowercase() }
 
@@ -53,17 +110,18 @@ class HomeViewModel : ViewModel() {
             val pkg = info.activityInfo.packageName
             val activityName = info.activityInfo.name
 
-            val customIconRes = when {
-                activityName.contains("DialerActivity") -> R.drawable.icon_dialer
-                activityName.contains("DrSonMusicActivity") -> R.drawable.icon_music
-                else -> IconMapping.packageToIcon[pkg]
-            }
-
-            val iconBitmap = if (customIconRes != null) {
-                androidx.core.content.res.ResourcesCompat.getDrawable(appContext.resources, customIconRes, null)
-                    ?.toBitmap(96, 96)?.asImageBitmap()
-            } else {
-                info.loadIcon(pm).toBitmap(96, 96).asImageBitmap()
+            val iconBitmap = when {
+                activityName.contains("DialerActivity") -> createPhoneIconBitmap().asImageBitmap()
+                activityName.contains("DrSonMusicActivity") -> createMusicIconBitmap().asImageBitmap()
+                else -> {
+                    val customIconRes = IconMapping.packageToIcon[pkg]
+                    if (customIconRes != null) {
+                        try {
+                            androidx.core.content.res.ResourcesCompat.getDrawable(appContext.resources, customIconRes, null)
+                                ?.toBitmap(120, 120)?.asImageBitmap()
+                        } catch (_: Exception) { null }
+                    } else null
+                } ?: info.loadIcon(pm).toBitmap(120, 120).asImageBitmap()
             }
 
             val label = when {
@@ -76,7 +134,7 @@ class HomeViewModel : ViewModel() {
                 label = label,
                 packageName = pkg,
                 activityClassName = activityName,
-                icon = iconBitmap ?: info.loadIcon(pm).toBitmap(96, 96).asImageBitmap(),
+                icon = iconBitmap,
             )
         }
         apps.clear()
