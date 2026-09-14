@@ -25,7 +25,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -90,7 +89,7 @@ fun HomeScreen(
                                     else -> null
                                 }
                                 val app = viewModel.appFor(pkgName)
-                                val currentModifier = if (isFirstSlot) {
+                                val currentModifier = if (isFirstSlot && app != null) {
                                     isFirstSlot = false
                                     Modifier.focusRequester(initialFocusRequester)
                                 } else Modifier
@@ -139,20 +138,27 @@ private fun FocusableDesktopSlot(
     val interactionSource = remember { MutableInteractionSource() }
     val isFocused by interactionSource.collectIsFocusedAsState()
 
+    // Ẩn hoàn toàn khung nền nếu ô trống không có app
+    val backgroundModifier = if (app != null) {
+        Modifier.background(Color.Black.copy(alpha = 0.45f))
+    } else {
+        Modifier.background(Color.Transparent)
+    }
+
     Box(
         modifier = modifier
             .size(72.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.Black.copy(alpha = 0.45f))
+            .then(backgroundModifier)
             .focusable(interactionSource = interactionSource)
             .then(
-                if (isFocused) {
+                if (isFocused && app != null) {
                     Modifier.border(2.5.dp, GOLD_BRIGHT, RoundedCornerShape(16.dp))
                 } else {
-                    Modifier.border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                    Modifier
                 }
             )
-            .clickable(onClick = onClick)
+            .clickable(enabled = app != null, onClick = onClick)
             .padding(6.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -263,7 +269,7 @@ private fun FocusableDockSlotCell(
         modifier = Modifier
             .size(48.dp)
             .clip(RoundedCornerShape(14.dp))
-            .background(Color.White.copy(alpha = 0.08f))
+            .background(if (app != null) Color.White.copy(alpha = 0.08f) else Color.White.copy(alpha = 0.03f))
             .focusable(interactionSource = interactionSource)
             .then(
                 if (isFocused) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(14.dp))
@@ -299,7 +305,6 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Nút Play/Pause & Điều hướng
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -327,7 +332,6 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             }
         }
 
-        // Thanh trượt bài hát kéo dài
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
@@ -347,7 +351,6 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             Text("04:10", color = Color.Gray, fontSize = 10.sp)
         }
 
-        // Thanh chỉnh Âm lượng
         Row(
             modifier = Modifier.width(130.dp),
             verticalAlignment = Alignment.CenterVertically,
