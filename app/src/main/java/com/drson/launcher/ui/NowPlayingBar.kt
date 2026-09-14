@@ -17,7 +17,12 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.VolumeDown
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,24 +31,30 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.drson.launcher.R
 
 private val GOLD_ACCENT = Color(0xFFD4AF37)
+private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 
 @Composable
 fun NowPlayingBar(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var isPlaying by remember { mutableStateOf(false) }
+    var progress by remember { mutableFloatStateOf(0.35f) }
+    var showVolumeSlider by remember { mutableStateOf(false) }
+
+    val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager }
+    val maxVolume = remember { audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: 15 }
+    var currentVolume by remember {
+        mutableIntStateOf(audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: 8)
+    }
 
     fun sendMediaKey(keyCode: Int) {
         val eventTime = SystemClock.uptimeMillis()
-        val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-
-        // 1. Dispatch trực tiếp qua AudioManager
         audioManager?.dispatchMediaKeyEvent(KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, keyCode, 0))
         audioManager?.dispatchMediaKeyEvent(KeyEvent(eventTime, eventTime, KeyEvent.ACTION_UP, keyCode, 0))
 
-        // 2. Broadcast nhắm đích đến Zing MP3
         val zingIntentDown = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
             setPackage("com.zing.mp3")
             putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, keyCode, 0))
@@ -54,16 +65,6 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
         }
         context.sendOrderedBroadcast(zingIntentDown, null)
         context.sendOrderedBroadcast(zingIntentUp, null)
-
-        // 3. Broadcast toàn hệ thống
-        val globalDown = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
-            putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(eventTime, eventTime, KeyEvent.ACTION_DOWN, keyCode, 0))
-        }
-        val globalUp = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
-            putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(eventTime, eventTime, KeyEvent.ACTION_UP, keyCode, 0))
-        }
-        context.sendOrderedBroadcast(globalDown, null)
-        context.sendOrderedBroadcast(globalUp, null)
     }
 
     Row(
@@ -71,7 +72,7 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Icon App Nhạc: Chạm vào mở Zing MP3 hoặc App nhạc mặc định
+        // 1. Icon App Nhạc
         Box(
             modifier = Modifier
                 .size(40.dp)
@@ -101,29 +102,21 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
             )
         }
 
-        // Nút Previous
+        // 2. Cụm Nút Điều Khiển Nhạc (Previous - Play/Pause - Next)
         Box(
             modifier = Modifier
-                .size(30.dp)
+                .size(28.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.12f))
-                .clickable {
-                    sendMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS)
-                },
+                .clickable { sendMediaKey(KeyEvent.KEYCODE_MEDIA_PREVIOUS) },
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.SkipPrevious,
-                contentDescription = "Previous",
-                tint = GOLD_ACCENT,
-                modifier = Modifier.size(16.dp)
-            )
+            Icon(Icons.Default.SkipPrevious, contentDescription = "Previous", tint = GOLD_ACCENT, modifier = Modifier.size(15.dp))
         }
 
-        // Nút Play / Pause
         Box(
             modifier = Modifier
-                .size(36.dp)
+                .size(34.dp)
                 .clip(CircleShape)
                 .background(GOLD_ACCENT)
                 .clickable {
@@ -136,27 +129,88 @@ fun NowPlayingBar(modifier: Modifier = Modifier) {
                 imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                 contentDescription = "Play/Pause",
                 tint = Color.Black,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
 
-        // Nút Next
         Box(
             modifier = Modifier
-                .size(30.dp)
+                .size(28.dp)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.12f))
-                .clickable {
-                    sendMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT)
-                },
+                .clickable { sendMediaKey(KeyEvent.KEYCODE_MEDIA_NEXT) },
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.SkipNext,
-                contentDescription = "Next",
-                tint = GOLD_ACCENT,
-                modifier = Modifier.size(16.dp)
+            Icon(Icons.Default.SkipNext, contentDescription = "Next", tint = GOLD_ACCENT, modifier = Modifier.size(15.dp))
+        }
+
+        // 3. Thanh Trượt Tiến Trình Thời Gian (Seek Progress Bar)
+        Column(
+            modifier = Modifier
+                .width(130.dp)
+                .padding(horizontal = 4.dp),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Slider(
+                value = progress,
+                onValueChange = { progress = it },
+                colors = SliderDefaults.colors(
+                    thumbColor = GOLD_ACCENT,
+                    activeTrackColor = GOLD_ACCENT,
+                    inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(16.dp)
             )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("01:25", color = Color.White.copy(alpha = 0.6f), fontSize = 9.sp)
+                Text("04:10", color = Color.White.copy(alpha = 0.6f), fontSize = 9.sp)
+            }
+        }
+
+        // 4. Nút & Thanh Điều Chỉnh Âm Lượng
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(if (showVolumeSlider) GOLD_ACCENT.copy(alpha = 0.25f) else Color.White.copy(alpha = 0.12f))
+                    .clickable { showVolumeSlider = !showVolumeSlider },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (currentVolume > 0) Icons.Default.VolumeUp else Icons.Default.VolumeDown,
+                    contentDescription = "Volume",
+                    tint = GOLD_ACCENT,
+                    modifier = Modifier.size(15.dp)
+                )
+            }
+
+            if (showVolumeSlider) {
+                Slider(
+                    value = currentVolume.toFloat(),
+                    onValueChange = {
+                        currentVolume = it.toInt()
+                        audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
+                    },
+                    valueRange = 0f..maxVolume.toFloat(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = GOLD_ACCENT,
+                        activeTrackColor = GOLD_ACCENT,
+                        inactiveTrackColor = Color.White.copy(alpha = 0.2f)
+                    ),
+                    modifier = Modifier
+                        .width(75.dp)
+                        .height(16.dp)
+                )
+            }
         }
     }
 }
