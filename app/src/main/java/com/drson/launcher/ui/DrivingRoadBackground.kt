@@ -56,6 +56,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -139,7 +140,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
         label = "time",
     )
 
-    // TĂNG TỐC ĐỘ QUAY CỦA TIA SÁNG (12 giây / vòng thay vì 70 giây)
     val logoGlowRotation by infinite.animateFloat(
         initialValue = 0f, targetValue = 360f,
         animationSpec = infiniteRepeatable(tween(12_000, easing = LinearEasing), RepeatMode.Restart),
@@ -165,7 +165,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val logoWidth = (maxWidth * 0.065f).coerceIn(48.dp, 68.dp)
-        // Mở rộng kích thước vùng chứa hiệu ứng để tia sáng vươn dài thoải mái
         val glowSize = logoWidth * 3.2f
         val gaugeSize = (maxHeight * 0.48f).coerceIn(170.dp, 250.dp)
 
@@ -325,7 +324,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             contentScale = ContentScale.FillWidth,
         )
 
-        // --- CỤM LOGO & ĐỒNG HỒ SỐ GÓC TRÊN TRÁI ---
+        // CỤM LOGO & ĐỒNG HỒ SỐ GÓC TRÊN TRÁI
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -336,12 +335,10 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 modifier = Modifier.size(logoWidth),
                 contentAlignment = Alignment.Center
             ) {
-                // VẼ TIA SÁNG DÀI HƠN VÀ QUAY NHANH
                 Canvas(modifier = Modifier.size(glowSize)) {
                     val center = Offset(size.width / 2f, size.height / 2f)
                     val baseR = size.minDimension / 2f
 
-                    // Quầng sáng tâm
                     drawCircle(
                         brush = Brush.radialGradient(
                             colors = listOf(
@@ -356,12 +353,10 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                         center = center,
                     )
 
-                    // 32 tia sáng dài hơn, tỏa rộng ra bên ngoài
                     val nRays = 32
                     for (i in 0 until nRays) {
                         val angleDeg = logoGlowRotation + i * (360f / nRays)
                         val angleRad = Math.toRadians(angleDeg.toDouble())
-                        // Chiều dài vươn dài (0.8 -> 1.45 lần baseR)
                         val rayLen = baseR * (0.85f + 0.60f * abs(sin(Math.toRadians((angleDeg * 2.5).toDouble()))).toFloat())
                         val innerR = baseR * 0.22f
                         val p1 = Offset(
@@ -420,7 +415,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             BigClockWidget()
         }
 
-        // Cụm đồng hồ tốc độ
+        // CỤM ĐỒNG HỒ TỐC ĐỘ
         if (!hasLocationPermission) {
             Box(
                 modifier = Modifier
