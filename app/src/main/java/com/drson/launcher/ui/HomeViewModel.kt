@@ -61,11 +61,17 @@ class HomeViewModel : ViewModel() {
         val savedDock = lRepo.loadDockSlots()
         dockSlots.clear(); dockSlots.addAll(savedDock)
 
-        // Lần đầu mở app (chưa gán gì) - tự điền sẵn app Điện thoại (dialer riêng của launcher
-        // này) vào ô đầu tiên của Dock cho có sẵn, đỡ trống trơn.
+        // Lần đầu mở app: Gán sẵn Điện thoại (Slot 0) và Dr Sơn Music (Slot 1) vào Dock
         if (savedDock.all { it == null }) {
-            val phone = apps.find { it.packageName == appContext.packageName }
+            // 1. Gán ô 0: Điện thoại (Dialer)
+            val phone = apps.find { it.activityClassName.contains("DialerActivity") || it.packageName == appContext.packageName }
             if (phone != null) setDockSlot(context, 0, phone.packageName)
+
+            // 2. Gán ô 1: Dr Sơn Music
+            val music = apps.find { it.activityClassName.contains("DrSonMusicActivity") || it.label.contains("Music", ignoreCase = true) }
+            if (music != null) {
+                setDockSlot(context, 1, music.packageName)
+            }
         }
     }
 
@@ -75,7 +81,6 @@ class HomeViewModel : ViewModel() {
     fun setHomeSlot(context: Context, index: Int, content: HomeSlotContent?) {
         if (index !in homeSlots.indices) return
         val old = homeSlots[index]
-        // Nếu ô cũ đang chứa widget và sắp bị thay/gỡ, giải phóng widget id để không rò rỉ.
         if (old is HomeSlotContent.Widget && old != content) {
             WidgetHostController.deleteId(context, old.appWidgetId)
         }
@@ -84,7 +89,6 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch { lRepo.setHomeSlot(index, content) }
     }
 
-    /** Tiện ích gọi nhanh khi gán app (đa số chỗ gọi vẫn chỉ làm việc với app, không phải widget). */
     fun setHomeSlotApp(context: Context, index: Int, packageName: String?) {
         setHomeSlot(context, index, packageName?.let { HomeSlotContent.App(it) })
     }
@@ -96,13 +100,6 @@ class HomeViewModel : ViewModel() {
         viewModelScope.launch { lRepo.setDockSlot(index, packageName) }
     }
 
-    /**
-     * Mở TRỰC TIẾP đúng activity của app này (`ComponentName(packageName, activityClassName)`)
-     * thay vì chỉ dựa vào packageName - tránh trường hợp 1 packageName có nhiều activity cùng là
-     * "màn hình chính" (như app Điện thoại riêng dùng chung packageName với chính launcher này)
-     * khiến Android chọn nhầm activity. Nếu vì lý do gì đó activity đích không mở được (app đã bị
-     * gỡ/đổi bên ngoài chẳng hạn), rơi về cách mở theo packageName như cũ để không bị đứng app.
-     */
     fun launchApp(context: Context, app: AppItem) {
         val explicitIntent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_LAUNCHER)
@@ -124,9 +121,6 @@ class HomeViewModel : ViewModel() {
         trackRecentApp(app.packageName)
     }
 
-    // ---------- App Switcher: lịch sử app đã mở qua launcher này ----------
-    // Android không cấp quyền cho app thường đọc "recent tasks" thật hay lấy live-thumbnail
-    // của app khác, nên đây là lịch sử do chính launcher ghi lại (xem AppSwitcherOverlay.kt).
     val recentApps = mutableStateListOf<AppItem>()
 
     private fun trackRecentApp(packageName: String) {
