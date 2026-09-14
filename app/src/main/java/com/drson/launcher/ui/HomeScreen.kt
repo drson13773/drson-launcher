@@ -63,9 +63,6 @@ import com.drson.launcher.data.HOME_GRID_COLUMNS
 import com.drson.launcher.model.AppItem
 import com.drson.launcher.model.HomeSlotContent
 import com.drson.launcher.widget.WidgetHostController
-import kotlinx.coroutines.delay
-import java.text.SimpleDateFormat
-import java.util.*
 
 private val GOLD_BRIGHT = Color(0xFFE6C178)
 
@@ -291,16 +288,6 @@ private fun StatusBar(
 ) {
     val context = LocalContext.current
 
-    var time by remember { mutableStateOf(currentTimeString()) }
-    var date by remember { mutableStateOf(currentDateString()) }
-    LaunchedEffect(Unit) {
-        while (true) {
-            time = currentTimeString()
-            date = currentDateString()
-            delay(1000)
-        }
-    }
-
     var isWifiConnected by remember {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
         val activeNetwork = cm?.activeNetwork
@@ -366,10 +353,10 @@ private fun StatusBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column {
-            Text(time, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Medium)
-            Text(date, color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
-        }
+        // Chừa khoảng trống bên trái để nhường chỗ hoàn toàn cho Logo & Đồng hồ số vàng
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Cụm Icon trạng thái Wi-Fi & Bluetooth bên phải
         Row(
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -419,16 +406,6 @@ private fun Modifier.pointerInputStatusBar(
         )
     }
 )
-
-private fun currentTimeString(): String =
-    SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-
-private fun currentDateString(): String {
-    val vietnamese = Locale("vi", "VN")
-    return SimpleDateFormat("EEEE, d 'tháng' M", vietnamese)
-        .format(Date())
-        .replaceFirstChar { it.titlecase(vietnamese) }
-}
 
 private const val HOME_GRID_RESERVED_COLUMNS = 4
 
@@ -686,7 +663,7 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút mở menu ứng dụng siêu nét
+        // Nút mở menu ứng dụng sắc nét với viền gradient ánh kim
         Box(
             modifier = Modifier
                 .size(44.dp)
