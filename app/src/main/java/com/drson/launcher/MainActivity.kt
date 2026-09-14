@@ -11,7 +11,6 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.drson.launcher.ui.HomeScreen
@@ -28,7 +27,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            MainContent(homeViewModel)
+            DrSonLauncherTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    HomeScreen(viewModel = homeViewModel)
+                }
+            }
         }
     }
 
@@ -83,17 +89,5 @@ class MainActivity : ComponentActivity() {
             }
         }
         return super.onGenericMotionEvent(event)
-    }
-}
-
-@Composable
-private fun MainContent(viewModel: HomeViewModel) {
-    DrSonLauncherTheme {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            HomeScreen(viewModel = viewModel)
-        }
     }
 }
