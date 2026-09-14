@@ -50,7 +50,7 @@ fun HomeScreen(
         ) {
             Spacer(Modifier.height(10.dp))
 
-            // Lưới Desktop bên phải (Hỗ trợ focus núm xoay, dùng vòng lặp for chuẩn Compose)
+            // Lưới Desktop bên phải (Hỗ trợ focus núm xoay, lấy từ homeSlots)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -63,8 +63,8 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.End
                 ) {
-                    val chunkedSlots = remember(viewModel.desktopSlots) {
-                        viewModel.desktopSlots.chunked(3)
+                    val chunkedSlots = remember(viewModel.homeSlots) {
+                        viewModel.homeSlots.chunked(3)
                     }
                     for (rowSlots in chunkedSlots) {
                         Row(
