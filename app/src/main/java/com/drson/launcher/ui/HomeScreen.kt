@@ -50,7 +50,7 @@ fun HomeScreen(
         ) {
             Spacer(Modifier.height(10.dp))
 
-            // Lưới Desktop bên phải (Hỗ trợ focus núm xoay)
+            // Lưới Desktop bên phải (Hỗ trợ focus núm xoay, dùng vòng lặp for chuẩn Compose)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -63,12 +63,15 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.End
                 ) {
-                    viewModel.desktopSlots.chunked(3).forEach { rowSlots ->
+                    val chunkedSlots = remember(viewModel.desktopSlots) {
+                        viewModel.desktopSlots.chunked(3)
+                    }
+                    for (rowSlots in chunkedSlots) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            rowSlots.forEach { packageName ->
+                            for (packageName in rowSlots) {
                                 val app = viewModel.appFor(packageName)
                                 FocusableDesktopSlot(
                                     app = app,
@@ -163,8 +166,8 @@ private fun FocusableDesktopSlot(
 private fun BottomDock(
     viewModel: HomeViewModel,
     isEditMode: Boolean,
-    onOpenMenu: () -> Unit,
     onSwipeUpToOpenAppSwitcher: () -> Unit,
+    onOpenMenu: () -> Unit,
     onEmptyDockSlotTap: (Int) -> Unit,
     onLongPressSlot: () -> Unit,
 ) {
@@ -213,7 +216,7 @@ private fun BottomDock(
             )
         }
 
-        // Các slot trên Dock
+        // Các ô slot trên Dock
         viewModel.dockSlots.forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
