@@ -63,11 +63,14 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     
-    // Thư viện Icon đầy đủ (Dialpad, History, Contacts, Wifi, Bluetooth...)
+    // Thư viện Icon đầy đủ
     implementation("androidx.compose.material:material-icons-extended")
 
     // Quản lý Lifecycle & ViewModel cho Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+
+    // Thư viện DataStore lưu cấu hình thanh Dock & Layout
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
