@@ -2,34 +2,30 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="48dp"
     android:layout_height="48dp"
-    android:layout_marginEnd="8dp"
+    android:layout_marginStart="4dp"
+    android:layout_marginEnd="4dp"
+    android:background="?attr/selectableItemBackgroundBorderless"
     android:clickable="true"
     android:focusable="true">
 
-    <!-- Khung viền nền cho ô Dock -->
-    <View
-        android:id="@+id/dockItemBg"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@android:drawable/dialog_holo_dark_frame" />
-
-    <!-- Icon ứng dụng khi đã ghim -->
+    <!-- Icon ứng dụng -->
     <ImageView
-        android:id="@+id/imgAppIcon"
+        android:id="@+id/imgDockIcon"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="4dp"
         android:scaleType="fitCenter"
         android:contentDescription="@null" />
 
-    <!-- Biểu tượng dấu cộng vàng khi ô còn trống -->
-    <ImageView
-        android:id="@+id/imgAddIcon"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:layout_gravity="center"
-        android:src="@android:drawable/ic_input_add"
-        android:tint="#D4AF37"
-        android:visibility="gone"
-        android:contentDescription="@null" />
+    <!-- Dấu cộng thêm ứng dụng khi bật chế độ sửa Dock -->
+    <TextView
+        android:id="@+id/tvDockPlus"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:text="+"
+        android:textColor="#D4AF37"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
+
 </FrameLayout>
