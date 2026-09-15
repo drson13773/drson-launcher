@@ -154,30 +154,30 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setupScreenInteractions() {
-        // Nút mở Menu chính
+        // Mở Menu chính
         findViewById<View>(R.id.btnMainMenu)?.setOnClickListener {
             showFullAppDrawerDialog()
         }
 
-        // NÚT MỞ APP DR. SƠN MUSIC (PUREMUSIC)
+        // MỞ ỨNG DỤNG DR SƠN MUSIC
         findViewById<View>(R.id.btnDrSonMusic)?.setOnClickListener {
             val intent = Intent(this, PureMusicActivity::class.java)
             startActivity(intent)
         }
 
-        // Bấm vào Logo thương hiệu góc trên để mở Dr. Sơn Music
+        // Bấm vào Logo thương hiệu để mở Dr Sơn Music
         findViewById<View>(R.id.imgBrandLogo)?.setOnClickListener {
             val intent = Intent(this, PureMusicActivity::class.java)
             startActivity(intent)
         }
 
-        // Nhấn giữ vùng Widget Đồng hồ / Logo -> Menu tùy chọn Launcher
+        // Nhấn giữ Widget Logo / Đồng hồ -> Menu cài đặt Launcher
         findViewById<View>(R.id.brandClockContainer)?.setOnLongClickListener {
             showLauncherSettingsDialog()
             true
         }
 
-        // Nhấn giữ Dock -> Bật/Tắt chế độ thêm ô trống (+)
+        // Nhấn giữ vùng Dock -> Chế độ chỉnh sửa ô trống (+)
         findViewById<View>(R.id.bottomDockCard)?.setOnLongClickListener {
             toggleEditMode()
             true
@@ -200,7 +200,7 @@ class MainActivity : ComponentActivity() {
     private fun showLauncherSettingsDialog() {
         val options = arrayOf(
             if (isEditMode) "Tắt chế độ chỉnh sửa Dock" else "Chỉnh sửa thanh Dock (Thêm/Bớt App)",
-            "Mở ứng dụng Dr. Sơn Music",
+            "Mở ứng dụng Dr Sơn Music",
             "Mở danh sách tất cả ứng dụng",
             "Mở Cài đặt hệ thống xe"
         )
