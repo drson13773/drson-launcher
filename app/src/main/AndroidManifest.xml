@@ -49,13 +49,13 @@
             </intent-filter>
         </activity>
 
-        <!-- Màn hình phát nhạc chuyên dụng PureMusic -->
+        <!-- Màn hình phát nhạc chuyên dụng Dr Sơn Music -->
         <activity
             android:name=".music.PureMusicActivity"
+            android:label="@string/music_app_name"
             android:exported="true"
             android:screenOrientation="landscape"
             android:windowSoftInputMode="adjustPan" />
-
         <!-- Service phát nhạc ngầm liên tục chuẩn Media3 -->
         <service
             android:name=".music.PureAudioService"
