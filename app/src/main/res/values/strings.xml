@@ -1,7 +1,4 @@
-<resources>
-    <string name="app_name">Dr Sơn Launcher</string>
-    <string name="accessibility_service_description">Cho phép Dr Sơn Launcher mở đúng màn hình Recents (đa nhiệm) thật của hệ thống từ App Switcher. Service này không đọc nội dung màn hình.</string>
-</resources>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Dr. Sơn Launcher</string>
     <string name="music_app_name">Dr Sơn Music</string>
