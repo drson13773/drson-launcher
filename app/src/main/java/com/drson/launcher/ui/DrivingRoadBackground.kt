@@ -219,7 +219,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             }
         }
 
-        // 1. MẶT TRĂNG TRONG SUỐT NỔI VÂN CHÂN THỰC + VẦNG SÁNG VÀNG DỊU
+        // 1. MẶT TRĂNG PNG MỚI TRONG SUỐT (NỔI VÂN CHÂN THỰC + HÀO QUANG VÀNG DỊU)
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -227,7 +227,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 .size(76.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Vầng sáng dịu tỏa nhẹ quanh trăng
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val center = Offset(size.width / 2f, size.height / 2f)
                 drawCircle(
@@ -245,7 +244,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 )
             }
 
-            // Ảnh mặt trăng PNG chi tiết rõ ràng
             Image(
                 painter = painterResource(id = R.drawable.bg_moon),
                 contentDescription = "Moon",
@@ -256,7 +254,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             )
         }
 
-        // 2. BÊN TRÁI ĐƯỜNG: 1 CÂY XANH
+        // 2. BÊN TRÁI ĐƯỜNG: 1 CÂY PNG MỚI (TRONG SUỐT HOÀN TOÀN)
         Box(
             modifier = Modifier
                 .align(Alignment.CenterStart)
@@ -271,8 +269,8 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             )
         }
 
-        // 3. BÊN PHẢI ĐƯỜNG: 2 CÂY XANH (PHỐI CẢNH XA - GẦN)
-        // Cây ở xa (nhỏ hơn, nằm phía trên)
+        // 3. BÊN PHẢI ĐƯỜNG: 2 CÂY PNG MỚI (TRONG SUỐT, PHỐI CẢNH XA - GẦN)
+        // Cây ở xa
         Box(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
@@ -287,7 +285,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             )
         }
 
-        // Cây ở gần (lớn hơn, nằm phía dưới lề đường)
+        // Cây ở gần
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -302,7 +300,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             )
         }
 
-        // 4. XE MAZDA CX-5 ĐỎ Ở GIỮA ĐƯỜNG
+        // 4. XE MAZDA CX-5 ĐỎ Ở CHÍNH GIỮA ĐƯỜNG
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
