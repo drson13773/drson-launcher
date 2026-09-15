@@ -64,7 +64,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 3. Đồng hồ tốc độ GPS phong cách xe hơi -->
+    <!-- 3. Đồng hồ tốc độ GPS -->
     <androidx.compose.ui.platform.ComposeView
         android:id="@+id/composeSpeedometer"
         android:layout_width="135dp"
@@ -74,15 +74,15 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- 4. Thanh Dock tinh gọn (Chỉ chứa Icon Menu, Dr Sơn Music & Danh sách App) -->
+    <!-- 4. THANH DOCK 6 NÚT CHỨC NĂNG CHUYÊN BIỆT CHO XE -->
     <androidx.cardview.widget.CardView
         android:id="@+id/bottomDockCard"
         android:layout_width="wrap_content"
         android:layout_height="64dp"
         android:layout_marginBottom="12dp"
-        app:cardCornerRadius="18dp"
-        app:cardBackgroundColor="#D9000000"
-        app:cardElevation="6dp"
+        app:cardCornerRadius="20dp"
+        app:cardBackgroundColor="#E6100E0B"
+        app:cardElevation="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -92,44 +92,87 @@
             android:layout_height="match_parent"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp">
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp">
 
-            <!-- Nút mở Menu chính -->
+            <!-- 1. Nút Menu mở App Drawer -->
             <ImageView
                 android:id="@+id/btnMainMenu"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
                 android:src="@drawable/ic_launcher"
-                android:padding="3dp"
+                android:padding="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
-                android:contentDescription="@null" />
+                android:contentDescription="Menu" />
 
-            <!-- NÚT MỞ NHANH ỨNG DỤNG: DR SƠN MUSIC -->
-            <FrameLayout
+            <!-- 2. Nút Điện thoại -->
+            <ImageView
+                android:id="@+id/btnDockPhone"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="10dp"
+                android:src="@android:drawable/ic_menu_call"
+                android:tint="#D4AF37"
+                android:padding="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Điện thoại" />
+
+            <!-- 3. Nút Camera 360 -->
+            <ImageView
+                android:id="@+id/btnDockCamera"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="10dp"
+                android:src="@drawable/icon_camera_gold"
+                android:scaleType="fitCenter"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Camera 360" />
+
+            <!-- 4. Nút Dr Sơn Music -->
+            <ImageView
                 android:id="@+id/btnDrSonMusic"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:layout_marginStart="10dp"
+                android:src="@drawable/ic_drson_music"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
-                android:focusable="true">
+                android:focusable="true"
+                android:contentDescription="Dr Sơn Music" />
 
-                <ImageView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:src="@drawable/ic_drson_music"
-                    android:contentDescription="Dr Sơn Music" />
-            </FrameLayout>
+            <!-- 5. Nút Zing MP3 -->
+            <ImageView
+                android:id="@+id/btnDockZingMp3"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="10dp"
+                android:src="@android:drawable/ic_media_play"
+                android:tint="#FFF0B8"
+                android:padding="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Zing MP3" />
 
-            <!-- Danh sách các ứng dụng được ghim trên Dock -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvDockApps"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:layout_marginStart="10dp" />
+            <!-- 6. Nút Vietmap -->
+            <ImageView
+                android:id="@+id/btnDockVietmap"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="10dp"
+                android:src="@android:drawable/ic_dialog_map"
+                android:tint="#D4AF37"
+                android:padding="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Vietmap" />
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>
