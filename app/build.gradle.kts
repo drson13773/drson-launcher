@@ -34,7 +34,6 @@ android {
     }
 
     compileOptions {
-        // Bắt buộc bật Desugaring để NewPipeExtractor tương thích với Android minSdk 24
         isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -61,8 +60,8 @@ android {
 }
 
 dependencies {
-    // Hỗ trợ thư viện Java 8+ API desugaring cho NewPipeExtractor
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    // Hỗ trợ Java 8+ API desugaring cho NewPipeExtractor
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.0.4")
 
     // 1. Thư viện Layout XML, CardView & RecyclerView
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
@@ -82,14 +81,14 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
 
-    // 3. AndroidX Media3 (ExoPlayer + Service chạy nền ngầm liên tục)
+    // 3. AndroidX Media3 (ExoPlayer + Service chạy nền)
     implementation("androidx.media3:media3-exoplayer:1.3.0")
     implementation("androidx.media3:media3-session:1.3.0")
     implementation("androidx.media3:media3-ui:1.3.0")
     implementation("androidx.media3:media3-common:1.3.0")
 
-    // 4. Trích xuất luồng YouTube không quảng cáo & Network Engine
-    implementation("com.github.teamnewpipe:NewPipeExtractor:v0.24.3")
+    // 4. Bóc tách luồng YouTube (Cú pháp chuẩn cho JitPack Multi-module)
+    implementation("com.github.TeamNewPipe.NewPipeExtractor:extractor:v0.24.6")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 
