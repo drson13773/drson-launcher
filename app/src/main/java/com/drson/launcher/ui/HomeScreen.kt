@@ -16,6 +16,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -50,7 +51,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -132,7 +135,7 @@ fun HomeScreen(
         // 1. Phối cảnh đường chạy 3D và Mazda CX-5
         DrivingRoadBackground()
 
-        // 2. Góc trên bên trái: Logo Dr Sơn lớn sắc nét (82dp) + Vầng tia sáng (100dp) + Đồng hồ
+        // 2. Góc trên bên trái: Logo Dr Sơn (82dp) + Đồng hồ mềm mại in nghiêng
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -151,7 +154,7 @@ fun HomeScreen(
             CircularLuxurySpeedometer()
         }
 
-        // 4. Đáy màn hình: Thanh Dock điều khiển cố định
+        // 4. Đáy màn hình: Thanh Dock cố định tích hợp ô thông tin bài hát
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -212,12 +215,11 @@ fun BrandClockWidget() {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.padding(start = 4.dp, top = 2.dp)
     ) {
-        // Cụm Logo kích thước lớn 100dp giúp hiển thị chi tiết nguyên bản rõ ràng
+        // Cụm Logo kích thước lớn 100dp với tia sáng xoay
         Box(
             modifier = Modifier.size(100.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Chùm ánh sáng rẻ quạt phía sau
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
@@ -226,7 +228,6 @@ fun BrandClockWidget() {
                 drawSunburstRays(maxRadius = size.minDimension / 1.75f, rayCount = 18)
             }
 
-            // Logo Dr Sơn kích thước lớn 82dp
             Image(
                 painter = painterResource(id = R.drawable.icon_menu_brand),
                 contentDescription = "Dr Son Brand",
@@ -235,22 +236,25 @@ fun BrandClockWidget() {
             )
         }
 
-        // Cụm giờ và ngày tháng thực tế
+        // Cụm Đồng hồ: Font Serif mềm mại, in nghiêng sang trọng
         Column(verticalArrangement = Arrangement.Center) {
             Text(
                 text = currentTime,
                 color = GOLD_BRIGHT,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Black,
-                fontFamily = FontFamily.Monospace,
-                letterSpacing = 1.sp
+                fontSize = 34.sp,
+                fontWeight = FontWeight.Bold,
+                fontStyle = FontStyle.Italic,
+                fontFamily = FontFamily.Serif,
+                letterSpacing = 1.5.sp
             )
-            Spacer(Modifier.height(2.dp))
+            Spacer(Modifier.height(1.dp))
             Text(
                 text = currentDate,
-                color = Color.White.copy(alpha = 0.92f),
+                color = Color.White.copy(alpha = 0.90f),
                 fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.Medium,
+                fontStyle = FontStyle.Italic,
+                fontFamily = FontFamily.Serif
             )
         }
     }
@@ -326,14 +330,14 @@ fun CircularLuxurySpeedometer() {
             val center = Offset(w / 2f, h / 2f)
             val radius = w / 2f - 4f
 
-            // 1. Mặt đồng hồ màu đen sâu
+            // Mặt đồng hồ
             drawCircle(
                 color = Color(0xFF0C0B0A),
                 radius = radius,
                 center = center
             )
 
-            // 2. Viền Bezel kim loại mạ vàng 3D
+            // Viền Bezel mạ vàng 3D
             drawCircle(
                 brush = Brush.sweepGradient(
                     colors = listOf(
@@ -355,7 +359,7 @@ fun CircularLuxurySpeedometer() {
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
             )
 
-            // 3. Vạch chia và con số từ 0 đến 180 km/h
+            // Vạch chia và số 0 - 180 km/h
             val startAngle = 135f
             val totalSweep = 270f
             val maxSpeed = 180f
@@ -406,7 +410,7 @@ fun CircularLuxurySpeedometer() {
                 }
             }
 
-            // 4. Chữ "Dr Sơn" nghệ thuật và số km/h ở nửa dưới tâm
+            // Chữ "Dr Sơn" và vận tốc km/h
             drawIntoCanvas { canvas ->
                 val brandPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#E6CA65")
@@ -436,7 +440,7 @@ fun CircularLuxurySpeedometer() {
                 canvas.nativeCanvas.drawText("km/h", center.x, center.y + 54f, kmhPaint)
             }
 
-            // 5. Kim quay động cơ bản theo GPS
+            // Kim quay
             val needleFraction = animatedSpeed / maxSpeed
             val needleAngleDeg = startAngle + needleFraction * totalSweep
 
@@ -516,7 +520,7 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu mở App Drawer (Dùng icon Dr Sơn mới)
+        // Nút Menu mở App Drawer
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -555,9 +559,9 @@ private fun BottomDock(
             )
         }
 
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(4.dp))
 
-        // Trình phát nhạc & Âm lượng kéo dài
+        // Trình phát nhạc & Âm lượng kéo dài có thêm ô thông tin bài hát ở đầu
         ExpandedNowPlayingBar(
             modifier = Modifier
                 .weight(1f)
@@ -612,10 +616,59 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             .clip(RoundedCornerShape(12.dp))
             .background(DARK_CARD_BG)
             .border(1.dp, GOLD_ACCENT.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 10.dp, vertical = 2.dp),
+            .padding(horizontal = 8.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Ô HIỂN THỊ THÔNG TIN BÀI HÁT Ở ĐẦU THANH NHẠC
+        Row(
+            modifier = Modifier
+                .width(135.dp)
+                .fillMaxHeight(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFF1F1B14))
+                    .border(1.dp, GOLD_ACCENT.copy(alpha = 0.4f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = "Song",
+                    tint = GOLD_BRIGHT,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .basicMarquee(),
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = "Dr. Sơn Selection",
+                    color = GOLD_BRIGHT,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "YouTube Music • Luxury Vibes",
+                    color = Color.Gray,
+                    fontSize = 8.5.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+
+        // CÁC NÚT ĐIỀU KHIỂN PLAY / PAUSE / NEXT
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -643,6 +696,7 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             }
         }
 
+        // THANH TIẾN ĐỘ BÀI HÁT
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
@@ -662,12 +716,13 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             Text("04:10", color = Color.Gray, fontSize = 9.sp)
         }
 
+        // THANH ĐIỀU CHỈNH ÂM LƯỢNG
         Row(
-            modifier = Modifier.width(110.dp),
+            modifier = Modifier.width(95.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Icon(Icons.Default.VolumeUp, contentDescription = "Volume", tint = GOLD_ACCENT, modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.VolumeUp, contentDescription = "Volume", tint = GOLD_ACCENT, modifier = Modifier.size(15.dp))
             Slider(
                 value = volumeLevel,
                 onValueChange = { volumeLevel = it },
