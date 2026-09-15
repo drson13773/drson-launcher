@@ -12,8 +12,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -219,20 +221,42 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             }
         }
 
-        // 1. MẶT TRĂNG Ở GÓC TRÊN BÊN PHẢI MÀN HÌNH
+        // 1. MẶT TRĂNG HÒA TRỘN TỰ NHIÊN VỚI BẦU TRỜI (KHÔNG LỘ ĐƯỜNG GHÉP)
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 18.dp, end = 28.dp)
-                .size(68.dp)
-                .clip(CircleShape),
+                .padding(top = 14.dp, end = 26.dp)
+                .size(92.dp),
             contentAlignment = Alignment.Center
         ) {
+            // A. Vầng hào quang ánh trăng tỏa mềm ra bầu trời
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val center = Offset(size.width / 2f, size.height / 2f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFFFFF6D6).copy(alpha = 0.45f),
+                            Color(0xFFFFDF73).copy(alpha = 0.22f),
+                            Color(0xFF8C7335).copy(alpha = 0.08f),
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = size.minDimension / 2f
+                    ),
+                    radius = size.minDimension / 2f,
+                    center = center
+                )
+            }
+
+            // B. Ảnh mặt trăng hòa trộn quang học (BlendMode.Screen) không để lại viền đen/viền cắt
             Image(
                 painter = painterResource(id = R.drawable.bg_moon),
-                contentDescription = "Full Moon",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentDescription = "Natural Moon",
+                modifier = Modifier
+                    .size(62.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+                colorFilter = ColorFilter.tint(Color.White, BlendMode.Screen)
             )
         }
 
