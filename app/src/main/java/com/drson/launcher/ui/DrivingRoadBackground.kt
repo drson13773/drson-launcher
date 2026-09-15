@@ -29,20 +29,19 @@ private val ROAD_MARKING = Color(0xFFE5C158)
 
 @Composable
 fun DrivingRoadBackground(modifier: Modifier = Modifier) {
-    // 1. Đồng bộ hoàn toàn tốc độ chu kỳ giữa Tim đường và Cây (1400ms)
     val infiniteTransition = rememberInfiniteTransition(label = "driving_sync_anim")
     
+    // Chu kỳ lái xe êm ái
     val roadProgress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = LinearEasing),
+            animation = tween(2200, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "road_progress"
     )
 
-    // 2. Hiệu ứng nháy đèn các tòa nhà
     val fastBlink1 by infiniteTransition.animateFloat(
         initialValue = 0.05f,
         targetValue = 1.0f,
@@ -63,16 +62,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
         label = "fast_blink_2"
     )
 
-    val fastBlink3 by infiniteTransition.animateFloat(
-        initialValue = 0.10f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(780, easing = LinearOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "fast_blink_3"
-    )
-
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val screenWidthPx = constraints.maxWidth.toFloat()
         val screenHeightPx = constraints.maxHeight.toFloat()
@@ -84,9 +73,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
         val roadBottomW = screenWidthPx * 0.82f
         val centerX = screenWidthPx / 2f
 
-        // VẼ NỀN BẦU TRỜI, THÀNH PHỐ VÀ CON ĐƯỜNG 3D
         Canvas(modifier = Modifier.fillMaxSize()) {
-            // Nền bầu trời đêm
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
@@ -138,22 +125,8 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                         val winX = startX + c * padX - 3f
                         val winY = topY + r * padY - 3f
 
-                        val blinkFactor = when ((bIndex * 11 + r * 5 + c * 3) % 3) {
-                            0 -> fastBlink1
-                            1 -> fastBlink2
-                            else -> fastBlink3
-                        }
-
-                        val isYellowLight = ((bIndex + r + c) % 4) != 0
-                        val baseColor = if (isYellowLight) GOLD_ACCENT else GOLD_BRIGHT
-
-                        if (blinkFactor > 0.45f) {
-                            drawRect(
-                                color = baseColor.copy(alpha = 0.25f * blinkFactor),
-                                topLeft = Offset(winX - 1.5f, winY - 1.5f),
-                                size = Size(9f, 9f)
-                            )
-                        }
+                        val blinkFactor = if ((bIndex + r + c) % 2 == 0) fastBlink1 else fastBlink2
+                        val baseColor = if (((bIndex + r + c) % 4) != 0) GOLD_ACCENT else GOLD_BRIGHT
 
                         drawRect(
                             color = baseColor.copy(alpha = (0.15f + 0.85f * blinkFactor).coerceIn(0f, 1f)),
@@ -196,23 +169,23 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 strokeWidth = 3f
             )
 
-            // Vạch kẻ làn giữa di chuyển đồng bộ
-            val totalDashes = 7
-            for (i in 0..totalDashes) {
-                val progress = ((i.toFloat() + roadProgress) % totalDashes) / totalDashes.toFloat()
-                val dashY = horizonY + (bottomY - horizonY) * (progress * progress)
-                val dashH = 10f + 32f * progress
-                val dashW = 2.5f + 5f * progress
+            // Vạch kẻ làn giữa đồng bộ
+            val totalDashes = 5
+            for (i in 0 until totalDashes) {
+                val p = ((i.toFloat() / totalDashes) + roadProgress) % 1.0f
+                val dashY = horizonY + (bottomY - horizonY) * (p * p)
+                val dashH = 12f + 36f * p
+                val dashW = 3f + 5f * p
 
                 drawRect(
-                    color = ROAD_MARKING.copy(alpha = 0.3f + 0.7f * progress),
+                    color = ROAD_MARKING.copy(alpha = 0.25f + 0.75f * p),
                     topLeft = Offset(centerX - dashW / 2f, dashY),
                     size = Size(dashW, dashH)
                 )
             }
         }
 
-        // MẶT TRĂNG GÓC TRÊN BÊN PHẢI
+        // Mặt trăng
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -247,13 +220,11 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             )
         }
 
-        // ================= CÂY BÁM SÁT MÉP ĐƯỜNG & ĐỒNG TỐC VỚI TIM ĐƯỜNG =================
-        
-        // 1. Bên trái đường: 1 cây `bg_tree_2`
-        val leftTreeProgress = (roadProgress + 0.45f) % 1.0f
+        // Cây bên trái: bg_tree_2
+        val leftTreeP = (roadProgress + 0.5f) % 1.0f
         RoadsideMovingTree(
             treeRes = R.drawable.bg_tree_2,
-            progress = leftTreeProgress,
+            progress = leftTreeP,
             isRightSide = false,
             screenWidthPx = screenWidthPx,
             horizonY = horizonY,
@@ -263,11 +234,11 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             density = density
         )
 
-        // 2. Bên phải đường: Cây `bg_tree_1` thứ 1
-        val rightTree1Progress = (roadProgress + 0.15f) % 1.0f
+        // Cây 1 bên phải: bg_tree_1
+        val rightTree1P = roadProgress % 1.0f
         RoadsideMovingTree(
             treeRes = R.drawable.bg_tree_1,
-            progress = rightTree1Progress,
+            progress = rightTree1P,
             isRightSide = true,
             screenWidthPx = screenWidthPx,
             horizonY = horizonY,
@@ -277,11 +248,11 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             density = density
         )
 
-        // 3. Bên phải đường: Cây `bg_tree_1` thứ 2
-        val rightTree2Progress = (roadProgress + 0.65f) % 1.0f
+        // Cây 2 bên phải: bg_tree_1
+        val rightTree2P = (roadProgress + 0.5f) % 1.0f
         RoadsideMovingTree(
             treeRes = R.drawable.bg_tree_1,
-            progress = rightTree2Progress,
+            progress = rightTree2P,
             isRightSide = true,
             screenWidthPx = screenWidthPx,
             horizonY = horizonY,
@@ -291,7 +262,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             density = density
         )
 
-        // XE MAZDA CX-5 Ở CHÍNH GIỮA ĐƯỜNG
+        // Xe Mazda CX-5
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -321,22 +292,17 @@ private fun RoadsideMovingTree(
     roadBottomW: Float,
     density: androidx.compose.ui.unit.Density
 ) {
-    // 1. Tọa độ Y theo đúng hàm mũ phối cảnh của vạch kẻ đường
     val currentYPx = horizonY + (bottomY - horizonY) * (progress * progress)
-
-    // 2. Độ rộng nửa làn đường tại vị trí Y hiện tại
     val currentRoadHalfW = (roadTopW + (roadBottomW - roadTopW) * (progress * progress)) / 2f
     val centerX = screenWidthPx / 2f
 
-    // 3. Kích thước phối cảnh
-    val baseWidthDp = 26f + 95f * progress
-    val baseHeightDp = 30f + 115f * progress
+    val baseWidthDp = 24f + 85f * progress
+    val baseHeightDp = 28f + 105f * progress
 
     val widthPx = with(density) { baseWidthDp.dp.toPx() }
     val heightPx = with(density) { baseHeightDp.dp.toPx() }
 
-    // 4. Đặt sát gốc cây chạm vào vạch kẻ đường vàng
-    val roadsideMargin = with(density) { (2f + 8f * progress).dp.toPx() }
+    val roadsideMargin = with(density) { (2f + 6f * progress).dp.toPx() }
 
     val currentXPx = if (isRightSide) {
         centerX + currentRoadHalfW + roadsideMargin
@@ -344,10 +310,9 @@ private fun RoadsideMovingTree(
         centerX - currentRoadHalfW - roadsideMargin - widthPx
     }
 
-    // 5. Độ mờ mượt mà
     val alpha = when {
-        progress < 0.08f -> progress / 0.08f
-        progress > 0.88f -> (1.0f - progress) / 0.12f
+        progress < 0.10f -> progress / 0.10f
+        progress > 0.85f -> (1.0f - progress) / 0.15f
         else -> 1.0f
     }.coerceIn(0f, 1f)
 
