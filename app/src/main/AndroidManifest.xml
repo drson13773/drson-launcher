@@ -2,37 +2,40 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- 1. Quyền Vị trí (GPS) cho Đồng hồ đo tốc độ thực tế -->
+    <!-- 0. QUYỀN TRUY CẬP INTERNET (CHO YOUTUBE MUSIC, WEB & DỮ LIỆU TRỰC TUYẾN) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 1. QUYỀN VỊ TRÍ (GPS) CHO ĐỒNG HỒ ĐO TỐC ĐỘ XE THỰC TẾ -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
-    <!-- 2. Quyền Điện thoại, Danh bạ & Lịch sử cuộc gọi -->
+    <!-- 2. QUYỀN ĐIỆN THOẠI, DANH BẠ & LỊCH SỬ CUỘC GỌI -->
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
 
-    <!-- 3. Quyền điều khiển Wi-Fi trực tiếp từ Control Center -->
+    <!-- 3. QUYỀN ĐIỀU KHIỂN WI-FI TRỰC TIẾP -->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
-    <!-- 4. Quyền điều khiển Bluetooth trực tiếp -->
+    <!-- 4. QUYỀN ĐIỀU KHIỂN BLUETOOTH TRỰC TIẾP -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <!-- 5. Quyền Mạng & Dữ liệu di động (Mobile Data 4G) -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- 5. QUYỀN DỮ LIỆU DI ĐỘNG (4G) -->
     <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" tools:ignore="ProtectedPermissions" />
 
-    <!-- 6. Quyền Khởi động cùng xe, Cửa sổ nổi (Kiki Overlay) & Hệ thống -->
+    <!-- 6. QUYỀN HỆ THỐNG, KHỞI ĐỘNG CÙNG XE & CỬA SỔ NỔI (KIKI OVERLAY) -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
 
-    <!-- Tuyên bố phần cứng không bắt buộc để hỗ trợ đa dạng thiết bị màn hình ô tô -->
+    <!-- CẤU HÌNH PHẦN CỨNG TÙY CHỌN (TRÁNH BỊ TỪ CHỐI CÀI ĐẶT TRÊN CÁC LOẠI MÀN HÌNH XE KHÁC NHAU) -->
     <uses-feature
         android:name="android.hardware.location.gps"
         android:required="false" />
@@ -52,6 +55,7 @@
         android:label="@string/app_name"
         android:roundIcon="@drawable/ic_launcher"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/Theme.DrSonLauncher"
         tools:targetApi="34">
 
@@ -66,7 +70,7 @@
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:theme="@style/Theme.DrSonLauncher">
             
-            <!-- Thiết lập ứng dụng làm Màn hình chính mặc định (Home Launcher) -->
+            <!-- Thiết lập ứng dụng làm Màn hình chính mặc định của xe -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
@@ -75,7 +79,7 @@
             </intent-filter>
         </activity>
 
-        <!-- APP ĐIỆN THOẠI, DANH BẠ & GỌI ĐIỆN (DIALER) -->
+        <!-- APP GỌI ĐIỆN, DANH BẠ & NHẬT KÝ CUỘC GỌI (DIALER) -->
         <activity
             android:name=".ui.dialer.DialerActivity"
             android:exported="true"
@@ -90,12 +94,13 @@
             </intent-filter>
         </activity>
 
-        <!-- APP DR. SƠN MUSIC -->
+        <!-- APP DR. SƠN MUSIC (NHÚNG YOUTUBE MUSIC) -->
         <activity
             android:name=".ui.music.DrSonMusicActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|keyboardHidden"
             android:theme="@style/Theme.DrSonLauncher" />
 
     </application>
