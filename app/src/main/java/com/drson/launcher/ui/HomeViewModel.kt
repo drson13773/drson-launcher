@@ -44,7 +44,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         apps.clear()
 
-        // 1. Icon App Điện thoại (icon_phone_gold.png độ phân giải gốc 512x512)
+        // 1. Icon App Điện thoại Vàng - Đen (icon_phone_gold.png)
         val phoneIcon = loadDrawableBitmap(R.drawable.icon_phone_gold) ?: createPhoneGoldFallbackBitmap()
         apps.add(
             AppItem(
@@ -55,7 +55,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             )
         )
 
-        // 2. Icon App Nghe nhạc Dr Sơn Music (Icon Nhạc Gold sắc nét)
+        // 2. Icon App Nghe nhạc Dr Sơn Music Vàng - Đen
         val musicIcon = createMusicGoldIconBitmap()
         apps.add(
             AppItem(
@@ -66,20 +66,31 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             )
         )
 
-        // 3. Các ứng dụng khác của hệ thống
+        // 3. Icon Danh bạ Vàng - Đen theo phong cách Luxury
+        val contactsGoldIcon = createContactsGoldIconBitmap()
+
+        // 4. Nạp các ứng dụng được cài đặt trên hệ thống
         for (info in resolveInfos) {
             val pkg = info.activityInfo.packageName
             if (pkg == getApplication<Application>().packageName) continue
             val actName = info.activityInfo.name ?: ""
             val label = info.loadLabel(pm).toString()
-            val drawable = info.loadIcon(pm)
-            val bitmap = drawable.toBitmap(256, 256, Bitmap.Config.ARGB_8888).asImageBitmap()
+
+            // Nếu là ứng dụng Danh bạ của hệ thống -> Áp dụng ngay bộ icon Vàng - Đen
+            val isContactsApp = pkg.contains("contact", ignoreCase = true) || label.contains("danh bạ", ignoreCase = true)
+            val icon = if (isContactsApp) {
+                contactsGoldIcon
+            } else {
+                val drawable = info.loadIcon(pm)
+                drawable.toBitmap(256, 256, Bitmap.Config.ARGB_8888).asImageBitmap()
+            }
+
             apps.add(
                 AppItem(
                     packageName = pkg,
                     activityClassName = actName,
                     label = label,
-                    icon = bitmap
+                    icon = icon
                 )
             )
         }
@@ -89,7 +100,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         homeSlots.clear()
         dockSlots.clear()
 
-        // Gán thanh Dock: Ô 1 Điện thoại, Ô 2 Music
+        // Gán sẵn Dock: Ô 1 Điện thoại, Ô 2 Music
         dockSlots.add("com.drson.launcher.dialer")
         dockSlots.add("com.drson.launcher.music")
         dockSlots.add(null)
@@ -158,32 +169,71 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         return b.asImageBitmap()
     }
 
-    private fun createMusicGoldIconBitmap(): ImageBitmap {
+    // Sinh Icon Danh bạ Vàng - Đen (Luxury Contacts Icon)
+    private fun createContactsGoldIconBitmap(): ImageBitmap {
         val b = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
         val c = Canvas(b)
-        
-        // Khung nền vuông bo góc Carbon
+
+        // Nền vuông bo góc Carbon
         val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#151310") }
         c.drawRoundRect(8f, 8f, 248f, 248f, 48f, 48f, bgPaint)
-        
+
         // Viền vàng kim 3D
-        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { 
+        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor("#D4AF37")
             style = Paint.Style.STROKE
             strokeWidth = 10f
         }
         c.drawRoundRect(8f, 8f, 248f, 248f, 48f, 48f, borderPaint)
 
-        // Vòng tròn trung tâm
-        val circlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { 
+        // Vòng tròn vàng bao quanh biểu tượng
+        val circlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#B8860B")
+            style = Paint.Style.STROKE
+            strokeWidth = 5f
+        }
+        c.drawCircle(128f, 128f, 82f, circlePaint)
+
+        // Biểu tượng người danh bạ mạ vàng (Đầu & Thân)
+        val goldFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#FFF0B8")
+            style = Paint.Style.FILL
+        }
+        // Đầu
+        c.drawCircle(128f, 105f, 28f, goldFill)
+        // Thân
+        val bodyPath = android.graphics.Path().apply {
+            moveTo(88f, 175f)
+            quadTo(128f, 138f, 168f, 175f)
+            close()
+        }
+        c.drawPath(bodyPath, goldFill)
+
+        return b.asImageBitmap()
+    }
+
+    private fun createMusicGoldIconBitmap(): ImageBitmap {
+        val b = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
+        val c = Canvas(b)
+
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#151310") }
+        c.drawRoundRect(8f, 8f, 248f, 248f, 48f, 48f, bgPaint)
+
+        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#D4AF37")
+            style = Paint.Style.STROKE
+            strokeWidth = 10f
+        }
+        c.drawRoundRect(8f, 8f, 248f, 248f, 48f, 48f, borderPaint)
+
+        val circlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor("#B8860B")
             style = Paint.Style.STROKE
             strokeWidth = 6f
         }
         c.drawCircle(128f, 128f, 85f, circlePaint)
 
-        // Biểu tượng tam giác Play / Nốt nhạc vàng
-        val playPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { 
+        val playPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor("#FFF0B8")
             style = Paint.Style.FILL
         }
