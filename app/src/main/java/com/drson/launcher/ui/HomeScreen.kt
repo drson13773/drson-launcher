@@ -129,10 +129,9 @@ fun HomeScreen(
                 )
             }
     ) {
-        // 1. Nền 3D thành phố & xe Mazda CX-5
         DrivingRoadBackground()
 
-        // 2. Góc trên bên trái: Logo Dr Sơn + Chùm ánh sáng phía sau + Đồng hồ (Không viền)
+        // Góc trên bên trái: Logo & Đồng hồ thực
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -141,7 +140,7 @@ fun HomeScreen(
             BrandClockWidget()
         }
 
-        // 3. Góc tam giác bên trái: Đồng hồ tốc độ tròn Luxury Gold (Kích thước 145dp nhỏ gọn, cân đối)
+        // Đồng hồ đo tốc độ tròn Luxury Gold 145dp
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -151,7 +150,7 @@ fun HomeScreen(
             CircularLuxurySpeedometer()
         }
 
-        // 4. Đáy màn hình: Thanh Dock cố định
+        // Thanh Dock đáy màn hình
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -167,7 +166,7 @@ fun HomeScreen(
             )
         }
 
-        // 5. Trang danh sách ứng dụng
+        // Trang danh sách Ứng dụng
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -216,7 +215,6 @@ fun BrandClockWidget() {
             modifier = Modifier.size(76.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Chùm ánh sáng rẻ quạt nằm ở lớp dưới (phía sau Logo)
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
@@ -225,7 +223,6 @@ fun BrandClockWidget() {
                 drawSunburstRays(maxRadius = size.minDimension / 1.7f, rayCount = 16)
             }
 
-            // Logo Dr Sơn nằm đè lên trên chùm ánh sáng
             Image(
                 painter = painterResource(id = R.drawable.icon_menu_brand),
                 contentDescription = "Dr Son Brand",
@@ -323,14 +320,12 @@ fun CircularLuxurySpeedometer() {
             val center = Offset(w / 2f, h / 2f)
             val radius = w / 2f - 4f
 
-            // Mặt đồng hồ đen
             drawCircle(
                 color = Color(0xFF0C0B0A),
                 radius = radius,
                 center = center
             )
 
-            // Viền kim loại mạ vàng 3D
             drawCircle(
                 brush = Brush.sweepGradient(
                     colors = listOf(
@@ -352,7 +347,6 @@ fun CircularLuxurySpeedometer() {
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
             )
 
-            // Vạch chia và số 0 - 180 km/h
             val startAngle = 135f
             val totalSweep = 270f
             val maxSpeed = 180f
@@ -403,7 +397,6 @@ fun CircularLuxurySpeedometer() {
                 }
             }
 
-            // Chữ "Dr Sơn" và tốc độ số ở nửa dưới
             drawIntoCanvas { canvas ->
                 val brandPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#E6CA65")
@@ -433,7 +426,6 @@ fun CircularLuxurySpeedometer() {
                 canvas.nativeCanvas.drawText("km/h", center.x, center.y + 54f, kmhPaint)
             }
 
-            // Kim quay
             val needleFraction = animatedSpeed / maxSpeed
             val needleAngleDeg = startAngle + needleFraction * totalSweep
 
@@ -513,16 +505,16 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu chính
+        // Nút Menu chính với icon Dr Sơn mới sắc nét
         Box(
             modifier = Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF1E1912))
+                .background(Color(0xFF0F0E0C))
                 .focusable(enabled = true, interactionSource = menuInteractionSource)
                 .then(
                     if (isMenuFocused) Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(12.dp))
-                    else Modifier.border(1.dp, GOLD_BRIGHT.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                    else Modifier.border(1.dp, GOLD_BRIGHT.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
                 )
                 .clickable(onClick = onOpenMenu)
                 .padding(2.dp),
@@ -531,7 +523,7 @@ private fun BottomDock(
             Image(
                 painter = painterResource(id = R.drawable.ic_launcher),
                 contentDescription = "Menu ứng dụng",
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)),
                 contentScale = ContentScale.Fit
             )
         }
@@ -554,7 +546,6 @@ private fun BottomDock(
 
         Spacer(Modifier.width(6.dp))
 
-        // Trình phát nhạc & Âm lượng kéo dài
         ExpandedNowPlayingBar(
             modifier = Modifier
                 .weight(1f)
