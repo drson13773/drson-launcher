@@ -60,17 +60,17 @@ android {
 }
 
 dependencies {
-    // Hỗ trợ Java 8+ API desugaring cho NewPipeExtractor
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.0.4")
+    // 1. Hỗ trợ Desugaring Java 8+ API cho NewPipeExtractor
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
-    // 1. Thư viện Layout XML, CardView & RecyclerView
+    // 2. Thư viện Layout XML, CardView & RecyclerView
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     implementation("androidx.cardview:cardview:1.0.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
 
-    // 2. Jetpack Compose & Material 3
+    // 3. Jetpack Compose & Material 3
     implementation(platform("androidx.compose:compose-bom:2024.02.00"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -81,18 +81,18 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
 
-    // 3. AndroidX Media3 (ExoPlayer + Service chạy nền)
+    // 4. AndroidX Media3 (ExoPlayer + Chạy nền ngầm liên tục)
     implementation("androidx.media3:media3-exoplayer:1.3.0")
     implementation("androidx.media3:media3-session:1.3.0")
     implementation("androidx.media3:media3-ui:1.3.0")
     implementation("androidx.media3:media3-common:1.3.0")
 
-    // 4. Bóc tách luồng YouTube (Cú pháp chuẩn cho JitPack Multi-module)
-    implementation("com.github.TeamNewPipe.NewPipeExtractor:extractor:v0.24.6")
+    // 5. NewPipe Extractor (Định danh chuẩn chữ hoa TeamNewPipe trên JitPack)
+    implementation("com.github.TeamNewPipe.NewPipeExtractor:extractor:v0.24.3")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 
-    // 5. Unit Tests
+    // 6. Unit Tests
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
