@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.Offset
@@ -40,6 +41,7 @@ import kotlin.math.sin
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
+private val DRAWER_BG = Color(0xFF0C0B0A) // Nền đen tuyền không xuyên thấu
 
 @Composable
 fun AppDrawerOverlay(
@@ -50,12 +52,13 @@ fun AppDrawerOverlay(
 ) {
     if (!isOpen) return
 
-    val infiniteTransition = rememberInfiniteTransition(label = "drawer_rays_anim")
+    // Hiệu ứng tia sáng xoay chậm rãi, êm dịu (8000ms)
+    val infiniteTransition = rememberInfiniteTransition(label = "drawer_rays_slow")
     val drawerRotationAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2200, easing = LinearEasing),
+            animation = tween(8000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "drawer_rotation"
@@ -64,29 +67,38 @@ fun AppDrawerOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.92f))
+            .background(DRAWER_BG) // Phủ kín màn hình chính, chống trùng hình
             .clickable(onClick = onDismiss)
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 24.dp, vertical = 18.dp)
     ) {
-        // Tia sáng dài xoay nhanh phía sau nền menu
-        Canvas(
+        // 1. LOGO & TIA SÁNG ĐẶT Ở GÓC DƯỚI BÊN TRÁI, MỜ NHẸ
+        Box(
             modifier = Modifier
-                .size(520.dp)
-                .rotate(drawerRotationAngle)
+                .align(Alignment.BottomStart)
+                .padding(start = 10.dp, bottom = 10.dp)
+                .size(220.dp)
+                .alpha(0.18f), // Làm mờ để không gây rối mắt các icon
+            contentAlignment = Alignment.Center
         ) {
-            drawSunburstRays(maxRadius = 260f, rayCount = 20)
+            // Chùm tia sáng nằm phía sau Logo
+            Canvas(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .rotate(drawerRotationAngle)
+            ) {
+                drawSunburstRays(maxRadius = size.minDimension / 2f, rayCount = 16)
+            }
+
+            // Logo Dr Sơn
+            Image(
+                painter = painterResource(id = R.drawable.icon_menu_brand),
+                contentDescription = null,
+                modifier = Modifier.size(110.dp),
+                contentScale = ContentScale.Fit
+            )
         }
 
-        // Logo Dr Sơn mờ phía sau danh sách ứng dụng
-        Image(
-            painter = painterResource(id = R.drawable.icon_menu_brand),
-            contentDescription = null,
-            modifier = Modifier.size(170.dp),
-            alpha = 0.35f
-        )
-
-        // Lưới icon ứng dụng
+        // 2. LƯỚI TẤT CẢ ỨNG DỤNG TRÊN LỚP NỔI PHÍA TRƯỚC
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -110,10 +122,10 @@ fun AppDrawerOverlay(
             }
 
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 90.dp),
+                columns = GridCells.Adaptive(minSize = 85.dp),
                 modifier = Modifier
                     .weight(1f)
-                    .padding(vertical = 12.dp),
+                    .padding(top = 10.dp, bottom = 6.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -123,12 +135,12 @@ fun AppDrawerOverlay(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .clickable { onPick(app) }
-                            .padding(8.dp)
+                            .padding(6.dp)
                     ) {
                         Image(
                             bitmap = app.icon,
                             contentDescription = app.label,
-                            modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)),
+                            modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)),
                             contentScale = ContentScale.Fit
                         )
                         Spacer(Modifier.height(6.dp))
@@ -152,8 +164,8 @@ private fun DrawScope.drawSunburstRays(maxRadius: Float, rayCount: Int) {
     val center = Offset(size.width / 2f, size.height / 2f)
     for (i in 0 until rayCount) {
         val angleDeg = i * (360f / rayCount)
-        val angleRad1 = Math.toRadians((angleDeg - 4.5).toDouble())
-        val angleRad2 = Math.toRadians((angleDeg + 4.5).toDouble())
+        val angleRad1 = Math.toRadians((angleDeg - 5.0).toDouble())
+        val angleRad2 = Math.toRadians((angleDeg + 5.0).toDouble())
 
         val rayPath = Path().apply {
             moveTo(center.x, center.y)
@@ -172,8 +184,8 @@ private fun DrawScope.drawSunburstRays(maxRadius: Float, rayCount: Int) {
             path = rayPath,
             brush = Brush.radialGradient(
                 colors = listOf(
-                    GOLD_ACCENT.copy(alpha = 0.55f),
-                    GOLD_BRIGHT.copy(alpha = 0.25f),
+                    GOLD_ACCENT.copy(alpha = 0.6f),
+                    GOLD_BRIGHT.copy(alpha = 0.3f),
                     Color.Transparent
                 ),
                 center = center,
