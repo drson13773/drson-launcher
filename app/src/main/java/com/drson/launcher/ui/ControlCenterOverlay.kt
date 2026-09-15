@@ -14,7 +14,6 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import android.provider.Settings
 import android.telephony.TelephonyManager
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -57,20 +56,16 @@ fun ControlCenterOverlay(
     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager }
     val maxVolume = remember { audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: 15 }
 
-    // Quản lý Wi-Fi
     val wifiManager = remember { context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager }
     var isWifiOn by remember { mutableStateOf(wifiManager?.isWifiEnabled ?: false) }
 
-    // Quản lý Bluetooth
     val bluetoothManager = remember { context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager }
     val bluetoothAdapter: BluetoothAdapter? = remember { bluetoothManager?.adapter }
     var isBluetoothOn by remember { mutableStateOf(bluetoothAdapter?.isEnabled ?: false) }
 
-    // Quản lý Dữ liệu di động 4G
     val telephonyManager = remember { context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager }
     var isDataOn by remember { mutableStateOf(checkMobileDataState(context, telephonyManager)) }
 
-    // Xin quyền Bluetooth trên Android 12+ nếu chưa có
     val btPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -87,7 +82,6 @@ fun ControlCenterOverlay(
     }
     var brightnessLevel by remember { mutableFloatStateOf(0.75f) }
 
-    // Đồng bộ lại trạng thái thực tế mỗi khi mở bảng
     LaunchedEffect(isOpen) {
         if (isOpen) {
             isWifiOn = wifiManager?.isWifiEnabled ?: false
@@ -122,22 +116,20 @@ fun ControlCenterOverlay(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // HÀNG 1: WIFI, DATA 4G, BLUETOOTH, ÂM THANH
+                    // HÀNG 1: WIFI, DATA, BLUETOOTH, MUTE
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // 1. Nút Wi-Fi (Bật/tắt ăn ngay)
-                        ControlTile(
+                        ControlTileItem(
                             icon = Icons.Default.Wifi,
                             isActive = isWifiOn,
                             onClick = {
                                 val target = !isWifiOn
-                                val success = setWifiDirectly(context, wifiManager, target)
+                                val success = setWifiDirectly(wifiManager, target)
                                 if (success) {
                                     isWifiOn = target
                                 } else {
-                                    // Fallback sang giao diện nhanh nếu bản ROM chặn hẳn
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                         context.startActivity(Intent(Settings.Panel.ACTION_WIFI).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                                     } else {
@@ -147,8 +139,7 @@ fun ControlCenterOverlay(
                             }
                         )
 
-                        // 2. Nút Dữ liệu 4G (Bật/tắt ăn ngay)
-                        ControlTile(
+                        ControlTileItem(
                             icon = Icons.Default.SignalCellularAlt,
                             isActive = isDataOn,
                             onClick = {
@@ -166,8 +157,7 @@ fun ControlCenterOverlay(
                             }
                         )
 
-                        // 3. Nút Bluetooth (Bật/tắt ăn ngay)
-                        ControlTile(
+                        ControlTileItem(
                             icon = Icons.Default.Bluetooth,
                             isActive = isBluetoothOn,
                             onClick = {
@@ -181,8 +171,7 @@ fun ControlCenterOverlay(
                             }
                         )
 
-                        // 4. Nút Mute / Âm thanh
-                        ControlTile(
+                        ControlTileItem(
                             icon = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
                             isActive = !isMuted,
                             onClick = {
@@ -198,7 +187,7 @@ fun ControlCenterOverlay(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        CompactSliderBlock(
+                        ControlSliderItem(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Default.VolumeUp,
                             value = volumeLevel,
@@ -213,7 +202,7 @@ fun ControlCenterOverlay(
                             }
                         )
 
-                        CompactSliderBlock(
+                        ControlSliderItem(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Default.WbSunny,
                             value = brightnessLevel,
@@ -231,12 +220,12 @@ fun ControlCenterOverlay(
                         )
                     }
 
-                    // HÀNG 3: VỊ TRÍ (GPS), CÀI ĐẶT XE, TẮT MÀN HÌNH, ĐÓNG
+                    // HÀNG 3: VỊ TRÍ, CÀI ĐẶT, VỀ HOME, ĐÓNG
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        ControlTile(
+                        ControlTileItem(
                             icon = Icons.Default.LocationOn,
                             isActive = true,
                             onClick = {
@@ -246,7 +235,7 @@ fun ControlCenterOverlay(
                             }
                         )
 
-                        ControlTile(
+                        ControlTileItem(
                             icon = Icons.Default.Settings,
                             isActive = false,
                             onClick = {
@@ -257,7 +246,7 @@ fun ControlCenterOverlay(
                             }
                         )
 
-                        ControlTile(
+                        ControlTileItem(
                             icon = Icons.Default.ScreenLockPortrait,
                             isActive = false,
                             onClick = {
@@ -271,7 +260,7 @@ fun ControlCenterOverlay(
                             }
                         )
 
-                        ControlTile(
+                        ControlTileItem(
                             icon = Icons.Default.Close,
                             isActive = false,
                             onClick = onDismiss
@@ -283,18 +272,14 @@ fun ControlCenterOverlay(
     }
 }
 
-// HÀM CAN THIỆP PHẦN CỨNG TRỰC TIẾP (DIRECT AUTOMOTIVE CONTROLS)
-
 @Suppress("DEPRECATION")
-private fun setWifiDirectly(context: Context, wifiManager: WifiManager?, targetState: Boolean): Boolean {
+private fun setWifiDirectly(wifiManager: WifiManager?, targetState: Boolean): Boolean {
     if (wifiManager == null) return false
     return try {
-        // Thử cách chuẩn trực tiếp
         wifiManager.isWifiEnabled = targetState
         true
     } catch (_: Exception) {
         try {
-            // Thử qua Reflection bypass SDK limit
             val method: Method = wifiManager.javaClass.getDeclaredMethod("setWifiEnabled", Boolean::class.javaPrimitiveType)
             method.isAccessible = true
             method.invoke(wifiManager, targetState)
@@ -343,7 +328,6 @@ private fun setMobileDataDirectly(telephonyManager: TelephonyManager?, targetSta
         true
     } catch (_: Exception) {
         try {
-            // Thử qua ITelephony Service ngầm của Android Automotive
             val getITelephony: Method = telephonyManager.javaClass.getDeclaredMethod("getITelephony")
             getITelephony.isAccessible = true
             val iTelephony = getITelephony.invoke(telephonyManager)
@@ -360,7 +344,7 @@ private fun setMobileDataDirectly(telephonyManager: TelephonyManager?, targetSta
 }
 
 @Composable
-private fun ControlTile(
+private fun ControlTileItem(
     icon: ImageVector,
     isActive: Boolean,
     onClick: () -> Unit
@@ -388,7 +372,7 @@ private fun ControlTile(
 }
 
 @Composable
-private fun CompactSliderBlock(
+private fun ControlSliderItem(
     modifier: Modifier = Modifier,
     icon: ImageVector,
     value: Float,
