@@ -16,7 +16,6 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.ComposeView
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -39,6 +38,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var viewModel: HomeViewModel
     private lateinit var dockAdapter: DockGridAdapter
     private lateinit var rvDockApps: RecyclerView
+    private var isEditMode: Boolean = false
 
     private val requiredPermissions = arrayOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -83,11 +83,12 @@ class MainActivity : ComponentActivity() {
 
         dockAdapter = DockGridAdapter(
             appList = getDockAppItems(),
+            isEditMode = false,
             onItemClick = { position, app ->
                 if (app != null) {
                     viewModel.launchApp(this, app)
                 } else {
-                    // Chạm ô trống -> Mở bảng chọn app để thêm vào Dock
+                    // Nhấn vào ô dấu cộng khi ở chế độ edit
                     openAppPickerForSlot(position)
                 }
             },
@@ -110,7 +111,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Hộp thoại chọn ứng dụng thêm vào Dock
+    private fun toggleEditMode() {
+        isEditMode = !isEditMode
+        dockAdapter.setEditMode(isEditMode)
+    }
+
     private fun openAppPickerForSlot(slotIndex: Int) {
         val appList = viewModel.apps
         val appNames = appList.map { it.label }.toTypedArray()
@@ -120,15 +125,18 @@ class MainActivity : ComponentActivity() {
             .setItems(appNames) { _, which ->
                 val selectedApp = appList[which]
                 viewModel.setDockSlot(this, slotIndex, selectedApp.packageName)
-                dockAdapter.updateData(getDockAppItems())
+                isEditMode = false
+                dockAdapter.updateData(getDockAppItems(), editMode = false)
             }
-            .setNegativeButton("Hủy", null)
+            .setNegativeButton("Hủy") { _, _ ->
+                isEditMode = false
+                dockAdapter.setEditMode(false)
+            }
             .show()
     }
 
-    // Hộp thoại khi nhấn giữ vào ô đã có ứng dụng
     private fun showSlotOptionDialog(slotIndex: Int, app: AppItem) {
-        val options = arrayOf("Đổi ứng dụng khác", "Gỡ khỏi thanh Dock")
+        val options = arrayOf("Đổi ứng dụng khác", "Gỡ khỏi thanh Dock", "Bật chế độ chỉnh sửa Dock")
         AlertDialog.Builder(this)
             .setTitle(app.label)
             .setItems(options) { _, which ->
@@ -136,8 +144,9 @@ class MainActivity : ComponentActivity() {
                     0 -> openAppPickerForSlot(slotIndex)
                     1 -> {
                         viewModel.setDockSlot(this, slotIndex, null)
-                        dockAdapter.updateData(getDockAppItems())
+                        dockAdapter.updateData(getDockAppItems(), editMode = isEditMode)
                     }
+                    2 -> toggleEditMode()
                 }
             }
             .setNegativeButton("Đóng", null)
@@ -145,14 +154,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setupScreenInteractions() {
-        // Nút mở Menu chính
+        // Nút Menu chính
         findViewById<View>(R.id.btnMainMenu)?.setOnClickListener {
             showFullAppDrawerDialog()
         }
 
-        // Nhấn giữ vào khoảng trống trên màn hình chính
-        findViewById<ConstraintLayout>(R.id.brandClockContainer)?.setOnLongClickListener {
+        // Nhấn giữ vùng Widget Đồng hồ / Logo -> Bật/Tắt chế độ chỉnh sửa Dock
+        findViewById<View>(R.id.brandClockContainer)?.setOnLongClickListener {
             showLauncherSettingsDialog()
+            true
+        }
+
+        // Nhấn giữ thanh CardView đáy màn hình -> Bật chế độ hiện dấu (+)
+        findViewById<View>(R.id.bottomDockCard)?.setOnLongClickListener {
+            toggleEditMode()
             true
         }
     }
@@ -171,13 +186,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun showLauncherSettingsDialog() {
-        val options = arrayOf("Mở danh sách tất cả ứng dụng", "Mở Cài đặt hệ thống xe")
+        val options = arrayOf(
+            if (isEditMode) "Tắt chế độ chỉnh sửa Dock" else "Chỉnh sửa thanh Dock (Thêm/Bớt App)",
+            "Mở danh sách tất cả ứng dụng",
+            "Mở Cài đặt hệ thống xe"
+        )
         AlertDialog.Builder(this)
             .setTitle("Tùy chọn Màn hình chính")
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> showFullAppDrawerDialog()
-                    1 -> {
+                    0 -> toggleEditMode()
+                    1 -> showFullAppDrawerDialog()
+                    2 -> {
                         try {
                             startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                         } catch (_: Exception) {}
@@ -224,7 +244,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         hideSystemBars()
         if (::dockAdapter.isInitialized) {
-            dockAdapter.updateData(getDockAppItems())
+            dockAdapter.updateData(getDockAppItems(), editMode = isEditMode)
         }
     }
 
