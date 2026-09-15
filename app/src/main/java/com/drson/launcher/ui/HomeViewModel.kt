@@ -91,16 +91,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         dockSlots.add(null)
         dockSlots.add(null)
 
-        // Các slot trên Desktop
+        // Các slot trên Desktop: chỉ nạp các app khả dụng
         val availableApps = apps.filter {
             it.packageName != "com.drson.launcher.dialer" && it.packageName != "com.drson.launcher.music"
         }
-        for (i in 0 until 6) {
-            if (i < availableApps.size) {
-                homeSlots.add(HomeSlotContent.App(availableApps[i].packageName))
-            } else {
-                homeSlots.add(HomeSlotContent.None)
-            }
+        for (i in 0 until minOf(6, availableApps.size)) {
+            homeSlots.add(HomeSlotContent.App(availableApps[i].packageName))
         }
     }
 
