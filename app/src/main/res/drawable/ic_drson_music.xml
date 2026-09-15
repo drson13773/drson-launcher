@@ -1,26 +1,18 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="96dp"
-    android:height="96dp"
-    android:viewportWidth="96"
-    android:viewportHeight="96">
-  <!-- Nền bo góc đen carbon -->
-  <path
-      android:fillColor="#14120E"
-      android:pathData="M24,4h48c11.05,0 20,8.95 20,20v48c0,11.05 -8.95,20 -20,20H24c-11.05,0 -20,-8.95 -20,-20V24C4,12.95 12.95,4 24,4z"/>
-  <!-- Viền kim loại ánh vàng -->
-  <path
-      android:strokeColor="#D4AF37"
-      android:strokeWidth="2.5"
-      android:fillColor="#00000000"
-      android:pathData="M24,6h48c9.94,0 18,8.06 18,18v48c0,9.94 -8.06,18 -18,18H24c-9.94,0 -18,-8.06 -18,-18V24C6,14.06 14.06,6 24,6z"/>
-  <!-- Biểu tượng khung YouTube bo tròn -->
-  <path
-      android:fillColor="#221C14"
-      android:strokeColor="#FFF0B8"
-      android:strokeWidth="1.5"
-      android:pathData="M30,26h36c6.63,0 12,5.37 12,12v20c0,6.63 -5.37,12 -12,12H30c-6.63,0 -12,-5.37 -12,-12V38C18,31.37 23.37,26 30,26z"/>
-  <!-- Nút Play vàng Gold trung tâm -->
-  <path
-      android:fillColor="#FFF0B8"
-      android:pathData="M42,36l18,12l-18,12z"/>
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    
+    <!-- Vòng tròn nền viền kim loại vàng -->
+    <path
+        android:fillColor="#1F1B12"
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="1.5"
+        android:pathData="M24,24m-22,0a22,22 0,1 1,44 0a22,22 0,1 1,-44 0" />
+
+    <!-- Biểu tượng nốt nhạc đôi màu vàng gold -->
+    <path
+        android:fillColor="#FFF0B8"
+        android:pathData="M18,30a4,4 0,1 1,-4 -4a4,4 0,0 1,4 4zm16,-4a4,4 0,1 1,-4 -4a4,4 0,0 1,4 4zm-16,0V12l16,-4v14" />
 </vector>
