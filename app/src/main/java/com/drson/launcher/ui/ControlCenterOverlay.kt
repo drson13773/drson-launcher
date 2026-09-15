@@ -1,10 +1,17 @@
 package com.drson.launcher.ui
 
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
 import android.net.wifi.WifiManager
+import android.os.Build
 import android.provider.Settings
+import android.telephony.TelephonyManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -31,8 +38,9 @@ import androidx.compose.ui.unit.dp
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
 private val DARK_CARD_BG = Color(0xFF14120E)
-private val ACTIVE_BG = Color(0xFF282319)
+private val ACTIVE_BG = Color(0xFF2E2614)
 
+@SuppressLint("MissingPermission")
 @Composable
 fun ControlCenterOverlay(
     isOpen: Boolean,
@@ -42,8 +50,28 @@ fun ControlCenterOverlay(
     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager }
     val maxVolume = remember { audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: 15 }
 
-    var isWifiOn by remember { mutableStateOf(true) }
-    var isBluetoothOn by remember { mutableStateOf(true) }
+    // Quản lý Wi-Fi
+    val wifiManager = remember { context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager }
+    var isWifiOn by remember { mutableStateOf(wifiManager?.isWifiEnabled ?: false) }
+
+    // Quản lý Bluetooth
+    val bluetoothManager = remember { context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager }
+    val bluetoothAdapter: BluetoothAdapter? = remember { bluetoothManager?.adapter }
+    var isBluetoothOn by remember { mutableStateOf(bluetoothAdapter?.isEnabled ?: false) }
+
+    // Quản lý Dữ liệu di động (Mobile Data 4G)
+    val telephonyManager = remember { context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager }
+    var isDataOn by remember {
+        mutableStateOf(
+            try {
+                val method = telephonyManager?.javaClass?.getDeclaredMethod("getDataEnabled")
+                (method?.invoke(telephonyManager) as? Boolean) ?: false
+            } catch (_: Exception) {
+                false
+            }
+        )
+    }
+
     var isMuted by remember { mutableStateOf(false) }
     var volumeLevel by remember {
         mutableFloatStateOf(
@@ -51,6 +79,14 @@ fun ControlCenterOverlay(
         )
     }
     var brightnessLevel by remember { mutableFloatStateOf(0.75f) }
+
+    // Cập nhật trạng thái thực tế mỗi khi mở Control Center
+    LaunchedEffect(isOpen) {
+        if (isOpen) {
+            isWifiOn = wifiManager?.isWifiEnabled ?: false
+            isBluetoothOn = bluetoothAdapter?.isEnabled ?: false
+        }
+    }
 
     AnimatedVisibility(
         visible = isOpen,
@@ -64,7 +100,6 @@ fun ControlCenterOverlay(
                 .clickable(onClick = onDismiss),
             contentAlignment = Alignment.TopEnd
         ) {
-            // Khung Trung tâm điều khiển chính
             Box(
                 modifier = Modifier
                     .padding(top = 16.dp, end = 20.dp)
@@ -79,51 +114,72 @@ fun ControlCenterOverlay(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // HÀNG 1: 4 KHỐI CHỨC NĂNG RIÊNG BIỆT (KHÔNG CÓ NHÃN CHỮ)
+                    // HÀNG 1: WIFI, DATA 4G, BLUETOOTH, MUTE (THỰC THI NGAY)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
+                        // 1. Nút Wi-Fi
                         ControlTile(
                             icon = Icons.Default.Wifi,
                             isActive = isWifiOn,
                             onClick = {
-                                isWifiOn = !isWifiOn
+                                val targetState = !isWifiOn
+                                isWifiOn = targetState
                                 try {
-                                    context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                                } catch (_: Exception) {}
+                                    @Suppress("DEPRECATION")
+                                    wifiManager?.isWifiEnabled = targetState
+                                } catch (_: Exception) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                        context.startActivity(Intent(Settings.Panel.ACTION_WIFI).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                    }
+                                }
                             }
                         )
 
+                        // 2. Nút Dữ liệu 4G (Mobile Data)
+                        ControlTile(
+                            icon = Icons.Default.SignalCellularAlt,
+                            isActive = isDataOn,
+                            onClick = {
+                                val targetState = !isDataOn
+                                isDataOn = targetState
+                                try {
+                                    val setMethod = telephonyManager?.javaClass?.getDeclaredMethod("setDataEnabled", Boolean::class.javaPrimitiveType)
+                                    setMethod?.invoke(telephonyManager, targetState)
+                                } catch (_: Exception) {
+                                    context.startActivity(Intent(Settings.ACTION_DATA_ROAMING_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                }
+                            }
+                        )
+
+                        // 3. Nút Bluetooth
                         ControlTile(
                             icon = Icons.Default.Bluetooth,
                             isActive = isBluetoothOn,
                             onClick = {
-                                isBluetoothOn = !isBluetoothOn
+                                val targetState = !isBluetoothOn
+                                isBluetoothOn = targetState
                                 try {
-                                    context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                    if (targetState) {
+                                        @Suppress("DEPRECATION")
+                                        bluetoothAdapter?.enable()
+                                    } else {
+                                        @Suppress("DEPRECATION")
+                                        bluetoothAdapter?.disable()
+                                    }
                                 } catch (_: Exception) {}
                             }
                         )
 
+                        // 4. Nút Mute / Âm thanh
                         ControlTile(
                             icon = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
                             isActive = !isMuted,
                             onClick = {
                                 isMuted = !isMuted
-                                val targetVol = if (isMuted) 0 else (volumeLevel * maxVolume).toInt()
+                                val targetVol = if (isMuted) 0 else (volumeLevel * maxVolume).toInt().coerceAtLeast(1)
                                 audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, targetVol, 0)
-                            }
-                        )
-
-                        ControlTile(
-                            icon = Icons.Default.Settings,
-                            isActive = false,
-                            onClick = {
-                                try {
-                                    context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                                    onDismiss()
-                                } catch (_: Exception) {}
                             }
                         )
                     }
@@ -133,7 +189,6 @@ fun ControlCenterOverlay(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        // Khối Âm Lượng (Icon Loa)
                         CompactSliderBlock(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Default.VolumeUp,
@@ -149,7 +204,6 @@ fun ControlCenterOverlay(
                             }
                         )
 
-                        // Khối Độ Sáng (Icon Mặt Trời)
                         CompactSliderBlock(
                             modifier = Modifier.weight(1f),
                             icon = Icons.Default.WbSunny,
@@ -168,7 +222,7 @@ fun ControlCenterOverlay(
                         )
                     }
 
-                    // HÀNG 3: 4 KHỐI CHỨC NĂNG BỔ TRỢ (GPS, KHÓA MÀN HÌNH, TRỢ LÝ, ĐÓNG)
+                    // HÀNG 3: VỊ TRÍ (GPS), CÀI ĐẶT XE, TẮT MÀN HÌNH, ĐÓNG
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -184,9 +238,14 @@ fun ControlCenterOverlay(
                         )
 
                         ControlTile(
-                            icon = Icons.Default.DarkMode,
-                            isActive = true,
-                            onClick = {}
+                            icon = Icons.Default.Settings,
+                            isActive = false,
+                            onClick = {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                    onDismiss()
+                                } catch (_: Exception) {}
+                            }
                         )
 
                         ControlTile(
@@ -215,7 +274,6 @@ fun ControlCenterOverlay(
     }
 }
 
-// KHỐI VUÔNG CHỨC NĂNG TỐI GIẢN (KHÔNG CHỮ)
 @Composable
 private fun ControlTile(
     icon: ImageVector,
@@ -244,7 +302,6 @@ private fun ControlTile(
     }
 }
 
-// KHỐI THANH TRƯỢT THON GỌN (CHỈ GIỮ ICON LOA / MẶT TRỜI)
 @Composable
 private fun CompactSliderBlock(
     modifier: Modifier = Modifier,
