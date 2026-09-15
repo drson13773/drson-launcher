@@ -2,7 +2,6 @@
 <androidx.constraintlayout.widget.ConstraintLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/black">
@@ -65,7 +64,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 3. Đồng hồ tốc độ GPS -->
+    <!-- 3. Đồng hồ tốc độ GPS phong cách xe hơi -->
     <androidx.compose.ui.platform.ComposeView
         android:id="@+id/composeSpeedometer"
         android:layout_width="135dp"
@@ -75,28 +74,26 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- 4. Thanh Dock đáy màn hình -->
+    <!-- 4. Thanh Dock tinh gọn (Chỉ chứa Icon Menu, Dr Sơn Music & Danh sách App) -->
     <androidx.cardview.widget.CardView
         android:id="@+id/bottomDockCard"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="64dp"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="12dp"
         app:cardCornerRadius="18dp"
         app:cardBackgroundColor="#D9000000"
-        app:cardElevation="4dp"
+        app:cardElevation="6dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp">
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
 
             <!-- Nút mở Menu chính -->
             <ImageView
@@ -110,12 +107,12 @@
                 android:focusable="true"
                 android:contentDescription="@null" />
 
-            <!-- NÚT ỨNG DỤNG RIÊNG: DR. SƠN MUSIC -->
+            <!-- NÚT MỞ NHANH ỨNG DỤNG: DR SƠN MUSIC -->
             <FrameLayout
                 android:id="@+id/btnDrSonMusic"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="8dp"
+                android:layout_marginStart="10dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true">
@@ -124,15 +121,15 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:src="@drawable/ic_drson_music"
-                    android:contentDescription="Dr. Sơn Music" />
+                    android:contentDescription="Dr Sơn Music" />
             </FrameLayout>
 
-            <!-- RecyclerView danh sách các ứng dụng khác trong Dock (GridLayoutManager) -->
+            <!-- Danh sách các ứng dụng được ghim trên Dock -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvDockApps"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:layout_marginStart="8dp" />
+                android:layout_marginStart="10dp" />
 
         </LinearLayout>
     </androidx.cardview.widget.CardView>
