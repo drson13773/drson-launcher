@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package com.drson.launcher.ui
 
 import android.Manifest
@@ -137,7 +139,7 @@ fun HomeScreen(
         // 1. Phối cảnh đường chạy 3D và Mazda CX-5
         DrivingRoadBackground()
 
-        // 2. Góc trên bên trái: Logo Dr Sơn + Đồng hồ vàng mềm mại in nghiêng
+        // 2. Góc trên bên trái: Logo Dr Sơn (82dp) + Đồng hồ vàng mềm mại in nghiêng
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -361,7 +363,7 @@ fun CircularLuxurySpeedometer() {
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
             )
 
-            // 3. Vạch chia và số 0 - 180 toàn bộ màu vàng
+            // 3. Vạch chia và số 0 - 180
             val startAngle = 135f
             val totalSweep = 270f
             val maxSpeed = 180f
@@ -401,7 +403,7 @@ fun CircularLuxurySpeedometer() {
 
                     drawIntoCanvas { canvas ->
                         val paint = Paint().apply {
-                            color = android.graphics.Color.parseColor("#FFF0B8") // Số tốc độ màu vàng sáng
+                            color = android.graphics.Color.parseColor("#FFF0B8")
                             textSize = 14f
                             typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
                             textAlign = Paint.Align.CENTER
@@ -412,7 +414,7 @@ fun CircularLuxurySpeedometer() {
                 }
             }
 
-            // 4. Chữ "Dr Sơn", số tốc độ GPS và chữ "km/h" toàn bộ màu Vàng Kim
+            // 4. Chữ "Dr Sơn", số tốc độ GPS và chữ "km/h"
             drawIntoCanvas { canvas ->
                 val brandPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#FFDF73")
@@ -424,7 +426,7 @@ fun CircularLuxurySpeedometer() {
                 canvas.nativeCanvas.drawText("Dr Sơn", center.x, center.y + 26f, brandPaint)
 
                 val speedValPaint = Paint().apply {
-                    color = android.graphics.Color.parseColor("#FFF0B8") // Vận tốc hiển thị màu vàng kim rực rỡ
+                    color = android.graphics.Color.parseColor("#FFF0B8")
                     textSize = 20f
                     typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                     textAlign = Paint.Align.CENTER
@@ -433,7 +435,7 @@ fun CircularLuxurySpeedometer() {
                 canvas.nativeCanvas.drawText(String.format(Locale.US, "%.0f", currentSpeed), center.x, center.y + 44f, speedValPaint)
 
                 val kmhPaint = Paint().apply {
-                    color = android.graphics.Color.parseColor("#D4AF37") // km/h màu vàng gold
+                    color = android.graphics.Color.parseColor("#D4AF37")
                     textSize = 10.5f
                     typeface = Typeface.DEFAULT_BOLD
                     textAlign = Paint.Align.CENTER
@@ -622,7 +624,7 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Thông tin bài hát màu vàng kim
+        // Thông tin bài hát
         Row(
             modifier = Modifier
                 .width(135.dp)
@@ -698,7 +700,7 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             }
         }
 
-        // Thanh tiến độ & Mốc thời gian màu vàng
+        // Thanh tiến độ bài hát
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
