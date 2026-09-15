@@ -44,13 +44,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         apps.clear()
 
-        // 1. Nạp bộ Icon Gold Custom với chất lượng cao (300x300 px)
-        val phoneIcon = loadDrawableBitmap(R.drawable.icon_phone_gold) ?: createFallbackIcon("#D4AF37")
-        val musicIcon = loadDrawableBitmap(R.drawable.icon_music_gold) ?: createFallbackIcon("#D4AF37")
-        val contactsIcon = loadDrawableBitmap(R.drawable.icon_contacts_gold)
-        val galleryIcon = loadDrawableBitmap(R.drawable.icon_gallery_gold)
-        val browserIcon = loadDrawableBitmap(R.drawable.icon_browser_gold)
-        val settingsIcon = loadDrawableBitmap(R.drawable.icon_settings_gold)
+        // 1. Nạp an toàn các icon Gold (Tự động nhận diện drawable hoặc tạo vector dự phòng)
+        val phoneIcon = loadDrawableDynamic("icon_phone_gold") ?: createPhoneGoldFallbackBitmap()
+        val musicIcon = loadDrawableDynamic("icon_music_gold") ?: createMusicGoldIconBitmap()
+        val contactsIcon = loadDrawableDynamic("icon_contacts_gold") ?: createContactsGoldIconBitmap()
+        val galleryIcon = loadDrawableDynamic("icon_gallery_gold") ?: createGalleryGoldIconBitmap()
+        val browserIcon = loadDrawableDynamic("icon_browser_gold") ?: createBrowserGoldIconBitmap()
+        val settingsIcon = loadDrawableDynamic("icon_settings_gold") ?: createSettingsGoldIconBitmap()
 
         // 2. Thêm App Gọi Điện Thoại Batman Gold
         apps.add(
@@ -82,11 +82,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             val lowerLabel = label.lowercase()
 
             val customIcon: ImageBitmap? = when {
-                (lowerPkg.contains("contact") || lowerLabel.contains("danh bạ")) && contactsIcon != null -> contactsIcon
-                (lowerPkg.contains("gallery") || lowerPkg.contains("media") || lowerPkg.contains("photo") || lowerLabel.contains("ảnh") || lowerLabel.contains("bộ sưu tập")) && galleryIcon != null -> galleryIcon
-                (lowerPkg.contains("browser") || lowerPkg.contains("chrome") || lowerLabel.contains("trình duyệt") || lowerLabel.contains("web")) && browserIcon != null -> browserIcon
-                (lowerPkg.contains("setting") || lowerLabel.contains("cài đặt") || lowerLabel.contains("thiết lập")) && settingsIcon != null -> settingsIcon
-                (lowerPkg.contains("music") || lowerPkg.contains("audio") || lowerLabel.contains("nhạc")) && musicIcon != null -> musicIcon
+                (lowerPkg.contains("contact") || lowerLabel.contains("danh bạ")) -> contactsIcon
+                (lowerPkg.contains("gallery") || lowerPkg.contains("media") || lowerPkg.contains("photo") || lowerLabel.contains("ảnh") || lowerLabel.contains("bộ sưu tập")) -> galleryIcon
+                (lowerPkg.contains("browser") || lowerPkg.contains("chrome") || lowerLabel.contains("trình duyệt") || lowerLabel.contains("web")) -> browserIcon
+                (lowerPkg.contains("setting") || lowerLabel.contains("cài đặt") || lowerLabel.contains("thiết lập")) -> settingsIcon
+                (lowerPkg.contains("music") || lowerPkg.contains("audio") || lowerLabel.contains("nhạc")) -> musicIcon
                 else -> null
             }
 
@@ -164,13 +164,90 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun loadDrawableBitmap(resId: Int): ImageBitmap? {
+    // Nạp ảnh an toàn bằng định danh động
+    private fun loadDrawableDynamic(resName: String): ImageBitmap? {
+        val context = getApplication<Application>()
+        val resId = context.resources.getIdentifier(resName, "drawable", context.packageName)
+        if (resId == 0) return null
         return try {
-            val drawable = ResourcesCompat.getDrawable(getApplication<Application>().resources, resId, null)
+            val drawable = ResourcesCompat.getDrawable(context.resources, resId, null)
             drawable?.toBitmap(320, 320, Bitmap.Config.ARGB_8888)?.asImageBitmap()
         } catch (_: Exception) {
             null
         }
+    }
+
+    private fun createPhoneGoldFallbackBitmap(): ImageBitmap {
+        val b = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
+        val c = Canvas(b)
+        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#D4AF37") }
+        c.drawRoundRect(10f, 10f, 246f, 246f, 40f, 40f, p)
+        return b.asImageBitmap()
+    }
+
+    private fun createContactsGoldIconBitmap(): ImageBitmap {
+        val b = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
+        val c = Canvas(b)
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#0F0E0C") }
+        c.drawRoundRect(8f, 8f, 248f, 248f, 48f, 48f, bgPaint)
+
+        val goldFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#D4AF37") }
+        c.drawCircle(128f, 95f, 40f, goldFill)
+        c.drawRoundRect(60f, 150f, 196f, 215f, 30f, 30f, goldFill)
+        return b.asImageBitmap()
+    }
+
+    private fun createMusicGoldIconBitmap(): ImageBitmap {
+        val b = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
+        val c = Canvas(b)
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#0F0E0C") }
+        c.drawRoundRect(8f, 8f, 248f, 248f, 48f, 48f, bgPaint)
+
+        val goldFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#D4AF37") }
+        c.drawCircle(95f, 175f, 25f, goldFill)
+        c.drawCircle(175f, 190f, 25f, goldFill)
+        return b.asImageBitmap()
+    }
+
+    private fun createGalleryGoldIconBitmap(): ImageBitmap {
+        val b = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
+        val c = Canvas(b)
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#0F0E0C") }
+        c.drawRoundRect(8f, 8f, 248f, 248f, 48f, 48f, bgPaint)
+
+        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#D4AF37")
+            style = Paint.Style.STROKE
+            strokeWidth = 14f
+        }
+        c.drawRoundRect(45f, 55f, 211f, 201f, 24f, 24f, strokePaint)
+        return b.asImageBitmap()
+    }
+
+    private fun createBrowserGoldIconBitmap(): ImageBitmap {
+        val b = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
+        val c = Canvas(b)
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#0F0E0C") }
+        c.drawRoundRect(8f, 8f, 248f, 248f, 48f, 48f, bgPaint)
+
+        val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.parseColor("#D4AF37")
+            style = Paint.Style.STROKE
+            strokeWidth = 10f
+        }
+        c.drawCircle(128f, 128f, 80f, strokePaint)
+        return b.asImageBitmap()
+    }
+
+    private fun createSettingsGoldIconBitmap(): ImageBitmap {
+        val b = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
+        val c = Canvas(b)
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#0F0E0C") }
+        c.drawRoundRect(8f, 8f, 248f, 248f, 48f, 48f, bgPaint)
+
+        val goldFill = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#D4AF37") }
+        c.drawCircle(128f, 128f, 45f, goldFill)
+        return b.asImageBitmap()
     }
 
     private fun createFallbackIcon(hexColor: String): ImageBitmap {
