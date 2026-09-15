@@ -74,7 +74,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- 4. THANH DOCK 6 NÚT CHỨC NĂNG CHUYÊN BIỆT CHO XE -->
+    <!-- 4. THANH DOCK TỰ ĐỘNG CO DÃN ÔM KHÍT THEO SỐ LƯỢNG NÚT -->
     <androidx.cardview.widget.CardView
         android:id="@+id/bottomDockCard"
         android:layout_width="wrap_content"
@@ -88,14 +88,15 @@
         app:layout_constraintEnd_toEndOf="parent">
 
         <LinearLayout
+            android:id="@+id/dockInnerContainer"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp">
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
 
-            <!-- 1. Nút Menu mở App Drawer -->
+            <!-- 1. Nút Menu mở danh sách App -->
             <ImageView
                 android:id="@+id/btnMainMenu"
                 android:layout_width="48dp"
@@ -112,7 +113,7 @@
                 android:id="@+id/btnDockPhone"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
                 android:src="@android:drawable/ic_menu_call"
                 android:tint="#D4AF37"
                 android:padding="6dp"
@@ -126,7 +127,7 @@
                 android:id="@+id/btnDockCamera"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
                 android:src="@drawable/icon_camera_gold"
                 android:scaleType="fitCenter"
                 android:background="?attr/selectableItemBackgroundBorderless"
@@ -139,7 +140,7 @@
                 android:id="@+id/btnDrSonMusic"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
                 android:src="@drawable/ic_drson_music"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
@@ -151,7 +152,7 @@
                 android:id="@+id/btnDockZingMp3"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
                 android:src="@android:drawable/ic_media_play"
                 android:tint="#FFF0B8"
                 android:padding="6dp"
@@ -165,7 +166,7 @@
                 android:id="@+id/btnDockVietmap"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="8dp"
                 android:src="@android:drawable/ic_dialog_map"
                 android:tint="#D4AF37"
                 android:padding="6dp"
