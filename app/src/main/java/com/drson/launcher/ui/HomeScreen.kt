@@ -1,7 +1,15 @@
 package com.drson.launcher.ui
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Bundle
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -29,17 +38,24 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
 import com.drson.launcher.model.HomeSlotContent
+import kotlinx.coroutines.delay
 import java.lang.reflect.Method
+import java.text.SimpleDateFormat
+import java.util.*
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
+private val DARK_CARD_BG = Color(0xFF14120E)
 
 @SuppressLint("WrongConstant")
 fun openNotificationPanel(context: Context) {
@@ -91,7 +107,7 @@ fun HomeScreen(
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
                     onVerticalDrag = { change, dragAmount ->
-                        if (dragAmount > 30f) {
+                        if (dragAmount > 35f) {
                             val touchX = change.position.x
                             if (touchX < screenWidthPx / 2) {
                                 openNotificationPanel(context)
@@ -103,25 +119,28 @@ fun HomeScreen(
                 )
             }
     ) {
+        // Nền 3D xe chạy Mazda CX-5
         DrivingRoadBackground()
 
+        // Lớp nội dung chính
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Spacer(Modifier.height(10.dp))
-
-            // Desktop Slots (Phía trên bên phải - chỉ hiện ô có app)
+            // KHU VỰC TRÊN (TOP LAYER): Góc trái (Logo + Giờ) & Góc phải (App Slots)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .weight(1f),
-                horizontalArrangement = Arrangement.End,
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
+                // 1. GÓC TRÊN BÊN TRÁI: Widget Logo Thương Hiệu + Đồng Hồ
+                BrandClockWidget()
+
+                // 2. GÓC TRÊN BÊN PHẢI: Các ô ứng dụng Desktop (chỉ hiện ô có app)
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalAlignment = Alignment.End
                 ) {
                     val chunkedSlots = remember(viewModel.homeSlots.toList()) {
@@ -130,7 +149,7 @@ fun HomeScreen(
                     var isFirstSlot = true
                     for (rowSlots in chunkedSlots) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             for (slot in rowSlots) {
@@ -157,7 +176,19 @@ fun HomeScreen(
                 }
             }
 
-            // Thanh Dock nằm gọn gàng dưới đáy màn hình
+            // KHU VỰC GIỮA DƯỚI (MIDDLE-BOTTOM LAYER): Đồng hồ đo tốc độ góc dưới trái
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.Start,
+                verticalAlignment = Alignment.Bottom
+            ) {
+                // Widget Đồng Hồ Đo Tốc Độ GPS (Speedometer)
+                SpeedometerWidget()
+            }
+
+            // KHU VỰC ĐÁY (BOTTOM DOCK): 1 Menu + 4 App Slots + Music/Volume Bar
             BottomDock(
                 viewModel = viewModel,
                 isEditMode = isEditMode,
@@ -167,6 +198,7 @@ fun HomeScreen(
             )
         }
 
+        // Menu trượt danh sách ứng dụng
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -176,6 +208,192 @@ fun HomeScreen(
                 isAppDrawerOpen = false
             }
         )
+    }
+}
+
+// Widget Logo Thương Hiệu + Đồng Hồ Giờ/Ngày
+@Composable
+fun BrandClockWidget() {
+    var currentTime by remember { mutableStateOf("") }
+    var currentDate by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val dateFormat = SimpleDateFormat("EEEE, dd 'thg' M", Locale("vi", "VN"))
+        while (true) {
+            val now = Calendar.getInstance().time
+            currentTime = timeFormat.format(now)
+            currentDate = dateFormat.format(now)
+            delay(1000)
+        }
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.Black.copy(alpha = 0.45f))
+            .border(1.dp, GOLD_ACCENT.copy(alpha = 0.3f), RoundedCornerShape(18.dp))
+            .padding(horizontal = 14.dp, vertical = 8.dp)
+    ) {
+        // Logo Dr Sơn độ nét cao
+        Image(
+            painter = painterResource(id = R.drawable.icon_menu_brand),
+            contentDescription = "Dr Son Brand",
+            modifier = Modifier.size(54.dp),
+            contentScale = ContentScale.Fit
+        )
+
+        Column {
+            Text(
+                text = currentTime,
+                color = GOLD_BRIGHT,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Black,
+                fontFamily = FontFamily.Monospace,
+                letterSpacing = 1.sp
+            )
+            Text(
+                text = currentDate,
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+// Widget Đồng Hồ Đo Tốc Độ GPS (Speedometer)
+@Composable
+fun SpeedometerWidget() {
+    val context = LocalContext.current
+    var currentSpeed by remember { mutableFloatStateOf(0f) }
+    var hasPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasPermission = isGranted
+    }
+
+    DisposableEffect(hasPermission) {
+        if (!hasPermission) return@DisposableEffect onDispose {}
+
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        val locationListener = object : LocationListener {
+            override fun onLocationChanged(location: Location) {
+                if (location.hasSpeed()) {
+                    currentSpeed = location.speed * 3.6f // Đổi từ m/s sang km/h
+                }
+            }
+            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+            override fun onProviderEnabled(provider: String) {}
+            override fun onProviderDisabled(provider: String) {}
+        }
+
+        try {
+            locationManager?.requestLocationUpdates(
+                LocationManager.GPS_PROVIDER,
+                500L,
+                0.5f,
+                locationListener
+            )
+        } catch (_: SecurityException) {}
+
+        onDispose {
+            try {
+                locationManager?.removeUpdates(locationListener)
+            } catch (_: SecurityException) {}
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .width(220.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.Black.copy(alpha = 0.6f))
+            .border(1.2.dp, GOLD_ACCENT.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+            .padding(12.dp)
+    ) {
+        if (hasPermission) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Text(
+                        text = "TỐC ĐỘ XE",
+                        color = GOLD_ACCENT,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = String.format(Locale.US, "%.0f", currentSpeed),
+                            color = GOLD_BRIGHT,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Black,
+                            fontFamily = FontFamily.Monospace
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "km/h",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                    }
+                }
+
+                Icon(
+                    imageVector = Icons.Default.Speed,
+                    contentDescription = "Speedometer",
+                    tint = GOLD_ACCENT,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+        } else {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Cần quyền vị trí",
+                    color = GOLD_BRIGHT,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Để hiển thị tốc độ thật, vui lòng cấp quyền vị trí thiết bị.",
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = { launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
+                    colors = ButtonDefaults.buttonColors(containerColor = GOLD_ACCENT),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+                    modifier = Modifier.height(28.dp)
+                ) {
+                    Text("Cấp quyền", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
     }
 }
 
@@ -244,7 +462,7 @@ private fun BottomDock(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(64.dp) // Cố định chiều cao Dock 64dp
+            .height(64.dp)
             .padding(horizontal = 14.dp, vertical = 6.dp)
             .clip(RoundedCornerShape(18.dp))
             .background(Color.Black.copy(alpha = 0.75f))
@@ -253,7 +471,7 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // 1. Nút Menu chính
+        // Nút Menu chính
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -276,7 +494,7 @@ private fun BottomDock(
             )
         }
 
-        // 2. Đúng 4 ô ứng dụng trên Dock
+        // 4 ô ứng dụng trên Dock
         viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
@@ -294,7 +512,7 @@ private fun BottomDock(
 
         Spacer(Modifier.width(6.dp))
 
-        // 3. Trình điều khiển phát nhạc & âm lượng gọn gàng
+        // Trình phát nhạc & Âm lượng kéo dài
         ExpandedNowPlayingBar(
             modifier = Modifier
                 .weight(1f)
@@ -346,13 +564,12 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF14120E))
+            .background(DARK_CARD_BG)
             .border(1.dp, GOLD_ACCENT.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
             .padding(horizontal = 10.dp, vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Cụm nút Play / Pause / Next / Prev
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -380,7 +597,6 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             }
         }
 
-        // Thanh kéo tua bài hát
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
@@ -400,7 +616,6 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             Text("04:10", color = Color.Gray, fontSize = 9.sp)
         }
 
-        // Thanh chỉnh âm lượng
         Row(
             modifier = Modifier.width(110.dp),
             verticalAlignment = Alignment.CenterVertically,
