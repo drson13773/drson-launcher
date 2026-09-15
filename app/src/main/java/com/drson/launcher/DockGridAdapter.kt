@@ -1,13 +1,11 @@
 package com.drson.launcher
 
 import android.graphics.Color
-import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.recyclerview.widget.RecyclerView
 import com.drson.launcher.R
@@ -37,12 +35,7 @@ class DockGridAdapter(
         if (app != null) {
             holder.tvPlus?.visibility = View.GONE
             holder.imgIcon.visibility = View.VISIBLE
-            
-            when (val icon = app.icon) {
-                is Drawable -> holder.imgIcon.setImageDrawable(icon)
-                is ImageBitmap -> holder.imgIcon.setImageBitmap(icon.asAndroidBitmap())
-                else -> holder.imgIcon.setImageResource(android.R.drawable.sym_def_app_icon)
-            }
+            holder.imgIcon.setImageBitmap(app.icon.asAndroidBitmap())
         } else {
             if (isEditMode) {
                 holder.imgIcon.visibility = View.GONE
