@@ -4,6 +4,8 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -33,8 +35,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -43,18 +51,17 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
-import com.drson.launcher.model.HomeSlotContent
 import kotlinx.coroutines.delay
 import java.lang.reflect.Method
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.cos
+import kotlin.math.sin
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
@@ -122,10 +129,10 @@ fun HomeScreen(
                 )
             }
     ) {
-        // Nền đường 3D
+        // 1. Nền 3D thành phố & xe Mazda CX-5
         DrivingRoadBackground()
 
-        // 1. GÓC TRÊN TRÁI: Logo Dr Sơn không viền (icon_menu_brand.png) + Hào quang xoay + Đồng hồ
+        // 2. Góc trên bên trái: Logo Dr Sơn (Tia sáng rẻ quạt xoay nhanh) + Đồng hồ thực (Không viền)
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -134,59 +141,17 @@ fun HomeScreen(
             BrandClockWidget()
         }
 
-        // 2. GÓC TRÊN PHẢI: Các ô ứng dụng desktop
+        // 3. Góc tam giác bên trái đường: Đồng hồ tốc độ tròn Luxury Gold
         Box(
             modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(end = 16.dp, top = 14.dp)
+                .align(Alignment.CenterStart)
+                .padding(start = 24.dp, top = 65.dp)
+                .size(190.dp)
         ) {
-            val chunkedSlots = remember(viewModel.homeSlots.toList()) {
-                viewModel.homeSlots.chunked(3)
-            }
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.End
-            ) {
-                var isFirstSlot = true
-                for (rowSlots in chunkedSlots) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        for (slot in rowSlots) {
-                            val pkgName = when (slot) {
-                                is HomeSlotContent.App -> slot.packageName
-                                else -> null
-                            }
-                            val app = viewModel.appFor(pkgName)
-                            val currentModifier = if (isFirstSlot && app != null) {
-                                isFirstSlot = false
-                                Modifier.focusRequester(initialFocusRequester)
-                            } else Modifier
-
-                            FocusableDesktopSlot(
-                                app = app,
-                                modifier = currentModifier,
-                                onClick = {
-                                    if (app != null) viewModel.launchApp(context, app)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
+            CircularLuxurySpeedometer()
         }
 
-        // 3. GÓC DƯỚI TRÁI: Widget đo tốc độ GPS
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 16.dp, bottom = 78.dp)
-        ) {
-            SpeedometerWidget()
-        }
-
-        // 4. ĐÁY MÀN HÌNH: Thanh Dock với nút Menu là ic_launcher.png và icon phone vàng
+        // 4. Đáy màn hình: Thanh Dock cố định
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -220,13 +185,13 @@ fun BrandClockWidget() {
     var currentTime by remember { mutableStateOf("") }
     var currentDate by remember { mutableStateOf("") }
 
-    // Hào quang vàng xoay tròn 360 độ
-    val infiniteTransition = rememberInfiniteTransition(label = "logo_glow_rotation")
+    // Hiệu ứng tia sáng rẻ quạt xoay tròn với tốc độ nhanh
+    val infiniteTransition = rememberInfiniteTransition(label = "sunburst_anim")
     val rotationAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(5000, easing = LinearEasing),
+            animation = tween(2800, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "rotation_angle"
@@ -249,30 +214,53 @@ fun BrandClockWidget() {
         modifier = Modifier.padding(4.dp)
     ) {
         Box(
-            modifier = Modifier.size(64.dp),
+            modifier = Modifier.size(70.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Vòng hào quang sáng vàng kim xoay quanh logo
+            // Vẽ các tia sáng rẻ quạt (Sunburst Rays) xoay tròn
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
                     .rotate(rotationAngle)
             ) {
-                drawCircle(
-                    brush = Brush.sweepGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            GOLD_ACCENT.copy(alpha = 0.5f),
-                            Color.Transparent,
-                            GOLD_BRIGHT.copy(alpha = 0.85f),
-                            Color.Transparent
+                val center = Offset(size.width / 2f, size.height / 2f)
+                val rayCount = 16
+                val maxRadius = size.minDimension / 1.8f
+
+                for (i in 0 until rayCount) {
+                    val angleDeg = i * (360f / rayCount)
+                    val angleRad1 = Math.toRadians((angleDeg - 4.5).toDouble())
+                    val angleRad2 = Math.toRadians((angleDeg + 4.5).toDouble())
+
+                    val rayPath = Path().apply {
+                        moveTo(center.x, center.y)
+                        lineTo(
+                            (center.x + maxRadius * cos(angleRad1)).toFloat(),
+                            (center.y + maxRadius * sin(angleRad1)).toFloat()
                         )
-                    ),
-                    radius = size.minDimension / 2f
-                )
+                        lineTo(
+                            (center.x + maxRadius * cos(angleRad2)).toFloat(),
+                            (center.y + maxRadius * sin(angleRad2)).toFloat()
+                        )
+                        close()
+                    }
+
+                    drawPath(
+                        path = rayPath,
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                GOLD_ACCENT.copy(alpha = 0.55f),
+                                GOLD_BRIGHT.copy(alpha = 0.25f),
+                                Color.Transparent
+                            ),
+                            center = center,
+                            radius = maxRadius
+                        )
+                    )
+                }
             }
 
-            // Dùng icon_menu_brand.png (Logo không viền) sắc nét
+            // Logo Dr Sơn sắc nét
             Image(
                 painter = painterResource(id = R.drawable.icon_menu_brand),
                 contentDescription = "Dr Son Brand",
@@ -281,7 +269,7 @@ fun BrandClockWidget() {
             )
         }
 
-        // Cụm Đồng hồ (Không khung viền đen)
+        // Cụm giờ và ngày (Không viền)
         Column(verticalArrangement = Arrangement.Center) {
             Text(
                 text = currentTime,
@@ -302,7 +290,7 @@ fun BrandClockWidget() {
 }
 
 @Composable
-fun SpeedometerWidget() {
+fun CircularLuxurySpeedometer() {
     val context = LocalContext.current
     var currentSpeed by remember { mutableFloatStateOf(0f) }
     var hasPermission by remember {
@@ -351,127 +339,156 @@ fun SpeedometerWidget() {
         }
     }
 
+    // Góc quay kim đo mượt mà từ -135 độ (0 km/h) đến +135 độ (180 km/h)
+    val animatedSpeed by animateFloatAsState(
+        targetValue = currentSpeed.coerceIn(0f, 180f),
+        animationSpec = spring(stiffness = Spring.StiffnessLow),
+        label = "needle_speed"
+    )
+
     Box(
         modifier = Modifier
-            .width(180.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.Black.copy(alpha = 0.6f))
-            .border(1.dp, GOLD_ACCENT.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-    ) {
-        if (hasPermission) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column {
-                    Text(
-                        text = "TỐC ĐỘ XE",
-                        color = GOLD_ACCENT,
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
-                    )
-                    Row(verticalAlignment = Alignment.Bottom) {
-                        Text(
-                            text = String.format(Locale.US, "%.0f", currentSpeed),
-                            color = GOLD_BRIGHT,
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.Black,
-                            fontFamily = FontFamily.Monospace
-                        )
-                        Spacer(Modifier.width(4.dp))
-                        Text(
-                            text = "km/h",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 3.dp)
-                        )
-                    }
-                }
-
-                Icon(
-                    imageVector = Icons.Default.Speed,
-                    contentDescription = "Speedometer",
-                    tint = GOLD_ACCENT,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
-        } else {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "TỐC ĐỘ GPS",
-                    color = GOLD_BRIGHT,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(Modifier.height(4.dp))
-                Button(
-                    onClick = { launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
-                    colors = ButtonDefaults.buttonColors(containerColor = GOLD_ACCENT),
-                    shape = RoundedCornerShape(6.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                    modifier = Modifier.height(24.dp)
-                ) {
-                    Text("Bật GPS", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun FocusableDesktopSlot(
-    app: AppItem?,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isFocused by interactionSource.collectIsFocusedAsState()
-
-    Box(
-        modifier = modifier
-            .size(64.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (app != null) Color.Black.copy(alpha = 0.5f) else Color.Transparent)
-            .focusable(enabled = (app != null), interactionSource = interactionSource)
-            .then(
-                if (isFocused && app != null) {
-                    Modifier.border(2.dp, GOLD_BRIGHT, RoundedCornerShape(12.dp))
-                } else {
-                    Modifier
-                }
-            )
-            .clickable(enabled = (app != null), onClick = onClick)
-            .padding(4.dp),
+            .fillMaxSize()
+            .clickable {
+                if (!hasPermission) launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+            },
         contentAlignment = Alignment.Center
     ) {
-        if (app != null) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Image(
-                    bitmap = app.icon,
-                    contentDescription = app.label,
-                    modifier = Modifier.size(34.dp).clip(RoundedCornerShape(8.dp))
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val center = Offset(w / 2f, h / 2f)
+            val radius = w / 2f - 6f
+
+            // 1. Mặt đồng hồ đen sâu
+            drawCircle(
+                color = Color(0xFF0C0B0A),
+                radius = radius,
+                center = center
+            )
+
+            // 2. Viền kim loại mạ vàng 3D đa tầng (Bezel)
+            drawCircle(
+                brush = Brush.sweepGradient(
+                    colors = listOf(
+                        Color(0xFF8C7335),
+                        Color(0xFFFFEFA8),
+                        Color(0xFF5A481F),
+                        Color(0xFFFFDF73),
+                        Color(0xFF8C7335)
+                    )
+                ),
+                radius = radius,
+                center = center,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 8f)
+            )
+            drawCircle(
+                color = Color(0xFF1E1A14),
+                radius = radius - 6f,
+                center = center,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+            )
+
+            // 3. Vạch chia tốc độ và các con số từ 0 đến 180 km/h
+            val startAngle = 135f
+            val totalSweep = 270f
+            val maxSpeed = 180f
+
+            for (speed in 0..180 step 10) {
+                val fraction = speed / maxSpeed
+                val angleDeg = startAngle + fraction * totalSweep
+                val angleRad = Math.toRadians(angleDeg.toDouble())
+
+                val isMajor = (speed % 20 == 0)
+                val tickLength = if (isMajor) 14f else 8f
+                val strokeW = if (isMajor) 2.5f else 1.2f
+
+                val outerR = radius - 12f
+                val innerR = outerR - tickLength
+
+                val startP = Offset(
+                    (center.x + outerR * cos(angleRad)).toFloat(),
+                    (center.y + outerR * sin(angleRad)).toFloat()
                 )
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = app.label,
-                    color = Color.White,
-                    fontSize = 9.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center
+                val endP = Offset(
+                    (center.x + innerR * cos(angleRad)).toFloat(),
+                    (center.y + innerR * sin(angleRad)).toFloat()
                 )
+
+                drawLine(
+                    color = if (isMajor) GOLD_BRIGHT else GOLD_ACCENT.copy(alpha = 0.6f),
+                    start = startP,
+                    end = endP,
+                    strokeWidth = strokeW
+                )
+
+                // Vẽ số hiển thị
+                if (isMajor) {
+                    val textR = innerR - 16f
+                    val textX = (center.x + textR * cos(angleRad)).toFloat()
+                    val textY = (center.y + textR * sin(angleRad)).toFloat() + 5f
+
+                    drawIntoCanvas { canvas ->
+                        val paint = Paint().apply {
+                            color = android.graphics.Color.parseColor("#FFF0B8")
+                            textSize = 19f
+                            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+                            textAlign = Paint.Align.CENTER
+                            isAntiAlias = true
+                        }
+                        canvas.nativeCanvas.drawText("$speed", textX, textY, paint)
+                    }
+                }
             }
+
+            // 4. Chữ "Dr Sơn" nghệ thuật ở nửa dưới tâm đồng hồ
+            drawIntoCanvas { canvas ->
+                val brandPaint = Paint().apply {
+                    color = android.graphics.Color.parseColor("#E6CA65")
+                    textSize = 28f
+                    typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD_ITALIC)
+                    textAlign = Paint.Align.CENTER
+                    isAntiAlias = true
+                }
+                canvas.nativeCanvas.drawText("Dr Sơn", center.x, center.y + 36f, brandPaint)
+
+                val speedValPaint = Paint().apply {
+                    color = android.graphics.Color.WHITE
+                    textSize = 24f
+                    typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                    textAlign = Paint.Align.CENTER
+                    isAntiAlias = true
+                }
+                canvas.nativeCanvas.drawText(String.format(Locale.US, "%.0f", currentSpeed), center.x, center.y + 58f, speedValPaint)
+
+                val kmhPaint = Paint().apply {
+                    color = android.graphics.Color.parseColor("#9E9E9E")
+                    textSize = 12f
+                    typeface = Typeface.DEFAULT_BOLD
+                    textAlign = Paint.Align.CENTER
+                    isAntiAlias = true
+                }
+                canvas.nativeCanvas.drawText("km/h", center.x, center.y + 70f, kmhPaint)
+            }
+
+            // 5. Kim đo tốc độ mạ vàng kim xoay theo góc tốc độ
+            val needleFraction = animatedSpeed / maxSpeed
+            val needleAngleDeg = startAngle + needleFraction * totalSweep
+
+            rotate(degrees = needleAngleDeg + 90f, pivot = center) {
+                val needlePath = Path().apply {
+                    moveTo(center.x - 3.5f, center.y)
+                    lineTo(center.x - 1f, center.y - (radius - 22f))
+                    lineTo(center.x + 1f, center.y - (radius - 22f))
+                    lineTo(center.x + 3.5f, center.y)
+                    close()
+                }
+                drawPath(needlePath, brush = Brush.verticalGradient(listOf(GOLD_BRIGHT, GOLD_ACCENT)))
+            }
+
+            // Nắp chụp tâm kim
+            drawCircle(color = Color(0xFF1E1912), radius = 11f, center = center)
+            drawCircle(color = GOLD_ACCENT, radius = 11f, center = center, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
         }
     }
 }
@@ -494,13 +511,13 @@ private fun BottomDock(
             .height(64.dp)
             .padding(horizontal = 14.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(Color.Black.copy(alpha = 0.8f))
+            .background(Color.Black.copy(alpha = 0.85f))
             .border(1.dp, Color.White.copy(alpha = 0.15f), RoundedCornerShape(18.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu mở App Drawer sử dụng ic_launcher.png (Logo Dr Sơn có viền tròn vàng)
+        // Nút Menu mở App Drawer (Logo Dr Sơn có viền vàng ic_launcher.png)
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -523,7 +540,7 @@ private fun BottomDock(
             )
         }
 
-        // 4 ô ứng dụng trên Dock (Ô 1: Điện thoại icon vàng 3D, Ô 2: Music)
+        // 4 ô ứng dụng trên Dock (Ô 1: Điện thoại Phone Gold, Ô 2: Music)
         viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
@@ -571,14 +588,15 @@ private fun FocusableDockSlotCell(
                 else Modifier.border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
             )
             .clickable(onClick = onTap)
-            .padding(4.dp),
+            .padding(2.dp),
         contentAlignment = Alignment.Center
     ) {
         if (app != null) {
             Image(
                 bitmap = app.icon,
                 contentDescription = app.label,
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp))
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Fit
             )
         }
     }
