@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="#0D0C0A">
 
-    <!-- 1. Thanh tìm kiếm & Nút điều hướng -->
+    <!-- 1. Thanh tìm kiếm & Tiêu đề ứng dụng -->
     <LinearLayout
         android:id="@+id/headerSearchLayout"
         android:layout_width="0dp"
@@ -78,7 +78,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 3. Thanh phát nhạc đáy màn hình -->
+    <!-- 3. Thanh điều khiển phát nhạc cố định ở đáy -->
     <androidx.cardview.widget.CardView
         android:id="@+id/bottomPlayerBar"
         android:layout_width="0dp"
@@ -117,7 +117,7 @@
                     android:id="@+id/tvCurrentArtist"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="PureTube Engine - Không Quảng Cáo"
+                    android:text="Dr Sơn Music - Không Quảng Cáo"
                     android:textColor="#D4AF37"
                     android:textSize="12sp"
                     android:singleLine="true" />
