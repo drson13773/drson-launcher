@@ -11,9 +11,11 @@ import android.graphics.Path
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.drson.launcher.R
 import com.drson.launcher.data.HomeLayoutRepository
 import com.drson.launcher.data.IconMapping
 import com.drson.launcher.data.LabelMapping
@@ -26,57 +28,44 @@ class HomeViewModel : ViewModel() {
 
     val apps = mutableStateListOf<AppItem>()
     val homeSlots = mutableStateListOf<HomeSlotContent?>().apply { repeat(com.drson.launcher.data.HOME_SLOT_COUNT) { add(null) } }
-    
-    // Cố định 4 ô ứng dụng cho Dock
     val dockSlots = mutableStateListOf<String?>().apply { repeat(4) { add(null) } }
 
     private var layoutRepo: HomeLayoutRepository? = null
 
-    // Icon Điện Thoại phong cách Thể thao / Kim loại Vàng - Đen
-    private fun createPhoneIconBitmap(): Bitmap {
+    // Nạp trực tiếp ảnh icon_phone_gold từ tài nguyên res/drawable
+    private fun getPhoneGoldIcon(context: Context): ImageBitmap {
+        return try {
+            ResourcesCompat.getDrawable(context.resources, R.drawable.icon_phone_gold, null)
+                ?.toBitmap(192, 192)?.asImageBitmap() ?: createFallbackPhoneIcon()
+        } catch (_: Exception) {
+            createFallbackPhoneIcon()
+        }
+    }
+
+    private fun createFallbackPhoneIcon(): ImageBitmap {
         val size = 128
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-
         val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#12110E") }
         canvas.drawRoundRect(8f, 8f, size - 8f, size - 8f, 28f, 28f, bgPaint)
-
         val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor("#D4AF37")
             style = Paint.Style.STROKE
-            strokeWidth = 3.5f
+            strokeWidth = 4f
         }
         canvas.drawRoundRect(8f, 8f, size - 8f, size - 8f, 28f, 28f, borderPaint)
-
-        val phonePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = android.graphics.Color.parseColor("#FFF0B8")
-            style = Paint.Style.STROKE
-            strokeCap = Paint.Cap.ROUND
-            strokeWidth = 8f
-        }
-        val path = Path().apply {
-            moveTo(size * 0.35f, size * 0.38f)
-            quadTo(size * 0.40f, size * 0.50f, size * 0.62f, size * 0.62f)
-            lineTo(size * 0.68f, size * 0.56f)
-        }
-        canvas.drawPath(path, phonePaint)
-        canvas.drawCircle(size * 0.35f, size * 0.38f, 9f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#FFF0B8") })
-        canvas.drawCircle(size * 0.62f, size * 0.62f, 9f, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#FFF0B8") })
-
-        return bitmap
+        return bitmap.asImageBitmap()
     }
 
-    // Icon YouTube Vàng - Đen Chuẩn (Khung chữ nhật bo góc Đen bóng + Tam giác Play Vàng Ánh Kim)
+    // Logo YouTube Vàng - Đen Chuẩn
     private fun createYouTubeMusicIconBitmap(): Bitmap {
         val size = 128
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        // Nền Đen Carbon
         val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#12110E") }
         canvas.drawRoundRect(8f, 8f, size - 8f, size - 8f, 28f, 28f, bgPaint)
 
-        // Viền Vàng Gold
         val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor("#D4AF37")
             style = Paint.Style.STROKE
@@ -84,7 +73,6 @@ class HomeViewModel : ViewModel() {
         }
         canvas.drawRoundRect(8f, 8f, size - 8f, size - 8f, 28f, 28f, borderPaint)
 
-        // Khối chữ nhật YouTube bên trong
         val ytBoxPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#262015") }
         canvas.drawRoundRect(size * 0.22f, size * 0.30f, size * 0.78f, size * 0.70f, 16f, 16f, ytBoxPaint)
         val ytBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -94,7 +82,6 @@ class HomeViewModel : ViewModel() {
         }
         canvas.drawRoundRect(size * 0.22f, size * 0.30f, size * 0.78f, size * 0.70f, 16f, 16f, ytBorderPaint)
 
-        // Nút Play Tam giác Vàng Gold sáng rực
         val playPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = android.graphics.Color.parseColor("#FFDF00")
             style = Paint.Style.FILL
@@ -106,7 +93,6 @@ class HomeViewModel : ViewModel() {
             close()
         }
         canvas.drawPath(triangle, playPaint)
-
         return bitmap
     }
 
@@ -123,27 +109,26 @@ class HomeViewModel : ViewModel() {
                 val act = it.activityInfo.name.lowercase()
                 val label = it.loadLabel(pm).toString().lowercase()
 
-                // Loại trừ màn hình launcher chính
                 (pkg == appContext.packageName && act.endsWith(".mainactivity")) ||
-                // Bỏ Máy ảnh (Camera)
                 pkg.contains("camera") || label.contains("máy ảnh") || label.contains("camera") ||
-                // Bỏ Thư viện ảnh (Gallery / Photos)
                 pkg.contains("gallery") || pkg.contains("photos") || label.contains("thư viện") || label.contains("ảnh")
             }
             .sortedBy { it.loadLabel(pm).toString().lowercase() }
+
+        val phoneBitmap = getPhoneGoldIcon(appContext)
 
         val items = resolved.map { info ->
             val pkg = info.activityInfo.packageName
             val activityName = info.activityInfo.name
 
             val iconBitmap: ImageBitmap = when {
-                activityName.contains("DialerActivity") -> createPhoneIconBitmap().asImageBitmap()
+                activityName.contains("DialerActivity") -> phoneBitmap
                 activityName.contains("DrSonMusicActivity") -> createYouTubeMusicIconBitmap().asImageBitmap()
                 else -> {
                     val customIconRes = IconMapping.packageToIcon[pkg]
                     val mappedBitmap = if (customIconRes != null) {
                         try {
-                            androidx.core.content.res.ResourcesCompat.getDrawable(appContext.resources, customIconRes, null)
+                            ResourcesCompat.getDrawable(appContext.resources, customIconRes, null)
                                 ?.toBitmap(120, 120)?.asImageBitmap()
                         } catch (_: Exception) { null }
                     } else null
@@ -166,14 +151,13 @@ class HomeViewModel : ViewModel() {
             )
         }.toMutableList()
 
-        // Đảm bảo luôn có 2 ứng dụng nội bộ nếu hệ thống chưa kịp index
         if (items.none { it.activityClassName.contains("DialerActivity") }) {
             items.add(
                 AppItem(
                     label = "Điện thoại",
                     packageName = appContext.packageName,
                     activityClassName = "com.drson.launcher.ui.dialer.DialerActivity",
-                    icon = createPhoneIconBitmap().asImageBitmap()
+                    icon = phoneBitmap
                 )
             )
         }
@@ -199,7 +183,6 @@ class HomeViewModel : ViewModel() {
         while (dockSlots.size < 4) dockSlots.add(null)
         savedDock.forEachIndexed { index, s -> if (index < 4) dockSlots[index] = s }
 
-        // Gán mặc định Điện thoại vào ô 1 và YouTube Music vào ô 2
         if (dockSlots[0] == null) {
             dockSlots[0] = "com.drson.launcher.ui.dialer.DialerActivity"
         }
