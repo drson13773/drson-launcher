@@ -16,7 +16,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,8 +23,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +47,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.lifecycle.ViewModelProvider
 import com.drson.launcher.ui.HomeScreen
 import com.drson.launcher.ui.HomeViewModel
 import com.drson.launcher.ui.theme.DrSonLauncherTheme
@@ -52,10 +59,11 @@ private val DARK_DIALOG_BG = Color(0xFF0F0E0C)
 
 class MainActivity : ComponentActivity() {
 
-    private val viewModel: HomeViewModel by viewModels()
+    private lateinit var viewModel: HomeViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
         hideSystemBars()
 
         setContent {
@@ -110,7 +118,6 @@ fun MainLauncherRoot(viewModel: HomeViewModel) {
     val context = LocalContext.current
     var showPermissionDialog by remember { mutableStateOf(false) }
 
-    // Danh sách toàn bộ các quyền cần cấp cho Launcher
     val requiredPermissions = remember {
         mutableListOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -127,11 +134,9 @@ fun MainLauncherRoot(viewModel: HomeViewModel) {
         }.toTypedArray()
     }
 
-    // Bộ launcher yêu cầu nhiều quyền cùng lúc
     val multiplePermissionsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { _ ->
-        // Cấp xong kiểm tra quyền Cửa sổ nổi (Overlay Kiki) nếu chưa có
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
             try {
                 val intent = Intent(
@@ -144,7 +149,6 @@ fun MainLauncherRoot(viewModel: HomeViewModel) {
         showPermissionDialog = false
     }
 
-    // Kiểm tra ngay khi khởi động lần đầu
     LaunchedEffect(Unit) {
         val hasMissingPermission = requiredPermissions.any {
             ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
@@ -157,7 +161,6 @@ fun MainLauncherRoot(viewModel: HomeViewModel) {
     Box(modifier = Modifier.fillMaxSize()) {
         HomeScreen(viewModel = viewModel)
 
-        // HỘP THOẠI HƯỚNG DẪN CẤP QUYỀN LẦN ĐẦU
         if (showPermissionDialog) {
             Box(
                 modifier = Modifier
@@ -214,10 +217,10 @@ fun MainLauncherRoot(viewModel: HomeViewModel) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            PermissionFeatureBadge(icon = Icons.Default.Speed, label = "Tốc độ GPS")
+                            PermissionFeatureBadge(icon = Icons.Default.LocationOn, label = "Tốc độ GPS")
                             PermissionFeatureBadge(icon = Icons.Default.Phone, label = "Cuộc gọi")
                             PermissionFeatureBadge(icon = Icons.Default.Bluetooth, label = "Bluetooth")
-                            PermissionFeatureBadge(icon = Icons.Default.Layers, label = "Kiki Overlay")
+                            PermissionFeatureBadge(icon = Icons.Default.Check, label = "Hệ thống")
                         }
 
                         Button(
