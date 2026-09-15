@@ -41,10 +41,6 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-        freeCompilerArgs += listOf(
-            "-P",
-            "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=1.9.24"
-        )
     }
 
     buildFeatures {
@@ -64,7 +60,7 @@ android {
 }
 
 dependencies {
-    // 1. Hỗ trợ Desugaring Java 8+ API cho NewPipeExtractor
+    // 1. Desugaring Java 8+ API cho NewPipeExtractor
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
 
     // 2. Thư viện Layout XML, CardView & RecyclerView
@@ -85,7 +81,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
 
-    // 4. AndroidX Media3 (ExoPlayer + Service chạy nền ngầm liên tục)
+    // 4. AndroidX Media3 (ExoPlayer + Service chạy ngầm)
     implementation("androidx.media3:media3-exoplayer:1.3.0")
     implementation("androidx.media3:media3-session:1.3.0")
     implementation("androidx.media3:media3-ui:1.3.0")
@@ -96,7 +92,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 
-    // 6. Testing
+    // 6. Unit Tests
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
