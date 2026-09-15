@@ -41,7 +41,7 @@ import kotlin.math.sin
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
-private val DRAWER_BG = Color(0xFF0C0B0A) // Nền đen tuyền không xuyên thấu
+private val DRAWER_BG = Color(0xFF0C0B0A)
 
 @Composable
 fun AppDrawerOverlay(
@@ -52,7 +52,6 @@ fun AppDrawerOverlay(
 ) {
     if (!isOpen) return
 
-    // Hiệu ứng tia sáng xoay chậm rãi, êm dịu (8000ms)
     val infiniteTransition = rememberInfiniteTransition(label = "drawer_rays_slow")
     val drawerRotationAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -67,20 +66,19 @@ fun AppDrawerOverlay(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DRAWER_BG) // Phủ kín màn hình chính, chống trùng hình
+            .background(DRAWER_BG)
             .clickable(onClick = onDismiss)
-            .padding(horizontal = 24.dp, vertical = 18.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
-        // 1. LOGO & TIA SÁNG ĐẶT Ở GÓC DƯỚI BÊN TRÁI, MỜ NHẸ
+        // 1. Logo & Tia sáng ở góc dưới bên trái mờ nhẹ
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(start = 10.dp, bottom = 10.dp)
-                .size(220.dp)
-                .alpha(0.18f), // Làm mờ để không gây rối mắt các icon
+                .size(200.dp)
+                .alpha(0.16f),
             contentAlignment = Alignment.Center
         ) {
-            // Chùm tia sáng nằm phía sau Logo
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
@@ -89,66 +87,69 @@ fun AppDrawerOverlay(
                 drawSunburstRays(maxRadius = size.minDimension / 2f, rayCount = 16)
             }
 
-            // Logo Dr Sơn
             Image(
                 painter = painterResource(id = R.drawable.icon_menu_brand),
                 contentDescription = null,
-                modifier = Modifier.size(110.dp),
+                modifier = Modifier.size(90.dp),
                 contentScale = ContentScale.Fit
             )
         }
 
-        // 2. LƯỚI TẤT CẢ ỨNG DỤNG TRÊN LỚP NỔI PHÍA TRƯỚC
+        // 2. Danh sách ứng dụng: Cố định 8 Cột, icon gọn gàng
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "TẤT CẢ ỨNG DỤNG",
                     color = GOLD_BRIGHT,
-                    fontSize = 16.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 1.5.sp
+                    letterSpacing = 1.2.sp
                 )
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = GOLD_ACCENT)
+                IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Close, contentDescription = "Close", tint = GOLD_ACCENT, modifier = Modifier.size(20.dp))
                 }
             }
 
             LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 85.dp),
+                columns = GridCells.Fixed(8), // Cố định chính xác 8 cột
                 modifier = Modifier
                     .weight(1f)
-                    .padding(top = 10.dp, bottom = 6.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(top = 6.dp, bottom = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp), // Thu hẹp khoảng cách giữa các hàng
+                horizontalArrangement = Arrangement.spacedBy(6.dp)  // Thu hẹp khoảng cách giữa các cột
             ) {
                 items(apps) { app ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(10.dp))
                             .clickable { onPick(app) }
-                            .padding(6.dp)
+                            .padding(vertical = 4.dp, horizontal = 2.dp)
                     ) {
                         Image(
                             bitmap = app.icon,
                             contentDescription = app.label,
-                            modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)),
+                            modifier = Modifier
+                                .size(44.dp) // Kích thước icon thu nhỏ tinh gọn
+                                .clip(RoundedCornerShape(10.dp)),
                             contentScale = ContentScale.Fit
                         )
-                        Spacer(Modifier.height(6.dp))
+                        Spacer(Modifier.height(4.dp))
                         Text(
                             text = app.label,
-                            color = Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontSize = 9.5.sp, // Chữ nhỏ vừa vặn dưới icon
+                            fontWeight = FontWeight.Normal,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Center
