@@ -1,191 +1,222 @@
 package com.drson.launcher.ui.music
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.os.Bundle
-import android.webkit.WebChromeClient
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.view.ViewGroup
+import android.webkit.*
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import java.net.URLEncoder
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
-private val DARK_BG = Color(0xFF0F0E0C)
+private val DARK_BG = Color(0xFF0C0B0A)
+private val DARK_CARD = Color(0xFF14120E)
 
 class DrSonMusicActivity : ComponentActivity() {
+    private var webView: WebView? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (webView?.canGoBack() == true) {
+                    webView?.goBack()
+                } else {
+                    finish()
+                }
+            }
+        })
+
         setContent {
-            DrSonMusicScreen(onBack = { finish() })
+            DrSonMusicScreen(
+                onClose = { finish() },
+                onAttachWebView = { wv -> webView = wv }
+            )
         }
+    }
+
+    override fun onDestroy() {
+        webView?.destroy()
+        super.onDestroy()
     }
 }
 
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-fun DrSonMusicScreen(onBack: () -> Unit) {
-    var searchQuery by remember { mutableStateOf("") }
+fun DrSonMusicScreen(
+    onClose: () -> Unit,
+    onAttachWebView: (WebView) -> Unit
+) {
+    var isLoading by remember { mutableStateOf(true) }
+    var currentUrl by remember { mutableStateOf("https://music.youtube.com") }
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
-    val focusManager = LocalFocusManager.current
 
-    fun performSearch(query: String) {
-        val trimmed = query.trim()
-        val url = if (trimmed.isEmpty()) {
-            "https://music.youtube.com"
-        } else {
-            val encoded = URLEncoder.encode(trimmed, "UTF-8")
-            "https://music.youtube.com/search?q=$encoded"
-        }
-        webViewInstance?.loadUrl(url)
-        focusManager.clearFocus()
-    }
-
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(DARK_BG)
     ) {
-        // Thanh tìm kiếm trên đỉnh
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .background(Color(0xFF181511))
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            IconButton(
-                onClick = onBack,
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Header điều hướng chuẩn Luxury Gold
+            Row(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFF262016))
-                    .border(1.dp, GOLD_ACCENT.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
-            ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = GOLD_BRIGHT)
-            }
-
-            // Ô nhập liệu tìm kiếm (Đã căn chuẩn chữ placeholder)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF100F0D))
-                    .border(1.dp, GOLD_ACCENT.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                    .fillMaxWidth()
+                    .height(48.dp)
+                    .background(DARK_CARD)
+                    .border(1.dp, GOLD_ACCENT.copy(alpha = 0.25f))
                     .padding(horizontal = 12.dp),
-                contentAlignment = Alignment.CenterStart
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
-                    modifier = Modifier.fillMaxSize(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = GOLD_ACCENT,
-                        modifier = Modifier.size(20.dp)
-                    )
-
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.CenterStart
+                    IconButton(
+                        onClick = {
+                            if (webViewInstance?.canGoBack() == true) {
+                                webViewInstance?.goBack()
+                            } else {
+                                onClose()
+                            }
+                        },
+                        modifier = Modifier.size(34.dp)
                     ) {
-                        if (searchQuery.isEmpty()) {
-                            Text(
-                                text = "Tìm bài hát, ca sĩ, danh sách phát...",
-                                color = Color.Gray.copy(alpha = 0.6f),
-                                fontSize = 13.sp
-                            )
-                        }
-
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            singleLine = true,
-                            textStyle = TextStyle(
-                                color = GOLD_BRIGHT,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium
-                            ),
-                            cursorBrush = SolidColor(GOLD_ACCENT),
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                            keyboardActions = KeyboardActions(onSearch = { performSearch(searchQuery) }),
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = GOLD_BRIGHT)
                     }
 
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(
-                            onClick = { searchQuery = "" },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear", tint = Color.Gray, modifier = Modifier.size(16.dp))
-                        }
+                    IconButton(
+                        onClick = { webViewInstance?.reload() },
+                        modifier = Modifier.size(34.dp)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = "Reload", tint = GOLD_ACCENT)
                     }
+
+                    Text(
+                        text = "Dr. Sơn Music • YouTube Vibes",
+                        color = GOLD_BRIGHT,
+                        fontSize = 14.sp
+                    )
+                }
+
+                IconButton(
+                    onClick = onClose,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.06f))
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Close", tint = GOLD_BRIGHT, modifier = Modifier.size(18.dp))
                 }
             }
 
-            Button(
-                onClick = { performSearch(searchQuery) },
-                colors = ButtonDefaults.buttonColors(containerColor = GOLD_ACCENT),
-                shape = RoundedCornerShape(10.dp),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-                modifier = Modifier.height(40.dp)
+            // WebView nhúng YouTube Music
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
-                Text("Tìm kiếm", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = { context ->
+                        WebView(context).apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+
+                            settings.apply {
+                                javaScriptEnabled = true
+                                domStorageEnabled = true
+                                databaseEnabled = true
+                                mediaPlaybackRequiresUserGesture = false
+                                cacheMode = WebSettings.LOAD_DEFAULT
+                                allowFileAccess = true
+                                javaScriptCanOpenWindowsAutomatically = true
+                                loadWithOverviewMode = true
+                                useWideViewPort = true
+                                
+                                // Giả lập User-Agent của Chrome để YouTube Music tải đầy đủ
+                                userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+                            }
+
+                            webViewClient = object : WebViewClient() {
+                                override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                                    super.onPageStarted(view, url, favicon)
+                                    isLoading = true
+                                }
+
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    super.onPageFinished(view, url)
+                                    isLoading = false
+                                }
+
+                                override fun onReceivedError(
+                                    view: WebView?,
+                                    errorCode: Int,
+                                    description: String?,
+                                    failingUrl: String?
+                                ) {
+                                    super.onReceivedError(view, errorCode, description, failingUrl)
+                                    // Tự động thử lại nếu gặp sự cố kết nối ban đầu
+                                    if (errorCode == ERROR_CONNECT || errorCode == ERROR_TIMEOUT) {
+                                        view?.postDelayed({ view.reload() }, 2000)
+                                    }
+                                }
+
+                                override fun shouldOverrideUrlLoading(
+                                    view: WebView?,
+                                    request: WebResourceRequest?
+                                ): Boolean {
+                                    return false
+                                }
+                            }
+
+                            webChromeClient = WebChromeClient()
+
+                            loadUrl(currentUrl)
+                            webViewInstance = this
+                            onAttachWebView(this)
+                        }
+                    }
+                )
+
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(DARK_BG.copy(alpha = 0.7f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = GOLD_ACCENT)
+                    }
+                }
             }
         }
-
-        // WebView phát nhạc
-        AndroidView(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            factory = { ctx ->
-                WebView(ctx).apply {
-                    settings.apply {
-                        javaScriptEnabled = true
-                        domStorageEnabled = true
-                        mediaPlaybackRequiresUserGesture = false
-                        cacheMode = WebSettings.LOAD_DEFAULT
-                        userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
-                    }
-                    webViewClient = WebViewClient()
-                    webChromeClient = WebChromeClient()
-                    loadUrl("https://music.youtube.com")
-                    webViewInstance = this
-                }
-            }
-        )
     }
 }
