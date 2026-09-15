@@ -2,16 +2,22 @@ package com.drson.launcher
 
 import android.Manifest
 import android.app.AlertDialog
+import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
+import android.view.ViewGroup
+import android.view.Window
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -154,18 +160,18 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setupScreenInteractions() {
-        // Mở Menu chính
+        // Nút mở Danh sách ứng dụng toàn màn hình dạng lưới 6 cột
         findViewById<View>(R.id.btnMainMenu)?.setOnClickListener {
             showFullAppDrawerDialog()
         }
 
-        // MỞ ỨNG DỤNG DR SƠN MUSIC
+        // Mở Dr Sơn Music
         findViewById<View>(R.id.btnDrSonMusic)?.setOnClickListener {
             val intent = Intent(this, PureMusicActivity::class.java)
             startActivity(intent)
         }
 
-        // Bấm vào Logo thương hiệu để mở Dr Sơn Music
+        // Bấm vào Logo để mở Dr Sơn Music
         findViewById<View>(R.id.imgBrandLogo)?.setOnClickListener {
             val intent = Intent(this, PureMusicActivity::class.java)
             startActivity(intent)
@@ -177,24 +183,41 @@ class MainActivity : ComponentActivity() {
             true
         }
 
-        // Nhấn giữ vùng Dock -> Chế độ chỉnh sửa ô trống (+)
+        // Nhấn giữ Dock -> Chế độ chỉnh sửa ô trống (+)
         findViewById<View>(R.id.bottomDockCard)?.setOnLongClickListener {
             toggleEditMode()
             true
         }
     }
 
+    /**
+     * Mở giao diện danh sách toàn bộ ứng dụng dạng lưới 6 CỘT
+     */
     private fun showFullAppDrawerDialog() {
-        val appList = viewModel.apps
-        val appNames = appList.map { it.label }.toTypedArray()
+        val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+        dialog.setContentView(R.layout.dialog_app_drawer)
 
-        AlertDialog.Builder(this)
-            .setTitle("Tất cả ứng dụng")
-            .setItems(appNames) { _, which ->
-                val selectedApp = appList[which]
-                viewModel.launchApp(this, selectedApp)
-            }
-            .show()
+        dialog.window?.let { w ->
+            w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        }
+
+        val rvGrid = dialog.findViewById<RecyclerView>(R.id.rvAppDrawerGrid)
+        val btnClose = dialog.findViewById<ImageView>(R.id.btnAppDrawerClose)
+
+        // THIẾT LẬP LƯỚI 6 CỘT
+        rvGrid.layoutManager = GridLayoutManager(this, 6)
+        rvGrid.adapter = AppDrawerAdapter(viewModel.apps) { app ->
+            dialog.dismiss()
+            viewModel.launchApp(this, app)
+        }
+
+        btnClose.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun showLauncherSettingsDialog() {
