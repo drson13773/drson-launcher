@@ -135,7 +135,7 @@ fun HomeScreen(
             BrandClockWidget()
         }
 
-        // 3. Góc tam giác bên trái: Đồng hồ tốc độ tròn (bottom = 112dp)
+        // 3. Đồng hồ tốc độ tròn (bottom = 112dp)
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -172,7 +172,7 @@ fun HomeScreen(
             }
         )
 
-        // 6. Trung tâm điều khiển (Control Center) riêng biệt từng khối
+        // 6. Trung tâm điều khiển
         ControlCenterOverlay(
             isOpen = isControlCenterOpen,
             onDismiss = { isControlCenterOpen = false }
@@ -296,12 +296,12 @@ fun CircularLuxurySpeedometer() {
                 0.5f,
                 locationListener
             )
-        } catch (_: SecurityException) {}
+        } catch (_: Exception) {}
 
         onDispose {
             try {
                 locationManager?.removeUpdates(locationListener)
-            } catch (_: SecurityException) {}
+            } catch (_: Exception) {}
         }
     }
 
@@ -402,35 +402,37 @@ fun CircularLuxurySpeedometer() {
                 }
             }
 
+            // 4. Chữ Dr Sơn hạ thấp căn giữa gốc kim và vành đáy đồng hồ
             drawIntoCanvas { canvas ->
-                val brandPaint = Paint().apply {
-                    color = android.graphics.Color.parseColor("#FFDF73")
-                    textSize = 21f
-                    typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD_ITALIC)
-                    textAlign = Paint.Align.CENTER
-                    isAntiAlias = true
-                }
-                canvas.nativeCanvas.drawText("Dr Sơn", center.x, center.y + 26f, brandPaint)
-
                 val speedValPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#FFF0B8")
-                    textSize = 20f
+                    textSize = 19f
                     typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                     textAlign = Paint.Align.CENTER
                     isAntiAlias = true
                 }
-                canvas.nativeCanvas.drawText(String.format(Locale.US, "%.0f", currentSpeed), center.x, center.y + 44f, speedValPaint)
+                canvas.nativeCanvas.drawText(String.format(Locale.US, "%.0f", currentSpeed), center.x, center.y + 20f, speedValPaint)
 
                 val kmhPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#D4AF37")
-                    textSize = 10.5f
+                    textSize = 9.5f
                     typeface = Typeface.DEFAULT_BOLD
                     textAlign = Paint.Align.CENTER
                     isAntiAlias = true
                 }
-                canvas.nativeCanvas.drawText("km/h", center.x, center.y + 54f, kmhPaint)
+                canvas.nativeCanvas.drawText("km/h", center.x, center.y + 30f, kmhPaint)
+
+                val brandPaint = Paint().apply {
+                    color = android.graphics.Color.parseColor("#FFDF73")
+                    textSize = 18f
+                    typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD_ITALIC)
+                    textAlign = Paint.Align.CENTER
+                    isAntiAlias = true
+                }
+                canvas.nativeCanvas.drawText("Dr Sơn", center.x, center.y + 46f, brandPaint)
             }
 
+            // 5. Kim quay
             val needleFraction = animatedSpeed / maxSpeed
             val needleAngleDeg = startAngle + needleFraction * totalSweep
 
