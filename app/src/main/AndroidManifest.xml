@@ -1,35 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Quyền hiển thị và quét toàn bộ danh sách app trên Android 11+ -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
-    
-    <!-- Quyền gọi điện cho Dialer -->
-    <uses-permission android:name="android.permission.CALL_PHONE" />
-    
-    <!-- Quyền truy cập Internet để phát nhạc YouTube -->
+    <!-- Quyền truy cập mạng cho YouTube Player & Tải dữ liệu -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    
-    <!-- Quyền phát nhạc chạy nền -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <!-- Quyền GPS để đo tốc độ xe thật (Speedometer) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- Quyền gọi điện, đọc danh bạ và nhật ký cuộc gọi cho Dialer -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+
+    <!-- Quyền mở rộng thanh trạng thái / trung tâm điều khiển -->
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+
+    <!-- Tối ưu cho thiết bị màn hình ô tô / Android Auto / Head Unit -->
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.location.gps"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="@string/app_name"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@drawable/icon_menu_brand"
+        android:label="Dr Sơn Launcher"
+        android:roundIcon="@drawable/icon_menu_brand"
         android:supportsRtl="true"
-        android:theme="@style/Theme.DrSonLauncher">
+        android:theme="@style/Theme.DrsonLauncher"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="34">
 
-        <!-- 1. MÀN HÌNH CHÍNH LAUNCHER (Default Home Launcher) -->
+        <!-- 1. MÀN HÌNH LAUNCHER CHÍNH -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
             android:clearTaskOnLaunch="true"
             android:stateNotNeeded="true"
-            android:theme="@style/Theme.DrSonLauncher">
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustPan">
+            
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
@@ -38,27 +60,31 @@
             </intent-filter>
         </activity>
 
-        <!-- 2. MODULE BÀN PHÍM CUỘC GỌI (Dialer Activity) -->
-        <activity
-            android:name=".ui.dialer.DialerActivity"
-            android:exported="true"
-            android:label="Điện thoại"
-            android:theme="@style/Theme.DrSonLauncher">
-            <intent-filter>
-                <action android:name="android.intent.action.DIAL" />
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <!-- 3. MODULE NGHE NHẠC YOUTUBE (Dr Sơn Music) -->
+        <!-- 2. MÀN HÌNH PHÁT NHẠC YOUTUBE DR SƠN MUSIC -->
         <activity
             android:name=".ui.music.DrSonMusicActivity"
             android:exported="true"
-            android:label="Dr Sơn Music"
-            android:theme="@style/Theme.DrSonLauncher">
+            android:screenOrientation="sensorLandscape"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:windowSoftInputMode="adjustResize">
+            
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 3. MÀN HÌNH ĐIỆN THOẠI / QUAY SỐ SIÊU XE -->
+        <activity
+            android:name=".ui.dialer.DialerActivity"
+            android:exported="true"
+            android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustNothing">
+            
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.intent.action.DIAL" />
+                <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
