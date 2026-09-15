@@ -3,6 +3,7 @@
 package com.drson.launcher.ui
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Paint
@@ -21,6 +22,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
@@ -43,8 +45,11 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -56,6 +61,7 @@ import androidx.core.content.ContextCompat
 import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
 import kotlinx.coroutines.delay
+import java.lang.reflect.Method
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.cos
@@ -66,6 +72,16 @@ private val GOLD_MID = Color(0xFFFFDF73)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
 private val GOLD_MUTED = Color(0xFFC7A75C)
 private val DARK_CARD_BG = Color(0xFF14120E)
+
+@SuppressLint("WrongConstant")
+fun openNotificationPanel(context: Context) {
+    try {
+        val statusBarService = context.getSystemService("statusbar")
+        val statusBarManager = Class.forName("android.app.StatusBarManager")
+        val expandMethod: Method = statusBarManager.getMethod("expandNotificationsPanel")
+        expandMethod.invoke(statusBarService)
+    } catch (_: Exception) {}
+}
 
 @Composable
 fun HomeScreen(
@@ -78,15 +94,41 @@ fun HomeScreen(
     var isControlCenterOpen by remember { mutableStateOf(false) }
     val initialFocusRequester = remember { FocusRequester() }
 
+    val configuration = LocalConfiguration.current
+    val density = LocalDensity.current
+    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+
     LaunchedEffect(Unit) {
         try {
             initialFocusRequester.requestFocus()
         } catch (_: Exception) {}
     }
 
-    // ĐÃ LOẠI BỎ TOÀN BỘ CỬ CHỈ VUỐT KÉO TRÊN NỀN MÀN HÌNH
+    var dragStartY by remember { mutableFloatStateOf(0f) }
+    var dragStartX by remember { mutableFloatStateOf(0f) }
+
     Box(
-        modifier = modifier.fillMaxSize()
+        modifier = modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragStart = { offset ->
+                        dragStartX = offset.x
+                        dragStartY = offset.y
+                    },
+                    onVerticalDrag = { change, dragAmount ->
+                        // Chỉ kích hoạt khi điểm bắt đầu vuốt nằm ở 25% phía trên cùng màn hình
+                        if (dragStartY < screenHeightPx * 0.25f && dragAmount > 20f) {
+                            if (dragStartX < screenWidthPx / 2f) {
+                                openNotificationPanel(context)
+                            } else {
+                                isControlCenterOpen = true
+                            }
+                        }
+                    }
+                )
+            }
     ) {
         // 1. Phối cảnh đường chạy 3D và Mazda CX-5 tự thích ứng %
         DrivingRoadBackground()
@@ -100,7 +142,7 @@ fun HomeScreen(
             BrandClockWidget()
         }
 
-        // 3. Đồng hồ tốc độ tròn (Nâng vị trí thoáng đãng trên màn Zestech)
+        // 3. Đồng hồ tốc độ tròn
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -126,7 +168,7 @@ fun HomeScreen(
             )
         }
 
-        // 5. Trang danh sách ứng dụng (Chỉ mở khi bấm nút Menu)
+        // 5. Trang danh sách ứng dụng
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -367,7 +409,7 @@ fun CircularLuxurySpeedometer() {
                 }
             }
 
-            // 4. Cụm chữ "Dr Sơn" căn giữa phần đáy đồng hồ
+            // 4. Chữ Dr Sơn căn giữa phần đáy đồng hồ
             drawIntoCanvas { canvas ->
                 val speedValPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#FFF0B8")
