@@ -1,14 +1,13 @@
 package com.drson.launcher
 
-import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.recyclerview.widget.RecyclerView
+import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
 
 class AppDrawerAdapter(
@@ -30,21 +29,7 @@ class AppDrawerAdapter(
     override fun onBindViewHolder(holder: AppViewHolder, position: Int) {
         val app = appList[position]
         holder.tvLabel.text = app.label
-
-        // Tự động nhận diện Icon từ bộ theme tùy biến hoặc Icon gốc hệ thống
-        when (val icon = app.icon) {
-            is Drawable -> holder.imgIcon.setImageDrawable(icon)
-            is ImageBitmap -> holder.imgIcon.setImageBitmap(icon.asAndroidBitmap())
-            else -> {
-                try {
-                    val pm = holder.itemView.context.packageManager
-                    val defaultIcon = pm.getApplicationIcon(app.packageName)
-                    holder.imgIcon.setImageDrawable(defaultIcon)
-                } catch (_: Exception) {
-                    holder.imgIcon.setImageResource(android.R.drawable.sym_def_app_icon)
-                }
-            }
-        }
+        holder.imgIcon.setImageBitmap(app.icon.asAndroidBitmap())
 
         holder.itemView.setOnClickListener {
             onItemClick(app)
