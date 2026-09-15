@@ -1,7 +1,6 @@
 package com.drson.launcher
 
 import android.Manifest
-import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -19,6 +18,7 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
@@ -31,7 +31,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.drson.launcher.model.AppItem
 import com.drson.launcher.music.PureMusicActivity
 import com.drson.launcher.ui.CircularLuxurySpeedometer
 import com.drson.launcher.ui.DrivingRoadBackground
@@ -44,9 +43,6 @@ import java.util.*
 class MainActivity : ComponentActivity() {
 
     private lateinit var viewModel: HomeViewModel
-    private lateinit var dockAdapter: DockGridAdapter
-    private lateinit var rvDockApps: RecyclerView
-    private var isEditMode: Boolean = false
 
     private val requiredPermissions = arrayOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -81,111 +77,98 @@ class MainActivity : ComponentActivity() {
         setContentView(R.layout.activity_main)
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
 
-        setupDockRecyclerView()
         setupComposeViews()
         startClockUpdates()
-        setupScreenInteractions()
+        setupDockClicks()
         checkAndRequestPermissions()
     }
 
-    private fun setupDockRecyclerView() {
-        rvDockApps = findViewById(R.id.rvDockApps)
-        rvDockApps.layoutManager = GridLayoutManager(this, 1, GridLayoutManager.HORIZONTAL, false)
-
-        dockAdapter = DockGridAdapter(
-            appList = getDockAppItems(),
-            isEditMode = false,
-            onItemClick = { position, app ->
-                if (app != null) {
-                    viewModel.launchApp(this, app)
-                } else {
-                    openAppPickerForSlot(position)
-                }
-            },
-            onItemLongClick = { position, app ->
-                if (app != null) {
-                    showSlotOptionDialog(position, app)
-                } else {
-                    openAppPickerForSlot(position)
-                }
-            }
-        )
-        rvDockApps.adapter = dockAdapter
-    }
-
-    private fun getDockAppItems(): List<AppItem?> {
-        val slots = viewModel.dockSlots
-        return (0 until 4).map { idx ->
-            val pkg = slots.getOrNull(idx)
-            if (!pkg.isNullOrEmpty()) viewModel.appFor(pkg) else null
-        }
-    }
-
-    private fun toggleEditMode() {
-        isEditMode = !isEditMode
-        dockAdapter.setEditMode(isEditMode)
-    }
-
-    private fun openAppPickerForSlot(slotIndex: Int) {
-        val appList = viewModel.apps
-        val appNames = appList.map { it.label }.toTypedArray()
-
-        AlertDialog.Builder(this)
-            .setTitle("Chọn ứng dụng ghim vào Dock (Vị trí ${slotIndex + 1})")
-            .setItems(appNames) { _, which ->
-                val selectedApp = appList[which]
-                viewModel.setDockSlot(this, slotIndex, selectedApp.packageName)
-                isEditMode = false
-                dockAdapter.updateData(getDockAppItems(), editMode = false)
-            }
-            .setNegativeButton("Hủy") { _, _ ->
-                isEditMode = false
-                dockAdapter.setEditMode(false)
-            }
-            .show()
-    }
-
-    private fun showSlotOptionDialog(slotIndex: Int, app: AppItem) {
-        val options = arrayOf("Đổi ứng dụng khác", "Gỡ khỏi thanh Dock", "Bật chế độ chỉnh sửa Dock")
-        AlertDialog.Builder(this)
-            .setTitle(app.label)
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> openAppPickerForSlot(slotIndex)
-                    1 -> {
-                        viewModel.setDockSlot(this, slotIndex, null)
-                        dockAdapter.updateData(getDockAppItems(), editMode = isEditMode)
-                    }
-                    2 -> toggleEditMode()
-                }
-            }
-            .setNegativeButton("Đóng", null)
-            .show()
-    }
-
-    private fun setupScreenInteractions() {
+    private fun setupDockClicks() {
+        // 1. NÚT MENU: Mở danh sách tất cả App dạng lưới 6 cột
         findViewById<View>(R.id.btnMainMenu)?.setOnClickListener {
             showFullAppDrawerDialog()
         }
 
+        // 2. NÚT ĐIỆN THOẠI: Mở bàn phím quay số
+        findViewById<View>(R.id.btnDockPhone)?.setOnClickListener {
+            try {
+                val intent = Intent(Intent.ACTION_DIAL).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                startActivity(intent)
+            } catch (_: Exception) {
+                Toast.makeText(this, "Không tìm thấy ứng dụng gọi điện", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 3. NÚT CAMERA 360: Tìm app camera 360/camera hành trình
+        findViewById<View>(R.id.btnDockCamera)?.setOnClickListener {
+            openAppByKeywords(
+                listOf("camera", "cam360", "panorama", "dvr", "cam"),
+                "Mở Camera"
+            )
+        }
+
+        // 4. NÚT DR SƠN MUSIC: Mở màn hình nghe nhạc không quảng cáo
         findViewById<View>(R.id.btnDrSonMusic)?.setOnClickListener {
             val intent = Intent(this, PureMusicActivity::class.java)
             startActivity(intent)
         }
 
+        // 5. NÚT ZING MP3: Tìm app Zing MP3
+        findViewById<View>(R.id.btnDockZingMp3)?.setOnClickListener {
+            openAppByKeywords(
+                listOf("com.zing.mp3", "zingmp3", "zing"),
+                "Zing MP3"
+            )
+        }
+
+        // 6. NÚT VIETMAP: Tìm app Vietmap Live / Vietmap S1 / Vietmap S2
+        findViewById<View>(R.id.btnDockVietmap)?.setOnClickListener {
+            openAppByKeywords(
+                listOf("vietmap", "live.vietmap", "navigation", "navitel", "maps"),
+                "Vietmap"
+            )
+        }
+
+        // Bấm vào Logo phía trên để mở nhanh Dr Sơn Music
         findViewById<View>(R.id.imgBrandLogo)?.setOnClickListener {
-            val intent = Intent(this, PureMusicActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, PureMusicActivity::class.java))
+        }
+    }
+
+    /**
+     * Tìm kiếm thông minh và khởi chạy ứng dụng theo danh sách từ khóa Package/Tên
+     */
+    private fun openAppByKeywords(keywords: List<String>, appTitle: String) {
+        val app = viewModel.apps.firstOrNull { item ->
+            keywords.any { kw ->
+                item.packageName.lowercase().contains(kw) || item.label.lowercase().contains(kw)
+            }
         }
 
-        findViewById<View>(R.id.brandClockContainer)?.setOnLongClickListener {
-            showLauncherSettingsDialog()
-            true
-        }
-
-        findViewById<View>(R.id.bottomDockCard)?.setOnLongClickListener {
-            toggleEditMode()
-            true
+        if (app != null) {
+            viewModel.launchApp(this, app)
+        } else {
+            // Thử khởi chạy trực tiếp qua package nếu là app đặc thù
+            val directPackages = when (appTitle) {
+                "Zing MP3" -> listOf("com.zing.mp3")
+                "Vietmap" -> listOf("com.vietmap.live", "com.vietmap.s1", "com.vietmap.s2")
+                else -> emptyList()
+            }
+            var launched = false
+            for (pkg in directPackages) {
+                val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
+                if (launchIntent != null) {
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(launchIntent)
+                    launched = true
+                    break
+                }
+            }
+            if (!launched) {
+                Toast.makeText(this, "Không tìm thấy $appTitle trên thiết bị", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 
@@ -215,38 +198,11 @@ class MainActivity : ComponentActivity() {
         dialog.show()
     }
 
-    private fun showLauncherSettingsDialog() {
-        val options = arrayOf(
-            if (isEditMode) "Tắt chế độ chỉnh sửa Dock" else "Chỉnh sửa thanh Dock (Thêm/Bớt App)",
-            "Mở ứng dụng Dr Sơn Music",
-            "Mở danh sách tất cả ứng dụng",
-            "Mở Cài đặt hệ thống xe"
-        )
-        AlertDialog.Builder(this)
-            .setTitle("Tùy chọn Màn hình chính")
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> toggleEditMode()
-                    1 -> startActivity(Intent(this, PureMusicActivity::class.java))
-                    2 -> showFullAppDrawerDialog()
-                    3 -> {
-                        try {
-                            startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-                        } catch (_: Exception) {}
-                    }
-                }
-            }
-            .show()
-    }
-
     private fun setupComposeViews() {
-        // ĐỒNG BỘ TỐC ĐỘ VÀO NỀN ĐƯỜNG CHẠY VÀ CÂY CỐI
         findViewById<ComposeView>(R.id.composeRoadBackground)?.setContent {
             val speed by viewModel.currentSpeed
             DrivingRoadBackground(speedKmH = speed)
         }
-        
-        // ĐỒNG BỘ VÀO ĐỒNG HỒ TỐC ĐỘ GPS
         findViewById<ComposeView>(R.id.composeSpeedometer)?.setContent {
             val speed by viewModel.currentSpeed
             CircularLuxurySpeedometer(speedKmH = speed)
@@ -282,9 +238,6 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         hideSystemBars()
-        if (::dockAdapter.isInitialized) {
-            dockAdapter.updateData(getDockAppItems(), editMode = isEditMode)
-        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
