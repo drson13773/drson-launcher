@@ -32,6 +32,7 @@ private val ROAD_LANE = Color(0xFFFFF0B8).copy(alpha = 0.85f)
 
 @Composable
 fun DrivingRoadBackground(modifier: Modifier = Modifier) {
+    // Hiệu ứng vạch tim đường chuyển động vô tận
     val infiniteTransition = rememberInfiniteTransition(label = "road_anim")
     val laneOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -48,14 +49,16 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(SKY_TOP, SKY_BOTTOM)))
     ) {
-        // Phối cảnh đường chạy 3D
+        // 1. Phối cảnh bầu trời đêm, tòa nhà thành phố và mặt đường 3D
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
             val horizonY = h * 0.45f
 
+            // Dãy tòa nhà ánh đèn vàng ban đêm
             drawCitySkyline(w, horizonY)
 
+            // Mặt đường tỏa rộng về phía người lái
             val roadPath = Path().apply {
                 moveTo(w * 0.44f, horizonY)
                 lineTo(w * 0.56f, horizonY)
@@ -72,6 +75,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 )
             )
 
+            // Viền vàng hai bên mép đường
             drawLine(
                 color = ROAD_EDGE,
                 start = Offset(w * 0.44f, horizonY),
@@ -85,6 +89,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 strokeWidth = 3f
             )
 
+            // Vạch đứt tim đường chạy liên tục
             val laneCount = 5
             for (i in 0..laneCount) {
                 val progress = (i.toFloat() / laneCount + laneOffset * (1f / laneCount)) % 1f
@@ -101,16 +106,16 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             }
         }
 
-        // Xe Mazda CX-5 + Lớp phủ biển số sắc nét 79A - 137.73
+        // 2. Xe Mazda CX-5 và Lớp phủ biển số chuẩn Việt Nam 79A - 137.73
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 85.dp)
+                .padding(bottom = 85.dp) // Hạ thấp cách Dock khoảng cách chuẩn đẹp
                 .width(320.dp)
                 .height(210.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Ảnh gốc xe Mazda CX-5
+            // Hiển thị ảnh vector gốc của xe Mazda CX-5
             Image(
                 painter = painterResource(id = R.drawable.car_mazda),
                 contentDescription = "Mazda CX-5",
@@ -118,29 +123,29 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 contentScale = ContentScale.Fit
             )
 
-            // Lớp vẽ đè biển số chuẩn định dạng Việt Nam
+            // Vẽ đè biển số sắc nét 79A - 137.73 với font số 1 có chân rõ ràng
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = size.width
                 val h = size.height
 
-                // Vẽ nền biển số trắng che biển cũ
+                // Nền biển số màu trắng sáng
                 drawRoundRect(
-                    color = Color(0xFFF9F9F9),
-                    topLeft = Offset(w * 0.355f, h * 0.412f),
-                    size = Size(w * 0.29f, h * 0.088f),
+                    color = Color(0xFFFBFBFB),
+                    topLeft = Offset(w * 0.354f, h * 0.412f),
+                    size = Size(w * 0.292f, h * 0.088f),
                     cornerRadius = CornerRadius(4f, 4f)
                 )
 
                 // Viền đen biển số
                 drawRoundRect(
-                    color = Color(0xFF1E1E1E),
-                    topLeft = Offset(w * 0.355f, h * 0.412f),
-                    size = Size(w * 0.29f, h * 0.088f),
+                    color = Color(0xFF1A1A1A),
+                    topLeft = Offset(w * 0.354f, h * 0.412f),
+                    size = Size(w * 0.292f, h * 0.088f),
                     cornerRadius = CornerRadius(4f, 4f),
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.8f)
                 )
 
-                // Chữ biển số 79A - 137.73 (Font Monospace: Số 1 có móc trên rõ ràng)
+                // Ký tự biển số 79A - 137.73 (Font Monospace Bold)
                 drawIntoCanvas { canvas ->
                     val paint = Paint().apply {
                         color = android.graphics.Color.BLACK
@@ -156,6 +161,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
     }
 }
 
+// Hàm vẽ dãy tòa nhà thành phố với các ô cửa sổ sáng đèn
 private fun DrawScope.drawCitySkyline(w: Float, horizonY: Float) {
     val buildingColor = Color(0xFF0A0908)
     val windowColor = Color(0xFFFFD700).copy(alpha = 0.75f)
@@ -177,12 +183,14 @@ private fun DrawScope.drawCitySkyline(w: Float, horizonY: Float) {
         val bWidth = w * widthRatio
         val bTop = horizonY - bHeight
 
+        // Khung nhà màu đen
         drawRect(
             color = buildingColor,
             topLeft = Offset(bLeft, bTop),
             size = Size(bWidth, bHeight)
         )
 
+        // Các ô cửa sổ vàng
         var winY = bTop + 8f
         while (winY < horizonY - 10f) {
             var winX = bLeft + 6f
