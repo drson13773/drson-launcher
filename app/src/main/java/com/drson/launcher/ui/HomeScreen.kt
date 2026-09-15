@@ -23,6 +23,9 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -51,6 +54,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -132,7 +137,7 @@ fun HomeScreen(
         // 1. Nền 3D thành phố & xe Mazda CX-5
         DrivingRoadBackground()
 
-        // 2. Góc trên bên trái: Logo Dr Sơn (Tia sáng rẻ quạt xoay nhanh) + Đồng hồ thực (Không viền)
+        // 2. Góc trên bên trái: Logo Dr Sơn + Đồng hồ (Không viền)
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -167,7 +172,7 @@ fun HomeScreen(
             )
         }
 
-        // App Drawer Menu
+        // 5. Trang danh sách ứng dụng (App Drawer) với tia sáng xoay nhanh phía sau Logo
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -185,13 +190,13 @@ fun BrandClockWidget() {
     var currentTime by remember { mutableStateOf("") }
     var currentDate by remember { mutableStateOf("") }
 
-    // Hiệu ứng tia sáng rẻ quạt xoay tròn với tốc độ nhanh
+    // Hiệu ứng tia sáng xoay nhanh quanh logo ở trang chủ
     val infiniteTransition = rememberInfiniteTransition(label = "sunburst_anim")
     val rotationAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2800, easing = LinearEasing),
+            animation = tween(2200, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "rotation_angle"
@@ -217,50 +222,14 @@ fun BrandClockWidget() {
             modifier = Modifier.size(70.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Vẽ các tia sáng rẻ quạt (Sunburst Rays) xoay tròn
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
                     .rotate(rotationAngle)
             ) {
-                val center = Offset(size.width / 2f, size.height / 2f)
-                val rayCount = 16
-                val maxRadius = size.minDimension / 1.8f
-
-                for (i in 0 until rayCount) {
-                    val angleDeg = i * (360f / rayCount)
-                    val angleRad1 = Math.toRadians((angleDeg - 4.5).toDouble())
-                    val angleRad2 = Math.toRadians((angleDeg + 4.5).toDouble())
-
-                    val rayPath = Path().apply {
-                        moveTo(center.x, center.y)
-                        lineTo(
-                            (center.x + maxRadius * cos(angleRad1)).toFloat(),
-                            (center.y + maxRadius * sin(angleRad1)).toFloat()
-                        )
-                        lineTo(
-                            (center.x + maxRadius * cos(angleRad2)).toFloat(),
-                            (center.y + maxRadius * sin(angleRad2)).toFloat()
-                        )
-                        close()
-                    }
-
-                    drawPath(
-                        path = rayPath,
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                GOLD_ACCENT.copy(alpha = 0.55f),
-                                GOLD_BRIGHT.copy(alpha = 0.25f),
-                                Color.Transparent
-                            ),
-                            center = center,
-                            radius = maxRadius
-                        )
-                    )
-                }
+                drawSunburstRays(size.minDimension / 1.8f, 16)
             }
 
-            // Logo Dr Sơn sắc nét
             Image(
                 painter = painterResource(id = R.drawable.icon_menu_brand),
                 contentDescription = "Dr Son Brand",
@@ -269,7 +238,6 @@ fun BrandClockWidget() {
             )
         }
 
-        // Cụm giờ và ngày (Không viền)
         Column(verticalArrangement = Arrangement.Center) {
             Text(
                 text = currentTime,
@@ -339,7 +307,6 @@ fun CircularLuxurySpeedometer() {
         }
     }
 
-    // Góc quay kim đo mượt mà từ -135 độ (0 km/h) đến +135 độ (180 km/h)
     val animatedSpeed by animateFloatAsState(
         targetValue = currentSpeed.coerceIn(0f, 180f),
         animationSpec = spring(stiffness = Spring.StiffnessLow),
@@ -360,14 +327,14 @@ fun CircularLuxurySpeedometer() {
             val center = Offset(w / 2f, h / 2f)
             val radius = w / 2f - 6f
 
-            // 1. Mặt đồng hồ đen sâu
+            // Mặt đồng hồ đen
             drawCircle(
                 color = Color(0xFF0C0B0A),
                 radius = radius,
                 center = center
             )
 
-            // 2. Viền kim loại mạ vàng 3D đa tầng (Bezel)
+            // Viền kim loại mạ vàng 3D
             drawCircle(
                 brush = Brush.sweepGradient(
                     colors = listOf(
@@ -389,7 +356,7 @@ fun CircularLuxurySpeedometer() {
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
             )
 
-            // 3. Vạch chia tốc độ và các con số từ 0 đến 180 km/h
+            // Vạch chia và số 0 - 180 km/h
             val startAngle = 135f
             val totalSweep = 270f
             val maxSpeed = 180f
@@ -422,7 +389,6 @@ fun CircularLuxurySpeedometer() {
                     strokeWidth = strokeW
                 )
 
-                // Vẽ số hiển thị
                 if (isMajor) {
                     val textR = innerR - 16f
                     val textX = (center.x + textR * cos(angleRad)).toFloat()
@@ -441,7 +407,7 @@ fun CircularLuxurySpeedometer() {
                 }
             }
 
-            // 4. Chữ "Dr Sơn" nghệ thuật ở nửa dưới tâm đồng hồ
+            // Chữ "Dr Sơn" và tốc độ số ở nửa dưới
             drawIntoCanvas { canvas ->
                 val brandPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#E6CA65")
@@ -471,7 +437,7 @@ fun CircularLuxurySpeedometer() {
                 canvas.nativeCanvas.drawText("km/h", center.x, center.y + 70f, kmhPaint)
             }
 
-            // 5. Kim đo tốc độ mạ vàng kim xoay theo góc tốc độ
+            // Kim quay
             val needleFraction = animatedSpeed / maxSpeed
             val needleAngleDeg = startAngle + needleFraction * totalSweep
 
@@ -486,9 +452,152 @@ fun CircularLuxurySpeedometer() {
                 drawPath(needlePath, brush = Brush.verticalGradient(listOf(GOLD_BRIGHT, GOLD_ACCENT)))
             }
 
-            // Nắp chụp tâm kim
             drawCircle(color = Color(0xFF1E1912), radius = 11f, center = center)
             drawCircle(color = GOLD_ACCENT, radius = 11f, center = center, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
+        }
+    }
+}
+
+// Vẽ chùm tia sáng rẻ quạt xoay
+private fun DrawScope.drawSunburstRays(maxRadius: Float, rayCount: Int) {
+    val center = Offset(size.width / 2f, size.height / 2f)
+    for (i in 0 until rayCount) {
+        val angleDeg = i * (360f / rayCount)
+        val angleRad1 = Math.toRadians((angleDeg - 4.5).toDouble())
+        val angleRad2 = Math.toRadians((angleDeg + 4.5).toDouble())
+
+        val rayPath = Path().apply {
+            moveTo(center.x, center.y)
+            lineTo(
+                (center.x + maxRadius * cos(angleRad1)).toFloat(),
+                (center.y + maxRadius * sin(angleRad1)).toFloat()
+            )
+            lineTo(
+                (center.x + maxRadius * cos(angleRad2)).toFloat(),
+                (center.y + maxRadius * sin(angleRad2)).toFloat()
+            )
+            close()
+        }
+
+        drawPath(
+            path = rayPath,
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    GOLD_ACCENT.copy(alpha = 0.55f),
+                    GOLD_BRIGHT.copy(alpha = 0.25f),
+                    Color.Transparent
+                ),
+                center = center,
+                radius = maxRadius
+            )
+        )
+    }
+}
+
+// Menu danh sách ứng dụng với tia sáng dài xoay nhanh phía sau
+@Composable
+fun AppDrawerOverlay(
+    isOpen: Boolean,
+    apps: List<AppItem>,
+    onDismiss: () -> Unit,
+    onPick: (AppItem) -> Unit
+) {
+    if (!isOpen) return
+
+    val infiniteTransition = rememberInfiniteTransition(label = "drawer_rays_anim")
+    val drawerRotationAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2500, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "drawer_rotation"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.90f))
+            .clickable(onClick = onDismiss)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        // Tia sáng dài xoay nhanh phía sau trung tâm menu
+        Canvas(
+            modifier = Modifier
+                .size(450.dp)
+                .rotate(drawerRotationAngle)
+        ) {
+            drawSunburstRays(maxRadius = 220f, rayCount = 20)
+        }
+
+        // Logo Dr Sơn mờ phía sau danh sách ứng dụng
+        Image(
+            painter = painterResource(id = R.drawable.icon_menu_brand),
+            contentDescription = null,
+            modifier = Modifier.size(160.dp),
+            alpha = 0.35f
+        )
+
+        // Lưới icon ứng dụng (Icon Điện thoại, Music, Danh bạ Vàng - Đen nổi bật)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "TẤT CẢ ỨNG DỤNG",
+                    color = GOLD_BRIGHT,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.5.sp
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Close", tint = GOLD_ACCENT)
+                }
+            }
+
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 90.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(apps) { app ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onPick(app) }
+                            .padding(8.dp)
+                    ) {
+                        Image(
+                            bitmap = app.icon,
+                            contentDescription = app.label,
+                            modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Fit
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = app.label,
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -517,7 +626,7 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu mở App Drawer (Logo Dr Sơn có viền vàng ic_launcher.png)
+        // Nút Menu chính với icon_launcher.png
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -540,7 +649,7 @@ private fun BottomDock(
             )
         }
 
-        // 4 ô ứng dụng trên Dock (Ô 1: Điện thoại Phone Gold, Ô 2: Music)
+        // 4 ô ứng dụng trên Dock (Ô 1: Điện thoại Phone Gold, Ô 2: Music Gold)
         viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
