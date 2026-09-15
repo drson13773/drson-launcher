@@ -1,5 +1,7 @@
 package com.drson.launcher.ui
 
+import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -8,12 +10,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -43,7 +48,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(SKY_TOP, SKY_BOTTOM)))
     ) {
-        // Mặt đường 3D + Dãy nhà thành phố ban đêm
+        // Phối cảnh đường chạy 3D
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
@@ -96,21 +101,57 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             }
         }
 
-        // Hình xe nguyên bản ở đúng vị trí tâm chuẩn ban đầu
+        // Xe Mazda CX-5 + Lớp phủ biển số sắc nét 79A - 137.73
         Box(
             modifier = Modifier
-                .align(Alignment.Center)
-                .padding(top = 40.dp)
-                .width(290.dp)
-                .height(190.dp),
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 85.dp)
+                .width(320.dp)
+                .height(210.dp),
             contentAlignment = Alignment.Center
         ) {
+            // Ảnh gốc xe Mazda CX-5
             Image(
                 painter = painterResource(id = R.drawable.car_mazda),
                 contentDescription = "Mazda CX-5",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit
             )
+
+            // Lớp vẽ đè biển số chuẩn định dạng Việt Nam
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val w = size.width
+                val h = size.height
+
+                // Vẽ nền biển số trắng che biển cũ
+                drawRoundRect(
+                    color = Color(0xFFF9F9F9),
+                    topLeft = Offset(w * 0.355f, h * 0.412f),
+                    size = Size(w * 0.29f, h * 0.088f),
+                    cornerRadius = CornerRadius(4f, 4f)
+                )
+
+                // Viền đen biển số
+                drawRoundRect(
+                    color = Color(0xFF1E1E1E),
+                    topLeft = Offset(w * 0.355f, h * 0.412f),
+                    size = Size(w * 0.29f, h * 0.088f),
+                    cornerRadius = CornerRadius(4f, 4f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.8f)
+                )
+
+                // Chữ biển số 79A - 137.73 (Font Monospace: Số 1 có móc trên rõ ràng)
+                drawIntoCanvas { canvas ->
+                    val paint = Paint().apply {
+                        color = android.graphics.Color.BLACK
+                        textSize = 21f
+                        typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
+                        textAlign = Paint.Align.CENTER
+                        isAntiAlias = true
+                    }
+                    canvas.nativeCanvas.drawText("79A - 137.73", w * 0.5f, h * 0.472f, paint)
+                }
+            }
         }
     }
 }
