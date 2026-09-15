@@ -35,7 +35,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,7 +53,6 @@ data class ContactItem(val name: String, val number: String)
 data class CallLogItem(val name: String?, val number: String, val type: Int, val date: String)
 
 class DialerActivity : ComponentActivity() {
-
     private var dialedNumber by mutableStateOf("")
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,9 +67,7 @@ class DialerActivity : ComponentActivity() {
                     if (dialedNumber.isNotEmpty()) dialedNumber = dialedNumber.dropLast(1)
                 },
                 onClearAll = { dialedNumber = "" },
-                onSelectNumber = { number ->
-                    dialedNumber = number
-                },
+                onSelectNumber = { number -> dialedNumber = number },
                 onCall = { numberToCall ->
                     val num = if (numberToCall.isNotBlank()) numberToCall else dialedNumber
                     if (num.isNotBlank()) {
@@ -152,14 +148,13 @@ fun BatmobileDialerScreen(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // ================= CỘT TRÁI: BÀN PHÍM BẤM SỐ (GẦN TAY LÁI XE) =================
+        // CỘT TRÁI: BÀN PHÍM BẤM SỐ
         Column(
             modifier = Modifier
                 .weight(1.1f)
                 .fillMaxHeight(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Nút Quay lại
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -174,17 +169,8 @@ fun BatmobileDialerScreen(
                 ) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = GOLD_BRIGHT)
                 }
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    text = "BÀN PHÍM SIÊU XE",
-                    color = GOLD_HUD,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
             }
 
-            // Lưới 12 phím bấm số
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -206,7 +192,6 @@ fun BatmobileDialerScreen(
                 }
             }
 
-            // Hàng nút Xóa sạch / Xóa lùi
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -237,14 +222,13 @@ fun BatmobileDialerScreen(
             }
         }
 
-        // ================= CỘT PHẢI: HIỂN THỊ SỐ + DANH BẠ & LỊCH SỬ CUỘC GỌI =================
+        // CỘT PHẢI: HIỂN THỊ SỐ + DANH BẠ & LỊCH SỬ GỌI
         Column(
             modifier = Modifier
                 .weight(1.3f)
                 .fillMaxHeight(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // 1. Màn hình HUD buồng lái hiển thị số đang nhập
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -257,20 +241,18 @@ fun BatmobileDialerScreen(
                     .padding(horizontal = 12.dp, vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = if (dialedNumber.isEmpty()) "CHỌN DANH BẠ HOẶC NHẬP SỐ" else dialedNumber,
-                        color = if (dialedNumber.isEmpty()) Color.Gray.copy(alpha = 0.6f) else GOLD_BRIGHT,
-                        fontSize = if (dialedNumber.length > 11) 20.sp else 24.sp,
-                        fontWeight = FontWeight.Black,
-                        fontFamily = FontFamily.Monospace,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Text(
+                    text = if (dialedNumber.isEmpty()) "CHỌN DANH BẠ HOẶC NHẬP SỐ" else dialedNumber,
+                    color = if (dialedNumber.isEmpty()) Color.Gray.copy(alpha = 0.6f) else GOLD_BRIGHT,
+                    fontSize = if (dialedNumber.length > 11) 20.sp else 24.sp,
+                    fontWeight = FontWeight.Black,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
-            // 2. Chuyển Tab: LỊCH SỬ GỌI / DANH BẠ
+            // Tab chọn: Lịch sử cuộc gọi & Danh bạ
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -284,14 +266,13 @@ fun BatmobileDialerScreen(
                     onClick = { selectedTab = 0 }
                 )
                 TabButton(
-                    title = "Danh bạ liên kết",
+                    title = "Danh bạ",
                     isSelected = selectedTab == 1,
                     modifier = Modifier.weight(1f),
                     onClick = { selectedTab = 1 }
                 )
             }
 
-            // 3. Khung danh sách Lịch sử hoặc Danh bạ
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -302,7 +283,6 @@ fun BatmobileDialerScreen(
                     .padding(6.dp)
             ) {
                 if (selectedTab == 0) {
-                    // Hiển thị Lịch sử cuộc gọi
                     if (callLogList.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text("Chưa có nhật ký cuộc gọi", color = Color.Gray, fontSize = 12.sp)
@@ -319,10 +299,9 @@ fun BatmobileDialerScreen(
                         }
                     }
                 } else {
-                    // Hiển thị Danh bạ
                     if (contactsList.isEmpty()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text("Chưa có danh bạ liên kết", color = Color.Gray, fontSize = 12.sp)
+                            Text("Chưa có danh bạ", color = Color.Gray, fontSize = 12.sp)
                         }
                     } else {
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -340,7 +319,6 @@ fun BatmobileDialerScreen(
 
             Spacer(Modifier.height(6.dp))
 
-            // 4. Nút Gọi Bắt đầu cuộc gọi phong cách Siêu Xe
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -513,7 +491,6 @@ private fun CallLogRow(
     }
 }
 
-// Truy vấn danh bạ điện thoại
 private fun loadContacts(context: Context): List<ContactItem> {
     val list = mutableListOf<ContactItem>()
     try {
@@ -540,7 +517,6 @@ private fun loadContacts(context: Context): List<ContactItem> {
     return list
 }
 
-// Truy vấn nhật ký cuộc gọi
 private fun loadCallLogs(context: Context): List<CallLogItem> {
     val list = mutableListOf<CallLogItem>()
     try {
