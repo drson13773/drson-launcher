@@ -84,12 +84,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setupDockClicks() {
-        // 1. NÚT MENU: Mở danh sách tất cả App dạng lưới 6 cột
+        // 1. Nút Menu mở App Drawer lưới 6 cột
         findViewById<View>(R.id.btnMainMenu)?.setOnClickListener {
             showFullAppDrawerDialog()
         }
 
-        // 2. NÚT ĐIỆN THOẠI: Mở bàn phím quay số
+        // 2. Nút Điện thoại
         findViewById<View>(R.id.btnDockPhone)?.setOnClickListener {
             try {
                 val intent = Intent(Intent.ACTION_DIAL).apply {
@@ -101,21 +101,20 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // 3. NÚT CAMERA 360: Tìm app camera 360/camera hành trình
+        // 3. Nút Camera 360
         findViewById<View>(R.id.btnDockCamera)?.setOnClickListener {
             openAppByKeywords(
                 listOf("camera", "cam360", "panorama", "dvr", "cam"),
-                "Mở Camera"
+                "Camera 360"
             )
         }
 
-        // 4. NÚT DR SƠN MUSIC: Mở màn hình nghe nhạc không quảng cáo
+        // 4. Nút Dr Sơn Music
         findViewById<View>(R.id.btnDrSonMusic)?.setOnClickListener {
-            val intent = Intent(this, PureMusicActivity::class.java)
-            startActivity(intent)
+            startActivity(Intent(this, PureMusicActivity::class.java))
         }
 
-        // 5. NÚT ZING MP3: Tìm app Zing MP3
+        // 5. Nút Zing MP3
         findViewById<View>(R.id.btnDockZingMp3)?.setOnClickListener {
             openAppByKeywords(
                 listOf("com.zing.mp3", "zingmp3", "zing"),
@@ -123,7 +122,7 @@ class MainActivity : ComponentActivity() {
             )
         }
 
-        // 6. NÚT VIETMAP: Tìm app Vietmap Live / Vietmap S1 / Vietmap S2
+        // 6. Nút Vietmap
         findViewById<View>(R.id.btnDockVietmap)?.setOnClickListener {
             openAppByKeywords(
                 listOf("vietmap", "live.vietmap", "navigation", "navitel", "maps"),
@@ -137,9 +136,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Tìm kiếm thông minh và khởi chạy ứng dụng theo danh sách từ khóa Package/Tên
-     */
     private fun openAppByKeywords(keywords: List<String>, appTitle: String) {
         val app = viewModel.apps.firstOrNull { item ->
             keywords.any { kw ->
@@ -150,7 +146,6 @@ class MainActivity : ComponentActivity() {
         if (app != null) {
             viewModel.launchApp(this, app)
         } else {
-            // Thử khởi chạy trực tiếp qua package nếu là app đặc thù
             val directPackages = when (appTitle) {
                 "Zing MP3" -> listOf("com.zing.mp3")
                 "Vietmap" -> listOf("com.vietmap.live", "com.vietmap.s1", "com.vietmap.s2")
