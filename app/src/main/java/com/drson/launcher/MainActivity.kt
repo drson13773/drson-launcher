@@ -25,6 +25,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.drson.launcher.model.AppItem
+import com.drson.launcher.music.PureMusicActivity
 import com.drson.launcher.ui.CircularLuxurySpeedometer
 import com.drson.launcher.ui.DrivingRoadBackground
 import com.drson.launcher.ui.HomeViewModel
@@ -88,7 +89,6 @@ class MainActivity : ComponentActivity() {
                 if (app != null) {
                     viewModel.launchApp(this, app)
                 } else {
-                    // Nhấn vào ô dấu cộng khi ở chế độ edit
                     openAppPickerForSlot(position)
                 }
             },
@@ -154,18 +154,30 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setupScreenInteractions() {
-        // Nút Menu chính
+        // Nút mở Menu chính
         findViewById<View>(R.id.btnMainMenu)?.setOnClickListener {
             showFullAppDrawerDialog()
         }
 
-        // Nhấn giữ vùng Widget Đồng hồ / Logo -> Bật/Tắt chế độ chỉnh sửa Dock
+        // NÚT MỞ APP DR. SƠN MUSIC (PUREMUSIC)
+        findViewById<View>(R.id.btnDrSonMusic)?.setOnClickListener {
+            val intent = Intent(this, PureMusicActivity::class.java)
+            startActivity(intent)
+        }
+
+        // Bấm vào Logo thương hiệu góc trên để mở Dr. Sơn Music
+        findViewById<View>(R.id.imgBrandLogo)?.setOnClickListener {
+            val intent = Intent(this, PureMusicActivity::class.java)
+            startActivity(intent)
+        }
+
+        // Nhấn giữ vùng Widget Đồng hồ / Logo -> Menu tùy chọn Launcher
         findViewById<View>(R.id.brandClockContainer)?.setOnLongClickListener {
             showLauncherSettingsDialog()
             true
         }
 
-        // Nhấn giữ thanh CardView đáy màn hình -> Bật chế độ hiện dấu (+)
+        // Nhấn giữ Dock -> Bật/Tắt chế độ thêm ô trống (+)
         findViewById<View>(R.id.bottomDockCard)?.setOnLongClickListener {
             toggleEditMode()
             true
@@ -188,6 +200,7 @@ class MainActivity : ComponentActivity() {
     private fun showLauncherSettingsDialog() {
         val options = arrayOf(
             if (isEditMode) "Tắt chế độ chỉnh sửa Dock" else "Chỉnh sửa thanh Dock (Thêm/Bớt App)",
+            "Mở ứng dụng Dr. Sơn Music",
             "Mở danh sách tất cả ứng dụng",
             "Mở Cài đặt hệ thống xe"
         )
@@ -196,8 +209,9 @@ class MainActivity : ComponentActivity() {
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> toggleEditMode()
-                    1 -> showFullAppDrawerDialog()
-                    2 -> {
+                    1 -> startActivity(Intent(this, PureMusicActivity::class.java))
+                    2 -> showFullAppDrawerDialog()
+                    3 -> {
                         try {
                             startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                         } catch (_: Exception) {}
