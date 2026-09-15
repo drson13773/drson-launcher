@@ -17,62 +17,56 @@ fun DrivingRoadBackground(
     speedKmH: Float = 0f,
     modifier: Modifier = Modifier
 ) {
-    // Biến lưu trữ tiến độ trôi của mặt đường và cây cối
     var roadProgress by remember { mutableFloatStateOf(0f) }
 
-    // Tính toán chuyển động dựa trên frame và tốc độ thực tế (0 = đứng yên hoàn toàn)
+    // Chuyển động cây và vạch kẻ đường theo tốc độ xe (0 km/h = đứng yên hoàn toàn)
     LaunchedEffect(speedKmH) {
         if (speedKmH > 0.5f) {
-            var lastFrameTime = 0L
+            var lastTime = 0L
             while (true) {
-                withFrameNanos { frameTimeNanos ->
-                    if (lastFrameTime != 0L) {
-                        val dt = (frameTimeNanos - lastFrameTime) / 1_000_000_000f // giây
-                        // Tốc độ càng cao thì bước tăng càng nhanh (100 km/h quay 1 chu kỳ trong ~0.8s)
-                        val speedFactor = speedKmH / 70f
-                        roadProgress = (roadProgress + dt * speedFactor) % 1f
+                withFrameNanos { now ->
+                    if (lastTime != 0L) {
+                        val dt = (now - lastTime) / 1_000_000_000f
+                        val factor = speedKmH / 60f
+                        roadProgress = (roadProgress + dt * factor) % 1f
                     }
-                    lastFrameTime = frameTimeNanos
+                    lastTime = now
                 }
             }
         }
     }
 
-    // Hiệu ứng nhún xe (chỉ nhún khi xe đang di chuyển)
-    val infiniteTransition = rememberInfiniteTransition(label = "driving_loop")
+    // Xe nhún nhẹ khi di chuyển
+    val infiniteTransition = rememberInfiniteTransition(label = "car_anim")
     val carBounceAnim by infiniteTransition.animateFloat(
-        initialValue = -2f,
-        targetValue = 2f,
+        initialValue = -2.5f,
+        targetValue = 2.5f,
         animationSpec = infiniteRepeatable(
-            animation = tween(350, easing = FastOutSlowInEasing),
+            animation = tween(380, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "car_bounce"
+        label = "bounce"
     )
     val carBounce = if (speedKmH > 1f) carBounceAnim else 0f
 
     Canvas(modifier = modifier.fillMaxSize()) {
         val w = size.width
         val h = size.height
-        val horizonY = h * 0.42f // Đường chân trời
+        val horizonY = h * 0.40f
         val roadTopWidth = w * 0.08f
         val roadBottomWidth = w * 0.85f
 
-        // 1. Bầu trời đêm sang trọng
+        // Bầu trời đêm Luxury Gold/Black
         drawRect(
             brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color(0xFF070706),
-                    Color(0xFF14120D),
-                    Color(0xFF2B2211)
-                ),
+                colors = listOf(Color(0xFF070706), Color(0xFF14120D), Color(0xFF2B2211)),
                 startY = 0f,
                 endY = horizonY
             ),
             size = Size(w, horizonY)
         )
 
-        // 2. Lề đường / Bãi cỏ hai bên
+        // Bãi cỏ 2 bên
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(Color(0xFF100E0A), Color(0xFF080705)),
@@ -83,7 +77,7 @@ fun DrivingRoadBackground(
             size = Size(w, h - horizonY)
         )
 
-        // 3. Mặt đường nhựa phối cảnh 3D
+        // Mặt đường 3D
         val roadPath = Path().apply {
             moveTo((w - roadTopWidth) / 2f, horizonY)
             lineTo((w + roadTopWidth) / 2f, horizonY)
@@ -100,7 +94,7 @@ fun DrivingRoadBackground(
             )
         )
 
-        // 4. Vạch kẻ đường đứt khúc màu Vàng Gold
+        // Vạch kẻ đường vàng gold trôi liên tục
         val numDashes = 7
         for (i in 0 until numDashes) {
             val p = (i.toFloat() + roadProgress) % numDashes / numDashes.toFloat()
@@ -108,7 +102,7 @@ fun DrivingRoadBackground(
                 val depth = p * p
                 val dashY = horizonY + (h - horizonY) * depth
                 val dashH = (h - horizonY) * 0.12f * depth
-                val dashW = 4f + 20f * depth
+                val dashW = 4f + 22f * depth
 
                 drawRect(
                     color = Color(0xFFD4AF37).copy(alpha = 0.3f + 0.7f * depth),
@@ -118,7 +112,7 @@ fun DrivingRoadBackground(
             }
         }
 
-        // 5. Hàng cây hai bên đường trôi theo tốc độ (Tương xứng với đồng hồ)
+        // Hàng cây trôi 2 bên đường
         val numTrees = 6
         for (i in 0 until numTrees) {
             val tProgress = (i.toFloat() + roadProgress) % numTrees / numTrees.toFloat()
@@ -133,11 +127,11 @@ fun DrivingRoadBackground(
             }
         }
 
-        // 6. Xe Mazda CX-5
-        drawLuxuryCar(
+        // HÌNH ẢNH CHIẾC XE MAZDA CX-5 Ở TRUNG TÂM
+        drawMazdaCX5(
             centerX = w / 2f,
-            centerY = h * 0.78f + carBounce,
-            scale = 1.35f
+            centerY = h * 0.74f + carBounce,
+            scale = 1.45f
         )
     }
 }
@@ -148,15 +142,13 @@ private fun DrawScope.drawTree(x: Float, y: Float, scale: Float) {
     val trunkW = 10f * scale
     val trunkH = 20f * scale
 
-    // Thân cây
     drawRect(
         color = Color(0xFF1E1710),
         topLeft = Offset(x + treeW / 2f - trunkW / 2f, y),
         size = Size(trunkW, trunkH)
     )
 
-    // Tán lá
-    val foliageColor = Color(0xFF1A261A).copy(alpha = 0.4f + 0.6f * scale)
+    val foliageColor = Color(0xFF1C2B1C).copy(alpha = 0.4f + 0.6f * scale)
     val path = Path().apply {
         moveTo(x + treeW / 2f, y - treeH)
         lineTo(x + treeW, y)
@@ -166,45 +158,49 @@ private fun DrawScope.drawTree(x: Float, y: Float, scale: Float) {
     drawPath(path, color = foliageColor)
 }
 
-private fun DrawScope.drawLuxuryCar(centerX: Float, centerY: Float, scale: Float) {
-    val carW = 200f * scale
-    val carH = 90f * scale
+private fun DrawScope.drawMazdaCX5(centerX: Float, centerY: Float, scale: Float) {
+    val carW = 220f * scale
+    val carH = 95f * scale
 
+    // Thân xe
     drawRoundRect(
-        color = Color(0xFF151412),
+        color = Color(0xFF161513),
         topLeft = Offset(centerX - carW / 2f, centerY - carH / 2f),
         size = Size(carW, carH),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(16f * scale)
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(18f * scale)
     )
 
-    val cabinW = carW * 0.75f
-    val cabinH = carH * 0.45f
+    // Kính sau và mui xe
+    val cabinW = carW * 0.74f
+    val cabinH = carH * 0.46f
     drawRoundRect(
-        color = Color(0xFF0A0A09),
-        topLeft = Offset(centerX - cabinW / 2f, centerY - carH / 2f - cabinH * 0.6f),
+        color = Color(0xFF0B0A09),
+        topLeft = Offset(centerX - cabinW / 2f, centerY - carH / 2f - cabinH * 0.65f),
         size = Size(cabinW, cabinH),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(10f * scale)
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f * scale)
     )
 
-    val lightW = carW * 0.22f
-    val lightH = 8f * scale
+    // Cụm đèn hậu LED Gold Mazda
+    val lightW = carW * 0.24f
+    val lightH = 9f * scale
     drawRoundRect(
         color = Color(0xFFD4AF37),
-        topLeft = Offset(centerX - carW / 2f + 12f * scale, centerY - 8f * scale),
+        topLeft = Offset(centerX - carW / 2f + 14f * scale, centerY - 6f * scale),
         size = Size(lightW, lightH),
         cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f)
     )
     drawRoundRect(
         color = Color(0xFFD4AF37),
-        topLeft = Offset(centerX + carW / 2f - lightW - 12f * scale, centerY - 8f * scale),
+        topLeft = Offset(centerX + carW / 2f - lightW - 14f * scale, centerY - 6f * scale),
         size = Size(lightW, lightH),
         cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f)
     )
 
+    // Biển số Dr. Sơn
     drawRoundRect(
-        color = Color(0xFF262116),
-        topLeft = Offset(centerX - 35f * scale, centerY + 14f * scale),
-        size = Size(70f * scale, 22f * scale),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(3f)
+        color = Color(0xFF282318),
+        topLeft = Offset(centerX - 40f * scale, centerY + 16f * scale),
+        size = Size(80f * scale, 24f * scale),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f)
     )
 }
