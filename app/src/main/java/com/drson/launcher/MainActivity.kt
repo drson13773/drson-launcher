@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Security
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -47,10 +48,9 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.drson.launcher.ui.HomeScreen
 import com.drson.launcher.ui.HomeViewModel
-import com.drson.launcher.ui.theme.DrSonLauncherTheme
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
@@ -59,16 +59,14 @@ private val DARK_DIALOG_BG = Color(0xFF0F0E0C)
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var viewModel: HomeViewModel
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
         hideSystemBars()
 
         setContent {
-            DrSonLauncherTheme {
-                MainLauncherRoot(viewModel = viewModel)
+            MaterialTheme {
+                val homeViewModel: HomeViewModel = viewModel()
+                MainLauncherRoot(viewModel = homeViewModel)
             }
         }
     }
