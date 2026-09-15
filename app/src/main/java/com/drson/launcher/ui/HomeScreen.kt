@@ -67,7 +67,9 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
+private val GOLD_MID = Color(0xFFFFDF73)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
+private val GOLD_MUTED = Color(0xFFC7A75C)
 private val DARK_CARD_BG = Color(0xFF14120E)
 
 @SuppressLint("WrongConstant")
@@ -135,7 +137,7 @@ fun HomeScreen(
         // 1. Phối cảnh đường chạy 3D và Mazda CX-5
         DrivingRoadBackground()
 
-        // 2. Góc trên bên trái: Logo Dr Sơn (82dp) + Đồng hồ mềm mại in nghiêng
+        // 2. Góc trên bên trái: Logo Dr Sơn + Đồng hồ vàng mềm mại in nghiêng
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -144,7 +146,7 @@ fun HomeScreen(
             BrandClockWidget()
         }
 
-        // 3. Khoảng trống tam giác bên trái: Đồng hồ đo tốc độ tròn Luxury Gold (145dp)
+        // 3. Khoảng trống tam giác bên trái: Đồng hồ tốc độ tròn toàn bộ chữ & số Vàng Kim
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -154,7 +156,7 @@ fun HomeScreen(
             CircularLuxurySpeedometer()
         }
 
-        // 4. Đáy màn hình: Thanh Dock cố định tích hợp ô thông tin bài hát
+        // 4. Đáy màn hình: Thanh Dock
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -170,7 +172,7 @@ fun HomeScreen(
             )
         }
 
-        // 5. Trang danh sách ứng dụng (App Drawer Overlay)
+        // 5. Trang danh sách ứng dụng
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -236,7 +238,7 @@ fun BrandClockWidget() {
             )
         }
 
-        // Cụm Đồng hồ: Font Serif mềm mại, in nghiêng sang trọng
+        // Chữ đồng hồ & ngày tháng toàn bộ tone vàng kim hoàng gia
         Column(verticalArrangement = Arrangement.Center) {
             Text(
                 text = currentTime,
@@ -250,7 +252,7 @@ fun BrandClockWidget() {
             Spacer(Modifier.height(1.dp))
             Text(
                 text = currentDate,
-                color = Color.White.copy(alpha = 0.90f),
+                color = GOLD_MID,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 fontStyle = FontStyle.Italic,
@@ -330,14 +332,14 @@ fun CircularLuxurySpeedometer() {
             val center = Offset(w / 2f, h / 2f)
             val radius = w / 2f - 4f
 
-            // Mặt đồng hồ
+            // 1. Mặt đồng hồ
             drawCircle(
                 color = Color(0xFF0C0B0A),
                 radius = radius,
                 center = center
             )
 
-            // Viền Bezel mạ vàng 3D
+            // 2. Viền Bezel 3D
             drawCircle(
                 brush = Brush.sweepGradient(
                     colors = listOf(
@@ -359,7 +361,7 @@ fun CircularLuxurySpeedometer() {
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
             )
 
-            // Vạch chia và số 0 - 180 km/h
+            // 3. Vạch chia và số 0 - 180 toàn bộ màu vàng
             val startAngle = 135f
             val totalSweep = 270f
             val maxSpeed = 180f
@@ -399,7 +401,7 @@ fun CircularLuxurySpeedometer() {
 
                     drawIntoCanvas { canvas ->
                         val paint = Paint().apply {
-                            color = android.graphics.Color.parseColor("#FFF0B8")
+                            color = android.graphics.Color.parseColor("#FFF0B8") // Số tốc độ màu vàng sáng
                             textSize = 14f
                             typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
                             textAlign = Paint.Align.CENTER
@@ -410,10 +412,10 @@ fun CircularLuxurySpeedometer() {
                 }
             }
 
-            // Chữ "Dr Sơn" và vận tốc km/h
+            // 4. Chữ "Dr Sơn", số tốc độ GPS và chữ "km/h" toàn bộ màu Vàng Kim
             drawIntoCanvas { canvas ->
                 val brandPaint = Paint().apply {
-                    color = android.graphics.Color.parseColor("#E6CA65")
+                    color = android.graphics.Color.parseColor("#FFDF73")
                     textSize = 21f
                     typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD_ITALIC)
                     textAlign = Paint.Align.CENTER
@@ -422,8 +424,8 @@ fun CircularLuxurySpeedometer() {
                 canvas.nativeCanvas.drawText("Dr Sơn", center.x, center.y + 26f, brandPaint)
 
                 val speedValPaint = Paint().apply {
-                    color = android.graphics.Color.WHITE
-                    textSize = 19f
+                    color = android.graphics.Color.parseColor("#FFF0B8") // Vận tốc hiển thị màu vàng kim rực rỡ
+                    textSize = 20f
                     typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                     textAlign = Paint.Align.CENTER
                     isAntiAlias = true
@@ -431,8 +433,8 @@ fun CircularLuxurySpeedometer() {
                 canvas.nativeCanvas.drawText(String.format(Locale.US, "%.0f", currentSpeed), center.x, center.y + 44f, speedValPaint)
 
                 val kmhPaint = Paint().apply {
-                    color = android.graphics.Color.parseColor("#9E9E9E")
-                    textSize = 10f
+                    color = android.graphics.Color.parseColor("#D4AF37") // km/h màu vàng gold
+                    textSize = 10.5f
                     typeface = Typeface.DEFAULT_BOLD
                     textAlign = Paint.Align.CENTER
                     isAntiAlias = true
@@ -440,7 +442,7 @@ fun CircularLuxurySpeedometer() {
                 canvas.nativeCanvas.drawText("km/h", center.x, center.y + 54f, kmhPaint)
             }
 
-            // Kim quay
+            // 5. Kim quay
             val needleFraction = animatedSpeed / maxSpeed
             val needleAngleDeg = startAngle + needleFraction * totalSweep
 
@@ -561,7 +563,7 @@ private fun BottomDock(
 
         Spacer(Modifier.width(4.dp))
 
-        // Trình phát nhạc & Âm lượng kéo dài có thêm ô thông tin bài hát ở đầu
+        // Trình phát nhạc & Âm lượng kéo dài
         ExpandedNowPlayingBar(
             modifier = Modifier
                 .weight(1f)
@@ -620,7 +622,7 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Ô HIỂN THỊ THÔNG TIN BÀI HÁT Ở ĐẦU THANH NHẠC
+        // Thông tin bài hát màu vàng kim
         Row(
             modifier = Modifier
                 .width(135.dp)
@@ -660,7 +662,7 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
                 )
                 Text(
                     text = "YouTube Music • Luxury Vibes",
-                    color = Color.Gray,
+                    color = GOLD_MUTED,
                     fontSize = 8.5.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -668,7 +670,7 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             }
         }
 
-        // CÁC NÚT ĐIỀU KHIỂN PLAY / PAUSE / NEXT
+        // Nút điều khiển
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -696,13 +698,13 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             }
         }
 
-        // THANH TIẾN ĐỘ BÀI HÁT
+        // Thanh tiến độ & Mốc thời gian màu vàng
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text("01:25", color = Color.Gray, fontSize = 9.sp)
+            Text("01:25", color = GOLD_MUTED, fontSize = 9.sp, fontWeight = FontWeight.Medium)
             Slider(
                 value = trackProgress,
                 onValueChange = { trackProgress = it },
@@ -713,10 +715,10 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
                 ),
                 modifier = Modifier.weight(1f).height(16.dp)
             )
-            Text("04:10", color = Color.Gray, fontSize = 9.sp)
+            Text("04:10", color = GOLD_MUTED, fontSize = 9.sp, fontWeight = FontWeight.Medium)
         }
 
-        // THANH ĐIỀU CHỈNH ÂM LƯỢNG
+        // Thanh âm lượng
         Row(
             modifier = Modifier.width(95.dp),
             verticalAlignment = Alignment.CenterVertically,
