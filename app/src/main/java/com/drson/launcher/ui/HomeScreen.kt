@@ -30,7 +30,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -119,28 +118,26 @@ fun HomeScreen(
                 )
             }
     ) {
-        // Nền 3D xe chạy Mazda CX-5
+        // Nền 3D Mazda CX-5 và thành phố
         DrivingRoadBackground()
 
-        // Lớp nội dung chính
+        // Lớp nội dung xếp tầng chuẩn xác
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // KHU VỰC TRÊN (TOP LAYER): Góc trái (Logo + Giờ) & Góc phải (App Slots)
+            // TẦNG TRÊN CÙNG: Đồng hồ/Logo (trái) + App Desktop (phải)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(start = 16.dp, end = 16.dp, top = 10.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                // 1. GÓC TRÊN BÊN TRÁI: Widget Logo Thương Hiệu + Đồng Hồ
                 BrandClockWidget()
 
-                // 2. GÓC TRÊN BÊN PHẢI: Các ô ứng dụng Desktop (chỉ hiện ô có app)
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                     horizontalAlignment = Alignment.End
                 ) {
                     val chunkedSlots = remember(viewModel.homeSlots.toList()) {
@@ -149,7 +146,7 @@ fun HomeScreen(
                     var isFirstSlot = true
                     for (rowSlots in chunkedSlots) {
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             for (slot in rowSlots) {
@@ -176,19 +173,18 @@ fun HomeScreen(
                 }
             }
 
-            // KHU VỰC GIỮA DƯỚI (MIDDLE-BOTTOM LAYER): Đồng hồ đo tốc độ góc dưới trái
+            // TẦNG GIỮA DƯỚI: Widget Tốc độ GPS góc dưới bên trái
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
+                    .padding(start = 16.dp, bottom = 6.dp),
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.Bottom
             ) {
-                // Widget Đồng Hồ Đo Tốc Độ GPS (Speedometer)
                 SpeedometerWidget()
             }
 
-            // KHU VỰC ĐÁY (BOTTOM DOCK): 1 Menu + 4 App Slots + Music/Volume Bar
+            // TẦNG ĐÁY: Thanh Dock 64dp cố định hoàn toàn
             BottomDock(
                 viewModel = viewModel,
                 isEditMode = isEditMode,
@@ -198,7 +194,6 @@ fun HomeScreen(
             )
         }
 
-        // Menu trượt danh sách ứng dụng
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -211,7 +206,6 @@ fun HomeScreen(
     }
 }
 
-// Widget Logo Thương Hiệu + Đồng Hồ Giờ/Ngày
 @Composable
 fun BrandClockWidget() {
     var currentTime by remember { mutableStateOf("") }
@@ -230,18 +224,17 @@ fun BrandClockWidget() {
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color.Black.copy(alpha = 0.45f))
-            .border(1.dp, GOLD_ACCENT.copy(alpha = 0.3f), RoundedCornerShape(18.dp))
-            .padding(horizontal = 14.dp, vertical = 8.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.Black.copy(alpha = 0.5f))
+            .border(1.dp, GOLD_ACCENT.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
-        // Logo Dr Sơn độ nét cao
         Image(
             painter = painterResource(id = R.drawable.icon_menu_brand),
             contentDescription = "Dr Son Brand",
-            modifier = Modifier.size(54.dp),
+            modifier = Modifier.size(50.dp),
             contentScale = ContentScale.Fit
         )
 
@@ -249,22 +242,20 @@ fun BrandClockWidget() {
             Text(
                 text = currentTime,
                 color = GOLD_BRIGHT,
-                fontSize = 26.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Black,
-                fontFamily = FontFamily.Monospace,
-                letterSpacing = 1.sp
+                fontFamily = FontFamily.Monospace
             )
             Text(
                 text = currentDate,
                 color = Color.White.copy(alpha = 0.85f),
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
             )
         }
     }
 }
 
-// Widget Đồng Hồ Đo Tốc Độ GPS (Speedometer)
 @Composable
 fun SpeedometerWidget() {
     val context = LocalContext.current
@@ -291,7 +282,7 @@ fun SpeedometerWidget() {
         val locationListener = object : LocationListener {
             override fun onLocationChanged(location: Location) {
                 if (location.hasSpeed()) {
-                    currentSpeed = location.speed * 3.6f // Đổi từ m/s sang km/h
+                    currentSpeed = location.speed * 3.6f
                 }
             }
             override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
@@ -317,11 +308,11 @@ fun SpeedometerWidget() {
 
     Box(
         modifier = Modifier
-            .width(220.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color.Black.copy(alpha = 0.6f))
-            .border(1.2.dp, GOLD_ACCENT.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
-            .padding(12.dp)
+            .width(200.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.Black.copy(alpha = 0.55f))
+            .border(1.2.dp, GOLD_ACCENT.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .padding(10.dp)
     ) {
         if (hasPermission) {
             Row(
@@ -333,7 +324,7 @@ fun SpeedometerWidget() {
                     Text(
                         text = "TỐC ĐỘ XE",
                         color = GOLD_ACCENT,
-                        fontSize = 10.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.sp
                     )
@@ -341,7 +332,7 @@ fun SpeedometerWidget() {
                         Text(
                             text = String.format(Locale.US, "%.0f", currentSpeed),
                             color = GOLD_BRIGHT,
-                            fontSize = 32.sp,
+                            fontSize = 28.sp,
                             fontWeight = FontWeight.Black,
                             fontFamily = FontFamily.Monospace
                         )
@@ -349,9 +340,9 @@ fun SpeedometerWidget() {
                         Text(
                             text = "km/h",
                             color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(bottom = 4.dp)
+                            modifier = Modifier.padding(bottom = 3.dp)
                         )
                     }
                 }
@@ -360,7 +351,7 @@ fun SpeedometerWidget() {
                     imageVector = Icons.Default.Speed,
                     contentDescription = "Speedometer",
                     tint = GOLD_ACCENT,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(32.dp)
                 )
             }
         } else {
@@ -372,25 +363,25 @@ fun SpeedometerWidget() {
                 Text(
                     text = "Cần quyền vị trí",
                     color = GOLD_BRIGHT,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(Modifier.height(4.dp))
+                Spacer(Modifier.height(2.dp))
                 Text(
-                    text = "Để hiển thị tốc độ thật, vui lòng cấp quyền vị trí thiết bị.",
+                    text = "Để hiển thị tốc độ thật, vui lòng cấp quyền vị trí.",
                     color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     textAlign = TextAlign.Center
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(6.dp))
                 Button(
                     onClick = { launcher.launch(Manifest.permission.ACCESS_FINE_LOCATION) },
                     colors = ButtonDefaults.buttonColors(containerColor = GOLD_ACCENT),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
-                    modifier = Modifier.height(28.dp)
+                    shape = RoundedCornerShape(6.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                    modifier = Modifier.height(26.dp)
                 ) {
-                    Text("Cấp quyền", color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("Cấp quyền", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -408,19 +399,19 @@ private fun FocusableDesktopSlot(
 
     Box(
         modifier = modifier
-            .size(72.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .size(68.dp)
+            .clip(RoundedCornerShape(14.dp))
             .background(if (app != null) Color.Black.copy(alpha = 0.45f) else Color.Transparent)
             .focusable(enabled = (app != null), interactionSource = interactionSource)
             .then(
                 if (isFocused && app != null) {
-                    Modifier.border(2.5.dp, GOLD_BRIGHT, RoundedCornerShape(16.dp))
+                    Modifier.border(2.5.dp, GOLD_BRIGHT, RoundedCornerShape(14.dp))
                 } else {
                     Modifier
                 }
             )
             .clickable(enabled = (app != null), onClick = onClick)
-            .padding(6.dp),
+            .padding(4.dp),
         contentAlignment = Alignment.Center
     ) {
         if (app != null) {
@@ -431,13 +422,13 @@ private fun FocusableDesktopSlot(
                 Image(
                     bitmap = app.icon,
                     contentDescription = app.label,
-                    modifier = Modifier.size(42.dp).clip(RoundedCornerShape(10.dp))
+                    modifier = Modifier.size(38.dp).clip(RoundedCornerShape(8.dp))
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
                     text = app.label,
                     color = Color.White,
-                    fontSize = 10.sp,
+                    fontSize = 9.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center
