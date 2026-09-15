@@ -1,7 +1,6 @@
 package com.drson.launcher.ui.adapter
 
 import android.graphics.Color
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
@@ -38,8 +37,7 @@ class DockGridAdapter(
         if (app != null) {
             holder.tvPlus?.visibility = View.GONE
             holder.imgIcon.visibility = View.VISIBLE
-            
-            // Xử lý icon an toàn theo kiểu dữ liệu trong AppItem
+
             when (val icon = app.icon) {
                 is Drawable -> holder.imgIcon.setImageDrawable(icon)
                 is ImageBitmap -> holder.imgIcon.setImageBitmap(icon.asAndroidBitmap())
