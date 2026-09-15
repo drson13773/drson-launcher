@@ -139,7 +139,7 @@ fun HomeScreen(
         // 1. Phối cảnh đường chạy 3D và Mazda CX-5
         DrivingRoadBackground()
 
-        // 2. Góc trên bên trái: Logo Dr Sơn (82dp) + Đồng hồ vàng mềm mại in nghiêng
+        // 2. Góc trên bên trái: Logo Dr Sơn + Đồng hồ vàng mềm mại in nghiêng
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -148,12 +148,12 @@ fun HomeScreen(
             BrandClockWidget()
         }
 
-        // 3. Khoảng trống tam giác bên trái: Đồng hồ tốc độ tròn toàn bộ chữ & số Vàng Kim
+        // 3. Vị trí mới: Nâng cao lên (bottom = 112.dp) để không che vào con đường
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 28.dp, bottom = 80.dp)
-                .size(145.dp)
+                .padding(start = 22.dp, bottom = 112.dp)
+                .size(138.dp)
         ) {
             CircularLuxurySpeedometer()
         }
@@ -219,7 +219,6 @@ fun BrandClockWidget() {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.padding(start = 4.dp, top = 2.dp)
     ) {
-        // Cụm Logo kích thước lớn 100dp với tia sáng xoay
         Box(
             modifier = Modifier.size(100.dp),
             contentAlignment = Alignment.Center
@@ -240,7 +239,6 @@ fun BrandClockWidget() {
             )
         }
 
-        // Chữ đồng hồ & ngày tháng toàn bộ tone vàng kim hoàng gia
         Column(verticalArrangement = Arrangement.Center) {
             Text(
                 text = currentTime,
