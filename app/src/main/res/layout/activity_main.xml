@@ -26,6 +26,8 @@
         android:gravity="center_vertical"
         android:layout_marginStart="20dp"
         android:layout_marginTop="16dp"
+        android:clickable="true"
+        android:focusable="true"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
@@ -34,6 +36,9 @@
             android:layout_width="72dp"
             android:layout_height="72dp"
             android:src="@drawable/icon_menu_brand"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
             android:contentDescription="@null" />
 
         <LinearLayout
@@ -100,9 +105,29 @@
                 android:layout_height="44dp"
                 android:src="@drawable/ic_launcher"
                 android:padding="3dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
                 android:contentDescription="@null" />
 
-            <!-- Danh sách ứng dụng Dock (GridLayoutManager) -->
+            <!-- NÚT ỨNG DỤNG RIÊNG: DR. SƠN MUSIC -->
+            <FrameLayout
+                android:id="@+id/btnDrSonMusic"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_drson_music"
+                    android:contentDescription="Dr. Sơn Music" />
+            </FrameLayout>
+
+            <!-- RecyclerView danh sách các ứng dụng khác trong Dock (GridLayoutManager) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvDockApps"
                 android:layout_width="wrap_content"
