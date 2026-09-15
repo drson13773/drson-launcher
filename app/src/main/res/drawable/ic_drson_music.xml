@@ -1,18 +1,47 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="48dp"
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    
-    <!-- Vòng tròn nền viền kim loại vàng -->
-    <path
-        android:fillColor="#1F1B12"
-        android:strokeColor="#D4AF37"
-        android:strokeWidth="1.5"
-        android:pathData="M24,24m-22,0a22,22 0,1 1,44 0a22,22 0,1 1,-44 0" />
 
-    <!-- Biểu tượng nốt nhạc đôi màu vàng gold -->
+    <!-- 1. Nền hình chữ nhật bo góc kiểu YouTube màu đen bóng -->
     <path
-        android:fillColor="#FFF0B8"
-        android:pathData="M18,30a4,4 0,1 1,-4 -4a4,4 0,0 1,4 4zm16,-4a4,4 0,1 1,-4 -4a4,4 0,0 1,4 4zm-16,0V12l16,-4v14" />
+        android:pathData="M10,8 L38,8 A6,6 0 0 1 44,14 L44,34 A6,6 0 0 1 38,40 L10,40 A6,6 0 0 1 4,34 L4,14 A6,6 0 0 1 10,8 Z"
+        android:fillColor="#141311"
+        android:strokeWidth="1.5">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:startX="4"
+                android:startY="8"
+                android:endX="44"
+                android:endY="40"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FFF0B8"/>
+                <item android:offset="0.5" android:color="#D4AF37"/>
+                <item android:offset="1.0" android:color="#AA7C11"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 2. Tam giác Play ở giữa bằng Vàng Gold -->
+    <path
+        android:pathData="M20,16 L33,24 L20,32 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="20"
+                android:startY="16"
+                android:endX="33"
+                android:endY="32"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FFF0B8"/>
+                <item android:offset="1.0" android:color="#D4AF37"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- 3. Nốt nhạc nhỏ góc phải tượng trưng cho Audio Music -->
+    <path
+        android:pathData="M37,13 A2,2 0 1 1 35,11 A2,2 0 0 1 37,13 Z M37,13 L37,8 L41,7 L41,10"
+        android:fillColor="#D4AF37"/>
 </vector>
