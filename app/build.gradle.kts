@@ -41,10 +41,9 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-        // Bỏ qua cảnh báo lệch phiên bản Kotlin và Compose Compiler
         freeCompilerArgs += listOf(
             "-P",
-            "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
+            "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=1.9.24"
         )
     }
 
@@ -54,7 +53,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
+        kotlinCompilerExtensionVersion = "1.5.14"
     }
 
     packaging {
@@ -86,18 +85,18 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
 
-    // 4. AndroidX Media3 (ExoPlayer + Service chạy ngầm)
+    // 4. AndroidX Media3 (ExoPlayer + Service chạy nền ngầm liên tục)
     implementation("androidx.media3:media3-exoplayer:1.3.0")
     implementation("androidx.media3:media3-session:1.3.0")
     implementation("androidx.media3:media3-ui:1.3.0")
     implementation("androidx.media3:media3-common:1.3.0")
 
-    // 5. NewPipe Extractor
+    // 5. NewPipe Extractor (Tách stream audio YouTube không quảng cáo)
     implementation("com.github.TeamNewPipe.NewPipeExtractor:extractor:v0.24.3")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
 
-    // 6. Unit Tests
+    // 6. Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
