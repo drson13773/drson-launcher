@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -95,12 +94,12 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             }
         }
 
-        // 2. Xe Mazda ở vị trí rút ngắn 1/2 khoảng cách đến Dock và bật bộ lọc nét cao
+        // 2. Xe Mazda ở vị trí rút ngắn 1/2 khoảng cách đến Dock
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 115.dp) // Vị trí trung hòa lý tưởng: thu gọn 1/2 khoảng trống so với trước
-                .width(310.dp)           // Tỷ lệ xe cân đối, rõ ràng các góc cạnh
+                .padding(bottom = 115.dp) // Rút ngắn 1/2 khoảng cách xuống dock
+                .width(310.dp)           // Kích thước xe to và sắc nét
                 .height(205.dp),
             contentAlignment = Alignment.Center
         ) {
@@ -108,8 +107,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 painter = painterResource(id = R.drawable.car_mazda),
                 contentDescription = "Mazda CX-5",
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Fit,
-                filterQuality = FilterQuality.High // Lọc mịn viền chống vỡ hạt
+                contentScale = ContentScale.Fit
             )
         }
     }
