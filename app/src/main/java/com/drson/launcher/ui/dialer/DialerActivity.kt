@@ -27,6 +27,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -35,11 +38,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -125,7 +132,7 @@ fun DialerScreen(onClose: () -> Unit) {
         }
     }
 
-    // Hàm gọi điện
+    // Hàm thực hiện cuộc gọi
     val makeCall: (String) -> Unit = { numberToCall ->
         if (numberToCall.isNotBlank()) {
             inputNumber = numberToCall
@@ -144,7 +151,7 @@ fun DialerScreen(onClose: () -> Unit) {
         }
     }
 
-    // Đếm thời gian đàm thoại
+    // Bộ đếm thời gian đàm thoại
     LaunchedEffect(isInCall) {
         if (isInCall) {
             callDurationSeconds = 0
@@ -196,7 +203,7 @@ fun DialerScreen(onClose: () -> Unit) {
             .padding(16.dp)
     ) {
         if (isInCall) {
-            // ================= TRẠNG THÁI: ĐANG ĐÀM THOẠI =================
+            // TRẠNG THÁI: ĐANG ĐÀM THOẠI
             ActiveCallView(
                 phoneNumber = inputNumber,
                 durationSeconds = callDurationSeconds,
@@ -206,7 +213,7 @@ fun DialerScreen(onClose: () -> Unit) {
                 }
             )
         } else {
-            // ================= TRẠNG THÁI: GIAO DIỆN CHÍNH (BÀN PHÍM / GẦN ĐÂY / DANH BẠ) =================
+            // TRẠNG THÁI: GIAO DIỆN CHÍNH
             Column(modifier = Modifier.fillMaxSize()) {
                 // Header: Thanh Tab chuyển đổi + Nút đóng
                 Row(
@@ -489,6 +496,7 @@ private fun ContactsView(
     val context = LocalContext.current
     var contactsList by remember { mutableStateOf<List<ContactModel>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(hasPermission) {
         if (hasPermission) {
@@ -529,38 +537,73 @@ private fun ContactsView(
         PermissionNotice(message = "Cần quyền truy cập Danh bạ", onGrant = onRequestPermission)
     } else {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Ô tìm kiếm danh bạ
+            // Thanh tìm kiếm căn chỉnh chuẩn xác & bật bàn phím ảo
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(42.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(DARK_CARD)
-                    .border(1.dp, GOLD_ACCENT.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 10.dp),
+                    .border(1.dp, GOLD_ACCENT.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Icon(Icons.Default.Search, contentDescription = "Search", tint = GOLD_ACCENT, modifier = Modifier.size(18.dp))
-                TextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = { Text("Tìm theo tên hoặc số...", color = Color.Gray, fontSize = 13.sp) },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedTextColor = GOLD_BRIGHT,
-                        unfocusedTextColor = GOLD_BRIGHT,
-                        cursorColor = GOLD_BRIGHT,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    modifier = Modifier.weight(1f),
-                    singleLine = true
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search",
+                    tint = GOLD_ACCENT,
+                    modifier = Modifier.size(20.dp)
                 )
+
+                Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (searchQuery.isEmpty()) {
+                        Text(
+                            text = "Tìm theo tên hoặc số điện thoại...",
+                            color = Color.Gray,
+                            fontSize = 13.sp
+                        )
+                    }
+
+                    BasicTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            color = GOLD_BRIGHT,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        ),
+                        keyboardOptions = KeyboardOptions(
+                            imeAction = ImeAction.Search
+                        ),
+                        keyboardActions = KeyboardActions(
+                            onSearch = { focusManager.clearFocus() }
+                        ),
+                        cursorBrush = SolidColor(GOLD_BRIGHT),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(
+                        onClick = { searchQuery = "" },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = GOLD_ACCENT,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
             }
 
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
 
             if (filteredContacts.isEmpty()) {
                 EmptyNotice(message = "Không tìm thấy liên hệ phù hợp")
@@ -596,7 +639,12 @@ private fun ContactsView(
                                     fontSize = 12.sp
                                 )
                             }
-                            Icon(Icons.Default.Call, contentDescription = "Call", tint = CALL_GREEN, modifier = Modifier.size(20.dp))
+                            Icon(
+                                imageVector = Icons.Default.Call,
+                                contentDescription = "Call",
+                                tint = CALL_GREEN,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                 }
