@@ -1,6 +1,7 @@
 package com.drson.launcher
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -15,6 +16,7 @@ import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.ComposeView
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -23,6 +25,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.drson.launcher.model.AppItem
 import com.drson.launcher.ui.CircularLuxurySpeedometer
 import com.drson.launcher.ui.DrivingRoadBackground
 import com.drson.launcher.ui.HomeViewModel
@@ -64,32 +67,136 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         hideSystemBars()
 
-        // 1. Nạp file layout XML
         setContentView(R.layout.activity_main)
-
-        // 2. Khởi tạo ViewModel
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
 
-        // 3. Khởi tạo RecyclerView & GridLayoutManager
+        setupDockRecyclerView()
+        setupComposeViews()
+        startClockUpdates()
+        setupScreenInteractions()
+        checkAndRequestPermissions()
+    }
+
+    private fun setupDockRecyclerView() {
         rvDockApps = findViewById(R.id.rvDockApps)
         rvDockApps.layoutManager = GridLayoutManager(this, 1, GridLayoutManager.HORIZONTAL, false)
 
         dockAdapter = DockGridAdapter(
-            appList = viewModel.dockSlots.map { pkg -> viewModel.appFor(pkg) },
-            onItemClick = { app -> viewModel.launchApp(this, app) },
-            onItemLongClick = { _ -> }
+            appList = getDockAppItems(),
+            onItemClick = { position, app ->
+                if (app != null) {
+                    viewModel.launchApp(this, app)
+                } else {
+                    // Chạm ô trống -> Mở bảng chọn app để thêm vào Dock
+                    openAppPickerForSlot(position)
+                }
+            },
+            onItemLongClick = { position, app ->
+                if (app != null) {
+                    showSlotOptionDialog(position, app)
+                } else {
+                    openAppPickerForSlot(position)
+                }
+            }
         )
         rvDockApps.adapter = dockAdapter
+    }
 
-        // 4. Nhúng đường chạy 3D và đồng hồ tốc độ
+    private fun getDockAppItems(): List<AppItem?> {
+        val slots = viewModel.dockSlots
+        return (0 until 4).map { idx ->
+            val pkg = slots.getOrNull(idx)
+            if (!pkg.isNullOrEmpty()) viewModel.appFor(pkg) else null
+        }
+    }
+
+    // Hộp thoại chọn ứng dụng thêm vào Dock
+    private fun openAppPickerForSlot(slotIndex: Int) {
+        val appList = viewModel.apps
+        val appNames = appList.map { it.label }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Chọn ứng dụng ghim vào Dock (Vị trí ${slotIndex + 1})")
+            .setItems(appNames) { _, which ->
+                val selectedApp = appList[which]
+                viewModel.setDockSlot(this, slotIndex, selectedApp.packageName)
+                dockAdapter.updateData(getDockAppItems())
+            }
+            .setNegativeButton("Hủy", null)
+            .show()
+    }
+
+    // Hộp thoại khi nhấn giữ vào ô đã có ứng dụng
+    private fun showSlotOptionDialog(slotIndex: Int, app: AppItem) {
+        val options = arrayOf("Đổi ứng dụng khác", "Gỡ khỏi thanh Dock")
+        AlertDialog.Builder(this)
+            .setTitle(app.label)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> openAppPickerForSlot(slotIndex)
+                    1 -> {
+                        viewModel.setDockSlot(this, slotIndex, null)
+                        dockAdapter.updateData(getDockAppItems())
+                    }
+                }
+            }
+            .setNegativeButton("Đóng", null)
+            .show()
+    }
+
+    private fun setupScreenInteractions() {
+        // Nút mở Menu chính
+        findViewById<View>(R.id.btnMainMenu)?.setOnClickListener {
+            showFullAppDrawerDialog()
+        }
+
+        // Nhấn giữ vào khoảng trống trên màn hình chính
+        findViewById<ConstraintLayout>(R.id.brandClockContainer)?.setOnLongClickListener {
+            showLauncherSettingsDialog()
+            true
+        }
+    }
+
+    private fun showFullAppDrawerDialog() {
+        val appList = viewModel.apps
+        val appNames = appList.map { it.label }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Tất cả ứng dụng")
+            .setItems(appNames) { _, which ->
+                val selectedApp = appList[which]
+                viewModel.launchApp(this, selectedApp)
+            }
+            .show()
+    }
+
+    private fun showLauncherSettingsDialog() {
+        val options = arrayOf("Mở danh sách tất cả ứng dụng", "Mở Cài đặt hệ thống xe")
+        AlertDialog.Builder(this)
+            .setTitle("Tùy chọn Màn hình chính")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> showFullAppDrawerDialog()
+                    1 -> {
+                        try {
+                            startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun setupComposeViews() {
         findViewById<ComposeView>(R.id.composeRoadBackground)?.setContent {
             DrivingRoadBackground()
         }
         findViewById<ComposeView>(R.id.composeSpeedometer)?.setContent {
             CircularLuxurySpeedometer()
         }
+    }
 
-        // 5. Cập nhật đồng hồ thời gian thực
+    private fun startClockUpdates() {
         val tvTime = findViewById<TextView>(R.id.tvClockTime)
         val tvDate = findViewById<TextView>(R.id.tvClockDate)
         lifecycleScope.launch {
@@ -102,8 +209,9 @@ class MainActivity : ComponentActivity() {
                 delay(1000)
             }
         }
+    }
 
-        // 6. Kiểm tra quyền
+    private fun checkAndRequestPermissions() {
         val missing = requiredPermissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
         }
@@ -115,6 +223,9 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         hideSystemBars()
+        if (::dockAdapter.isInitialized) {
+            dockAdapter.updateData(getDockAppItems())
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
