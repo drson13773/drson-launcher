@@ -23,9 +23,6 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -54,8 +51,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
@@ -172,7 +167,7 @@ fun HomeScreen(
             )
         }
 
-        // 5. Trang danh sách ứng dụng (App Drawer) với tia sáng xoay nhanh phía sau Logo
+        // 5. Trang danh sách ứng dụng (App Drawer)
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -190,7 +185,6 @@ fun BrandClockWidget() {
     var currentTime by remember { mutableStateOf("") }
     var currentDate by remember { mutableStateOf("") }
 
-    // Hiệu ứng tia sáng xoay nhanh quanh logo ở trang chủ
     val infiniteTransition = rememberInfiniteTransition(label = "sunburst_anim")
     val rotationAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -458,7 +452,6 @@ fun CircularLuxurySpeedometer() {
     }
 }
 
-// Vẽ chùm tia sáng rẻ quạt xoay
 private fun DrawScope.drawSunburstRays(maxRadius: Float, rayCount: Int) {
     val center = Offset(size.width / 2f, size.height / 2f)
     for (i in 0 until rayCount) {
@@ -494,114 +487,6 @@ private fun DrawScope.drawSunburstRays(maxRadius: Float, rayCount: Int) {
     }
 }
 
-// Menu danh sách ứng dụng với tia sáng dài xoay nhanh phía sau
-@Composable
-fun AppDrawerOverlay(
-    isOpen: Boolean,
-    apps: List<AppItem>,
-    onDismiss: () -> Unit,
-    onPick: (AppItem) -> Unit
-) {
-    if (!isOpen) return
-
-    val infiniteTransition = rememberInfiniteTransition(label = "drawer_rays_anim")
-    val drawerRotationAngle by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2500, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "drawer_rotation"
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.90f))
-            .clickable(onClick = onDismiss)
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        // Tia sáng dài xoay nhanh phía sau trung tâm menu
-        Canvas(
-            modifier = Modifier
-                .size(450.dp)
-                .rotate(drawerRotationAngle)
-        ) {
-            drawSunburstRays(maxRadius = 220f, rayCount = 20)
-        }
-
-        // Logo Dr Sơn mờ phía sau danh sách ứng dụng
-        Image(
-            painter = painterResource(id = R.drawable.icon_menu_brand),
-            contentDescription = null,
-            modifier = Modifier.size(160.dp),
-            alpha = 0.35f
-        )
-
-        // Lưới icon ứng dụng (Icon Điện thoại, Music, Danh bạ Vàng - Đen nổi bật)
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "TẤT CẢ ỨNG DỤNG",
-                    color = GOLD_BRIGHT,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.5.sp
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close", tint = GOLD_ACCENT)
-                }
-            }
-
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 90.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(apps) { app ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onPick(app) }
-                            .padding(8.dp)
-                    ) {
-                        Image(
-                            bitmap = app.icon,
-                            contentDescription = app.label,
-                            modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Fit
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Text(
-                            text = app.label,
-                            color = Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun BottomDock(
     viewModel: HomeViewModel,
@@ -626,7 +511,7 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu chính với icon_launcher.png
+        // Nút Menu chính
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -649,7 +534,7 @@ private fun BottomDock(
             )
         }
 
-        // 4 ô ứng dụng trên Dock (Ô 1: Điện thoại Phone Gold, Ô 2: Music Gold)
+        // 4 ô ứng dụng trên Dock
         viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
