@@ -1,368 +1,293 @@
 package com.drson.launcher.ui
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.content.Context
+import android.content.Intent
+import android.media.AudioManager
+import android.net.wifi.WifiManager
+import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AirplanemodeActive
-import androidx.compose.material.icons.filled.AirplanemodeInactive
-import androidx.compose.material.icons.filled.Bluetooth
-import androidx.compose.material.icons.filled.BluetoothDisabled
-import androidx.compose.material.icons.filled.SignalCellular4Bar
-import androidx.compose.material.icons.filled.SignalCellularOff
-import androidx.compose.material.icons.filled.VolumeDown
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
-import androidx.compose.material.icons.filled.WbSunny
-import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.filled.WifiOff
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.layout
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.zIndex
-import com.drson.launcher.R
-import com.drson.launcher.hardware.DeviceControls
 
-/** Tông màu đồng nhất với launcher: vàng đồng trên nền đen. */
-private val GoldAccent = Color(0xFFC99E5C)
-private val GoldAccentLight = Color(0xFFE6C178)
-private val PanelBg = Color(0xE6141210)
-private val CardOff = Color.White.copy(alpha = 0.10f)
+private val GOLD_BRIGHT = Color(0xFFFFF0B8)
+private val GOLD_ACCENT = Color(0xFFD4AF37)
+private val DARK_CARD_BG = Color(0xFF14120E)
+private val ACTIVE_BG = Color(0xFF282319)
 
-/**
- * Panel Control Center kiểu iPadOS: vuốt xuống từ status bar để mở, chạm ra ngoài để đóng.
- * Đọc trạng thái Wi-Fi/Bluetooth/độ sáng/âm lượng/máy bay/data thật của máy khi mở lên.
- */
 @Composable
 fun ControlCenterOverlay(
     isOpen: Boolean,
-    onDismiss: () -> Unit,
+    onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
+    val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager }
+    val maxVolume = remember { audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) ?: 15 }
 
-    var wifiOn by remember { mutableStateOf(false) }
-    var bluetoothOn by remember { mutableStateOf(false) }
-    var airplaneOn by remember { mutableStateOf(false) }
-    var dataOn by remember { mutableStateOf(true) }
-    var brightness by remember { mutableStateOf(0.5f) }
-    var volume by remember { mutableStateOf(0.5f) }
-
-    // Xin quyền BLUETOOTH_CONNECT bằng hộp thoại hệ thống ngay khi cần (Android 12+), thay vì
-    // đẩy người dùng sang màn hình Cài đặt - chỉ cần cấp 1 lần rồi bấm là có tác dụng ngay.
-    val bluetoothPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) {
-            DeviceControls.toggleBluetooth(context)
-            bluetoothOn = DeviceControls.isBluetoothEnabled(context)
-        }
+    var isWifiOn by remember { mutableStateOf(true) }
+    var isBluetoothOn by remember { mutableStateOf(true) }
+    var isMuted by remember { mutableStateOf(false) }
+    var volumeLevel by remember {
+        mutableFloatStateOf(
+            ((audioManager?.getStreamVolume(AudioManager.STREAM_MUSIC) ?: 8).toFloat() / maxVolume).coerceIn(0f, 1f)
+        )
     }
-
-    // Mỗi lần mở panel, đọc lại trạng thái thật từ hệ thống (người dùng có thể đã đổi ở nơi khác).
-    LaunchedEffect(isOpen) {
-        if (isOpen) {
-            wifiOn = DeviceControls.isWifiEnabled(context)
-            bluetoothOn = DeviceControls.isBluetoothEnabled(context)
-            airplaneOn = DeviceControls.isAirplaneModeOn(context)
-            DeviceControls.isMobileDataEnabledOrNull(context)?.let { dataOn = it }
-            brightness = DeviceControls.getBrightnessFraction(context)
-            volume = DeviceControls.getVolumeFraction(context)
-        }
-    }
+    var brightnessLevel by remember { mutableFloatStateOf(0.75f) }
 
     AnimatedVisibility(
         visible = isOpen,
-        enter = fadeIn(tween(150)),
-        exit = fadeOut(tween(150)),
-        modifier = Modifier.zIndex(20f),
+        enter = fadeIn() + slideInVertically(initialOffsetY = { -it / 2 }),
+        exit = fadeOut() + slideOutVertically(targetOffsetY = { -it / 2 })
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.35f))
+                .background(Color.Black.copy(alpha = 0.65f))
                 .clickable(onClick = onDismiss),
+            contentAlignment = Alignment.TopEnd
         ) {
-            AnimatedVisibility(
-                visible = isOpen,
-                enter = slideInVertically(animationSpec = tween(220)) { -it },
-                exit = slideOutVertically(animationSpec = tween(200)) { -it },
-                modifier = Modifier.align(Alignment.TopEnd),
+            // Khung Trung tâm điều khiển chính
+            Box(
+                modifier = Modifier
+                    .padding(top = 16.dp, end = 20.dp)
+                    .width(360.dp)
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(Color(0xFF0D0C0A).copy(alpha = 0.96f))
+                    .border(1.2.dp, GOLD_ACCENT.copy(alpha = 0.45f), RoundedCornerShape(24.dp))
+                    .clickable(enabled = false) {}
+                    .padding(18.dp)
             ) {
-                ControlCenterPanel(
-                    wifiOn = wifiOn,
-                    onToggleWifi = {
-                        DeviceControls.toggleWifi(context)
-                        wifiOn = DeviceControls.isWifiEnabled(context)
-                    },
-                    bluetoothOn = bluetoothOn,
-                    onToggleBluetooth = {
-                        if (DeviceControls.hasBluetoothConnectPermission(context)) {
-                            DeviceControls.toggleBluetooth(context)
-                            bluetoothOn = DeviceControls.isBluetoothEnabled(context)
-                        } else {
-                            bluetoothPermissionLauncher.launch(android.Manifest.permission.BLUETOOTH_CONNECT)
-                        }
-                    },
-                    airplaneOn = airplaneOn,
-                    onToggleAirplane = {
-                        DeviceControls.toggleAirplaneMode(context)
-                        airplaneOn = DeviceControls.isAirplaneModeOn(context)
-                    },
-                    dataOn = dataOn,
-                    onToggleData = {
-                        DeviceControls.toggleMobileData(context)
-                        DeviceControls.isMobileDataEnabledOrNull(context)?.let { dataOn = it } ?: run { dataOn = !dataOn }
-                    },
-                    brightness = brightness,
-                    onBrightnessChange = { value ->
-                        brightness = value
-                        if (DeviceControls.canWriteSystemSettings(context)) {
-                            DeviceControls.setBrightnessFraction(context, value)
-                        } else {
-                            DeviceControls.requestWriteSettingsPermission(context)
-                        }
-                    },
-                    volume = volume,
-                    onVolumeChange = { value ->
-                        volume = value
-                        DeviceControls.setVolumeFraction(context, value)
-                    },
-                    // Ngăn tap bên trong panel làm đóng panel (lan tới clickable ở Box ngoài)
-                    modifier = Modifier.clickable(enabled = false) {},
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // HÀNG 1: 4 KHỐI CHỨC NĂNG RIÊNG BIỆT (KHÔNG CÓ NHÃN CHỮ)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        ControlTile(
+                            icon = Icons.Default.Wifi,
+                            isActive = isWifiOn,
+                            onClick = {
+                                isWifiOn = !isWifiOn
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                } catch (_: Exception) {}
+                            }
+                        )
+
+                        ControlTile(
+                            icon = Icons.Default.Bluetooth,
+                            isActive = isBluetoothOn,
+                            onClick = {
+                                isBluetoothOn = !isBluetoothOn
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                } catch (_: Exception) {}
+                            }
+                        )
+
+                        ControlTile(
+                            icon = if (isMuted) Icons.Default.VolumeOff else Icons.Default.VolumeUp,
+                            isActive = !isMuted,
+                            onClick = {
+                                isMuted = !isMuted
+                                val targetVol = if (isMuted) 0 else (volumeLevel * maxVolume).toInt()
+                                audioManager?.setStreamVolume(AudioManager.STREAM_MUSIC, targetVol, 0)
+                            }
+                        )
+
+                        ControlTile(
+                            icon = Icons.Default.Settings,
+                            isActive = false,
+                            onClick = {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                    onDismiss()
+                                } catch (_: Exception) {}
+                            }
+                        )
+                    }
+
+                    // HÀNG 2: 2 CỘT THANH TRƯỢT ÂM LƯỢNG & ĐỘ SÁNG THON GỌN
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        // Khối Âm Lượng (Icon Loa)
+                        CompactSliderBlock(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.VolumeUp,
+                            value = volumeLevel,
+                            onValueChange = {
+                                volumeLevel = it
+                                isMuted = (it == 0f)
+                                audioManager?.setStreamVolume(
+                                    AudioManager.STREAM_MUSIC,
+                                    (it * maxVolume).toInt(),
+                                    0
+                                )
+                            }
+                        )
+
+                        // Khối Độ Sáng (Icon Mặt Trời)
+                        CompactSliderBlock(
+                            modifier = Modifier.weight(1f),
+                            icon = Icons.Default.WbSunny,
+                            value = brightnessLevel,
+                            onValueChange = {
+                                brightnessLevel = it
+                                try {
+                                    val brightnessInt = (it * 255).toInt().coerceIn(10, 255)
+                                    Settings.System.putInt(
+                                        context.contentResolver,
+                                        Settings.System.SCREEN_BRIGHTNESS,
+                                        brightnessInt
+                                    )
+                                } catch (_: Exception) {}
+                            }
+                        )
+                    }
+
+                    // HÀNG 3: 4 KHỐI CHỨC NĂNG BỔ TRỢ (GPS, KHÓA MÀN HÌNH, TRỢ LÝ, ĐÓNG)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        ControlTile(
+                            icon = Icons.Default.LocationOn,
+                            isActive = true,
+                            onClick = {
+                                try {
+                                    context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                } catch (_: Exception) {}
+                            }
+                        )
+
+                        ControlTile(
+                            icon = Icons.Default.DarkMode,
+                            isActive = true,
+                            onClick = {}
+                        )
+
+                        ControlTile(
+                            icon = Icons.Default.ScreenLockPortrait,
+                            isActive = false,
+                            onClick = {
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_MAIN).apply {
+                                        addCategory(Intent.CATEGORY_HOME)
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    })
+                                    onDismiss()
+                                } catch (_: Exception) {}
+                            }
+                        )
+
+                        ControlTile(
+                            icon = Icons.Default.Close,
+                            isActive = false,
+                            onClick = onDismiss
+                        )
+                    }
+                }
             }
         }
     }
 }
 
+// KHỐI VUÔNG CHỨC NĂNG TỐI GIẢN (KHÔNG CHỮ)
 @Composable
-private fun ControlCenterPanel(
-    wifiOn: Boolean,
-    onToggleWifi: () -> Unit,
-    bluetoothOn: Boolean,
-    onToggleBluetooth: () -> Unit,
-    airplaneOn: Boolean,
-    onToggleAirplane: () -> Unit,
-    dataOn: Boolean,
-    onToggleData: () -> Unit,
-    brightness: Float,
-    onBrightnessChange: (Float) -> Unit,
-    volume: Float,
-    onVolumeChange: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .padding(top = 8.dp, end = 16.dp)
-            .width(340.dp)
-            .clip(RoundedCornerShape(28.dp))
-            .background(PanelBg)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        // Lưới 2x2: Máy bay, Wi-Fi, Data, Bluetooth
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            IconToggleCard(
-                label = "Máy bay",
-                isOn = airplaneOn,
-                iconOn = Icons.Filled.AirplanemodeActive,
-                iconOff = Icons.Filled.AirplanemodeInactive,
-                modifier = Modifier.weight(1f),
-                onClick = onToggleAirplane,
-            )
-            IconToggleCard(
-                label = "Wi-Fi",
-                isOn = wifiOn,
-                iconOn = Icons.Filled.Wifi,
-                iconOff = Icons.Filled.WifiOff,
-                modifier = Modifier.weight(1f),
-                onClick = onToggleWifi,
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            IconToggleCard(
-                label = "Data",
-                isOn = dataOn,
-                iconOn = Icons.Filled.SignalCellular4Bar,
-                iconOff = Icons.Filled.SignalCellularOff,
-                modifier = Modifier.weight(1f),
-                onClick = onToggleData,
-            )
-            IconToggleCard(
-                label = "Bluetooth",
-                isOn = bluetoothOn,
-                iconOn = Icons.Filled.Bluetooth,
-                iconOff = Icons.Filled.BluetoothDisabled,
-                modifier = Modifier.weight(1f),
-                onClick = onToggleBluetooth,
-            )
-        }
-
-        // Hai thanh trượt dọc: độ sáng + âm lượng
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            VerticalSliderPill(
-                value = brightness,
-                onValueChange = onBrightnessChange,
-                icon = Icons.Filled.WbSunny,
-                modifier = Modifier.weight(1f),
-            )
-            VerticalSliderPill(
-                value = volume,
-                onValueChange = onVolumeChange,
-                icon = if (volume <= 0f) Icons.Filled.VolumeOff
-                       else if (volume < 0.5f) Icons.Filled.VolumeDown
-                       else Icons.Filled.VolumeUp,
-                modifier = Modifier.weight(1f),
-            )
-        }
-
-        // Logo thương hiệu Dr Sơn - đặt cuối panel, dưới toàn bộ các nút điều khiển.
-        Image(
-            painter = painterResource(id = R.drawable.icon_brand),
-            contentDescription = null,
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .size(36.dp)
-                .align(Alignment.CenterHorizontally)
-                .clip(RoundedCornerShape(10.dp)),
-        )
-    }
-}
-
-/**
- * Ô bật/tắt có icon, dùng cho lưới Máy bay/Wi-Fi/Data/Bluetooth.
- * Bật = nền vàng đồng, icon+chữ đen. Tắt = nền tối mờ, icon+chữ trắng mờ.
- */
-@Composable
-private fun IconToggleCard(
-    label: String,
-    isOn: Boolean,
-    iconOn: androidx.compose.ui.graphics.vector.ImageVector,
-    iconOff: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    val contentColor = if (isOn) Color(0xFF201607) else Color.White.copy(alpha = 0.85f)
-    Column(
-        modifier = modifier
-            .height(76.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(if (isOn) GoldAccent else CardOff)
-            .clickable(onClick = onClick)
-            .padding(12.dp),
-        verticalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Icon(
-            imageVector = if (isOn) iconOn else iconOff,
-            contentDescription = label,
-            tint = contentColor,
-            modifier = Modifier.size(20.dp),
-        )
-        Column {
-            Text(label, color = contentColor, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-            Text(
-                if (isOn) "Bật" else "Tắt",
-                color = contentColor.copy(alpha = 0.75f),
-                fontSize = 11.sp,
-            )
-        }
-    }
-}
-
-/**
- * Thanh trượt DỌC kiểu "pill" (giống Control Center iOS): nền tối mờ, phần đã trượt tô vàng đồng
- * dâng từ đáy lên, icon nằm ở đáy. Kéo lên/xuống để chỉnh giá trị 0..1.
- */
-@Composable
-private fun VerticalSliderPill(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier,
+private fun ControlTile(
+    icon: ImageVector,
+    isActive: Boolean,
+    onClick: () -> Unit
 ) {
     Box(
-        modifier = modifier
-            .height(150.dp)
-            .clip(RoundedCornerShape(22.dp))
-            .background(CardOff),
+        modifier = Modifier
+            .size(56.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (isActive) ACTIVE_BG else DARK_CARD_BG)
+            .border(
+                1.dp,
+                if (isActive) GOLD_ACCENT else GOLD_ACCENT.copy(alpha = 0.25f),
+                RoundedCornerShape(16.dp)
+            )
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
     ) {
-        // Phần tô màu dâng từ đáy lên theo giá trị hiện tại
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (isActive) GOLD_BRIGHT else GOLD_ACCENT.copy(alpha = 0.6f),
+            modifier = Modifier.size(24.dp)
+        )
+    }
+}
+
+// KHỐI THANH TRƯỢT THON GỌN (CHỈ GIỮ ICON LOA / MẶT TRỜI)
+@Composable
+private fun CompactSliderBlock(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    value: Float,
+    onValueChange: (Float) -> Unit
+) {
+    Row(
+        modifier = modifier
+            .height(52.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(DARK_CARD_BG)
+            .border(1.dp, GOLD_ACCENT.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
+            .padding(horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(fraction = value.coerceIn(0.06f, 1f))
-                .align(Alignment.BottomCenter)
-                .background(
-                    androidx.compose.ui.graphics.Brush.verticalGradient(
-                        listOf(GoldAccentLight, GoldAccent),
-                    ),
-                ),
-        )
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(Color(0xFF1E1A14)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = GOLD_BRIGHT,
+                modifier = Modifier.size(17.dp)
+            )
+        }
 
-        // Lớp Slider trong suốt để bắt thao tác kéo, xoay dọc bằng graphicsLayer + layout.
         Slider(
             value = value,
             onValueChange = onValueChange,
             colors = SliderDefaults.colors(
-                thumbColor = Color.Transparent,
-                activeTrackColor = Color.Transparent,
-                inactiveTrackColor = Color.Transparent,
+                thumbColor = GOLD_BRIGHT,
+                activeTrackColor = GOLD_ACCENT,
+                inactiveTrackColor = Color.White.copy(alpha = 0.12f)
             ),
             modifier = Modifier
-                .fillMaxWidth()
-                .graphicsLayer { rotationZ = -90f }
-                .layout { measurable, constraints ->
-                    val placeable = measurable.measure(
-                        Constraints(
-                            minWidth = constraints.minHeight,
-                            maxWidth = constraints.maxHeight,
-                            minHeight = constraints.minWidth,
-                            maxHeight = constraints.maxWidth,
-                        ),
-                    )
-                    layout(placeable.height, placeable.width) {
-                        placeable.place(
-                            x = -(placeable.width / 2 - placeable.height / 2),
-                            y = -(placeable.height / 2 - placeable.width / 2),
-                        )
-                    }
-                },
-        )
-
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = if (value > 0.55f) Color(0xFF201607) else Color.White,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(bottom = 14.dp)
-                .size(20.dp),
+                .weight(1f)
+                .height(18.dp)
         )
     }
 }
-
-
