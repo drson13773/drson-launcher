@@ -129,18 +129,19 @@ fun HomeScreen(
                 )
             }
     ) {
+        // 1. Phối cảnh đường chạy 3D và Mazda CX-5
         DrivingRoadBackground()
 
-        // Góc trên bên trái: Logo & Đồng hồ thực
+        // 2. Góc trên bên trái: Logo Dr Sơn lớn sắc nét (82dp) + Vầng tia sáng (100dp) + Đồng hồ
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(start = 16.dp, top = 14.dp)
+                .padding(start = 16.dp, top = 12.dp)
         ) {
             BrandClockWidget()
         }
 
-        // Đồng hồ đo tốc độ tròn Luxury Gold 145dp
+        // 3. Khoảng trống tam giác bên trái: Đồng hồ đo tốc độ tròn Luxury Gold (145dp)
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -150,7 +151,7 @@ fun HomeScreen(
             CircularLuxurySpeedometer()
         }
 
-        // Thanh Dock đáy màn hình
+        // 4. Đáy màn hình: Thanh Dock điều khiển cố định
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -166,7 +167,7 @@ fun HomeScreen(
             )
         }
 
-        // Trang danh sách Ứng dụng
+        // 5. Trang danh sách ứng dụng (App Drawer Overlay)
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -189,7 +190,7 @@ fun BrandClockWidget() {
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = LinearEasing),
+            animation = tween(2600, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "rotation_angle"
@@ -208,42 +209,47 @@ fun BrandClockWidget() {
 
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        modifier = Modifier.padding(4.dp)
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier.padding(start = 4.dp, top = 2.dp)
     ) {
+        // Cụm Logo kích thước lớn 100dp giúp hiển thị chi tiết nguyên bản rõ ràng
         Box(
-            modifier = Modifier.size(76.dp),
+            modifier = Modifier.size(100.dp),
             contentAlignment = Alignment.Center
         ) {
+            // Chùm ánh sáng rẻ quạt phía sau
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
                     .rotate(rotationAngle)
             ) {
-                drawSunburstRays(maxRadius = size.minDimension / 1.7f, rayCount = 16)
+                drawSunburstRays(maxRadius = size.minDimension / 1.75f, rayCount = 18)
             }
 
+            // Logo Dr Sơn kích thước lớn 82dp
             Image(
                 painter = painterResource(id = R.drawable.icon_menu_brand),
                 contentDescription = "Dr Son Brand",
-                modifier = Modifier.size(54.dp),
+                modifier = Modifier.size(82.dp),
                 contentScale = ContentScale.Fit
             )
         }
 
+        // Cụm giờ và ngày tháng thực tế
         Column(verticalArrangement = Arrangement.Center) {
             Text(
                 text = currentTime,
                 color = GOLD_BRIGHT,
-                fontSize = 28.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Black,
                 fontFamily = FontFamily.Monospace,
                 letterSpacing = 1.sp
             )
+            Spacer(Modifier.height(2.dp))
             Text(
                 text = currentDate,
-                color = Color.White.copy(alpha = 0.9f),
-                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.92f),
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
             )
         }
@@ -320,12 +326,14 @@ fun CircularLuxurySpeedometer() {
             val center = Offset(w / 2f, h / 2f)
             val radius = w / 2f - 4f
 
+            // 1. Mặt đồng hồ màu đen sâu
             drawCircle(
                 color = Color(0xFF0C0B0A),
                 radius = radius,
                 center = center
             )
 
+            // 2. Viền Bezel kim loại mạ vàng 3D
             drawCircle(
                 brush = Brush.sweepGradient(
                     colors = listOf(
@@ -347,6 +355,7 @@ fun CircularLuxurySpeedometer() {
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
             )
 
+            // 3. Vạch chia và con số từ 0 đến 180 km/h
             val startAngle = 135f
             val totalSweep = 270f
             val maxSpeed = 180f
@@ -397,6 +406,7 @@ fun CircularLuxurySpeedometer() {
                 }
             }
 
+            // 4. Chữ "Dr Sơn" nghệ thuật và số km/h ở nửa dưới tâm
             drawIntoCanvas { canvas ->
                 val brandPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#E6CA65")
@@ -426,6 +436,7 @@ fun CircularLuxurySpeedometer() {
                 canvas.nativeCanvas.drawText("km/h", center.x, center.y + 54f, kmhPaint)
             }
 
+            // 5. Kim quay động cơ bản theo GPS
             val needleFraction = animatedSpeed / maxSpeed
             val needleAngleDeg = startAngle + needleFraction * totalSweep
 
@@ -505,7 +516,7 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu chính với icon Dr Sơn mới sắc nét
+        // Nút Menu mở App Drawer (Dùng icon Dr Sơn mới)
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -546,6 +557,7 @@ private fun BottomDock(
 
         Spacer(Modifier.width(6.dp))
 
+        // Trình phát nhạc & Âm lượng kéo dài
         ExpandedNowPlayingBar(
             modifier = Modifier
                 .weight(1f)
