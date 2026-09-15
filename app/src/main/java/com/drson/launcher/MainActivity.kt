@@ -1,13 +1,10 @@
 package com.drson.launcher
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import com.drson.launcher.ui.HomeScreen
 import com.drson.launcher.ui.HomeViewModel
 
@@ -18,18 +15,28 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = Color(0xFF0A0907)
-            ) {
-                HomeScreen(viewModel = viewModel)
-            }
+            HomeScreen(viewModel = viewModel)
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        // Làm mới lại danh sách ứng dụng khi quay lại màn hình chính
-        viewModel.loadInstalledApps()
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        return when (keyCode) {
+            // Nhận tín hiệu xoay núm Mazda
+            KeyEvent.KEYCODE_DPAD_RIGHT,
+            KeyEvent.KEYCODE_DPAD_DOWN,
+            KeyEvent.KEYCODE_DPAD_LEFT,
+            KeyEvent.KEYCODE_DPAD_UP,
+            KeyEvent.KEYCODE_DPAD_CENTER,
+            KeyEvent.KEYCODE_ENTER -> {
+                // Để hệ thống tự động di chuyển viền sáng vàng giữa các nút trên Dock và App Drawer
+                super.onKeyDown(keyCode, event)
+            }
+            // Nút Back vật lý cạnh núm xoay
+            KeyEvent.KEYCODE_BACK -> {
+                onBackPressedDispatcher.onBackPressed()
+                true
+            }
+            else -> super.onKeyDown(keyCode, event)
+        }
     }
 }
