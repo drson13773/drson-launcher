@@ -21,6 +21,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
@@ -58,7 +59,10 @@ class MainActivity : ComponentActivity() {
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) {
+    ) { permissions ->
+        if (permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
+            viewModel.initGpsSpeedListener()
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             try {
                 val intent = Intent(
@@ -160,39 +164,31 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setupScreenInteractions() {
-        // Nút mở Danh sách ứng dụng toàn màn hình dạng lưới 6 cột
         findViewById<View>(R.id.btnMainMenu)?.setOnClickListener {
             showFullAppDrawerDialog()
         }
 
-        // Mở Dr Sơn Music
         findViewById<View>(R.id.btnDrSonMusic)?.setOnClickListener {
             val intent = Intent(this, PureMusicActivity::class.java)
             startActivity(intent)
         }
 
-        // Bấm vào Logo để mở Dr Sơn Music
         findViewById<View>(R.id.imgBrandLogo)?.setOnClickListener {
             val intent = Intent(this, PureMusicActivity::class.java)
             startActivity(intent)
         }
 
-        // Nhấn giữ Widget Logo / Đồng hồ -> Menu cài đặt Launcher
         findViewById<View>(R.id.brandClockContainer)?.setOnLongClickListener {
             showLauncherSettingsDialog()
             true
         }
 
-        // Nhấn giữ Dock -> Chế độ chỉnh sửa ô trống (+)
         findViewById<View>(R.id.bottomDockCard)?.setOnLongClickListener {
             toggleEditMode()
             true
         }
     }
 
-    /**
-     * Mở giao diện danh sách toàn bộ ứng dụng dạng lưới 6 CỘT
-     */
     private fun showFullAppDrawerDialog() {
         val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -206,7 +202,6 @@ class MainActivity : ComponentActivity() {
         val rvGrid = dialog.findViewById<RecyclerView>(R.id.rvAppDrawerGrid)
         val btnClose = dialog.findViewById<ImageView>(R.id.btnAppDrawerClose)
 
-        // THIẾT LẬP LƯỚI 6 CỘT
         rvGrid.layoutManager = GridLayoutManager(this, 6)
         rvGrid.adapter = AppDrawerAdapter(viewModel.apps) { app ->
             dialog.dismiss()
@@ -245,11 +240,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setupComposeViews() {
+        // ĐỒNG BỘ TỐC ĐỘ VÀO NỀN ĐƯỜNG CHẠY VÀ CÂY CỐI
         findViewById<ComposeView>(R.id.composeRoadBackground)?.setContent {
-            DrivingRoadBackground()
+            val speed by viewModel.currentSpeed
+            DrivingRoadBackground(speedKmH = speed)
         }
+        
+        // ĐỒNG BỘ VÀO ĐỒNG HỒ TỐC ĐỘ GPS
         findViewById<ComposeView>(R.id.composeSpeedometer)?.setContent {
-            CircularLuxurySpeedometer()
+            val speed by viewModel.currentSpeed
+            CircularLuxurySpeedometer(speedKmH = speed)
         }
     }
 
@@ -274,6 +274,8 @@ class MainActivity : ComponentActivity() {
         }
         if (missing.isNotEmpty()) {
             permissionLauncher.launch(missing.toTypedArray())
+        } else {
+            viewModel.initGpsSpeedListener()
         }
     }
 
