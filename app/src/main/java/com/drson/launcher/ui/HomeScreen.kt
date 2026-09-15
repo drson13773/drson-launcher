@@ -118,15 +118,14 @@ fun HomeScreen(
                 )
             }
     ) {
-        // Nền 3D Mazda CX-5 và thành phố
+        // Nền nguyên bản
         DrivingRoadBackground()
 
-        // Lớp nội dung xếp tầng chuẩn xác
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // TẦNG TRÊN CÙNG: Đồng hồ/Logo (trái) + App Desktop (phải)
+            // TẦNG TRÊN: Logo/Giờ (Trái) & App Slots (Phải)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -173,7 +172,7 @@ fun HomeScreen(
                 }
             }
 
-            // TẦNG GIỮA DƯỚI: Widget Tốc độ GPS góc dưới bên trái
+            // TẦNG GIỮA DƯỚI: Tốc độ xe (Trái)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -184,7 +183,7 @@ fun HomeScreen(
                 SpeedometerWidget()
             }
 
-            // TẦNG ĐÁY: Thanh Dock 64dp cố định hoàn toàn
+            // TẦNG ĐÁY: Thanh Dock 64dp
             BottomDock(
                 viewModel = viewModel,
                 isEditMode = isEditMode,
@@ -462,7 +461,6 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu chính
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -485,7 +483,6 @@ private fun BottomDock(
             )
         }
 
-        // 4 ô ứng dụng trên Dock
         viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
@@ -503,7 +500,6 @@ private fun BottomDock(
 
         Spacer(Modifier.width(6.dp))
 
-        // Trình phát nhạc & Âm lượng kéo dài
         ExpandedNowPlayingBar(
             modifier = Modifier
                 .weight(1f)
