@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -30,41 +31,51 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = LinearEasing),
+            animation = tween(1100, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "road_offset"
     )
 
-    // 2. Hiệu ứng nhấp nháy đèn cửa sổ các tòa nhà theo nhiều chu kỳ khác nhau
-    val blink1 by infiniteTransition.animateFloat(
-        initialValue = 0.25f,
+    // 2. Hiệu ứng nháy đèn các tòa nhà: TỐC ĐỘ NHANH & ĐỘ TƯƠNG PHẢN CỰC RÕ (450ms - 800ms)
+    val fastBlink1 by infiniteTransition.animateFloat(
+        initialValue = 0.05f,
         targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = FastOutSlowInEasing),
+            animation = tween(480, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "blink_1"
+        label = "fast_blink_1"
     )
 
-    val blink2 by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 0.2f,
+    val fastBlink2 by infiniteTransition.animateFloat(
+        initialValue = 0.95f,
+        targetValue = 0.05f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2100, easing = FastOutSlowInEasing),
+            animation = tween(650, easing = FastOutLinearInEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "blink_2"
+        label = "fast_blink_2"
     )
 
-    val blink3 by infiniteTransition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 0.95f,
+    val fastBlink3 by infiniteTransition.animateFloat(
+        initialValue = 0.10f,
+        targetValue = 1.0f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1750, easing = LinearEasing),
+            animation = tween(780, easing = LinearOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "blink_3"
+        label = "fast_blink_3"
+    )
+
+    val fastBlink4 by infiniteTransition.animateFloat(
+        initialValue = 0.0f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(400, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "fast_blink_4"
     )
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -84,7 +95,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 size = size
             )
 
-            // DÃY TÒA NHÀ & CỬA SỔ NHẤP NHÁY ĐÈN
+            // DÃY TÒA NHÀ & CỬA SỔ NHẤP NHÁY ĐÈN SẮC NÉT
             val horizonY = h * 0.44f
             val buildingConfigs = listOf(
                 Triple(w * 0.08f, 75f, 110f),
@@ -104,47 +115,54 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 val topY = horizonY - bHeight
                 // Thân tòa nhà
                 drawRect(
-                    color = Color(0xFF0F0E0C),
+                    color = Color(0xFF0C0B0A),
                     topLeft = Offset(startX, topY),
-                    size = androidx.compose.ui.geometry.Size(bWidth, bHeight)
+                    size = Size(bWidth, bHeight)
                 )
 
-                // Viền trên nhẹ
+                // Viền cạnh trên tòa nhà
                 drawLine(
-                    color = Color(0xFF26221B),
+                    color = Color(0xFF332D23),
                     start = Offset(startX, topY),
                     end = Offset(startX + bWidth, topY),
-                    strokeWidth = 1.5f
+                    strokeWidth = 1.8f
                 )
 
-                // Vẽ các ô cửa sổ có đèn nhấp nháy
+                // Vẽ các ô cửa sổ đèn nhấp nháy
                 val cols = 4
-                val rows = (bHeight / 16f).toInt().coerceAtLeast(3)
+                val rows = (bHeight / 15f).toInt().coerceAtLeast(3)
                 val padX = bWidth / (cols + 1)
                 val padY = bHeight / (rows + 1)
 
                 for (r in 1..rows) {
                     for (c in 1..cols) {
-                        val winX = startX + c * padX - 2.5f
-                        val winY = topY + r * padY - 2.5f
+                        val winX = startX + c * padX - 3f
+                        val winY = topY + r * padY - 3f
 
-                        val blinkFactor = when ((bIndex * 7 + r * 3 + c) % 3) {
-                            0 -> blink1
-                            1 -> blink2
-                            else -> blink3
+                        val blinkFactor = when ((bIndex * 11 + r * 5 + c * 3) % 4) {
+                            0 -> fastBlink1
+                            1 -> fastBlink2
+                            2 -> fastBlink3
+                            else -> fastBlink4
                         }
 
-                        val isYellowLight = ((bIndex + r + c) % 5) != 0
-                        val winColor = if (isYellowLight) {
-                            GOLD_ACCENT.copy(alpha = 0.35f + 0.65f * blinkFactor)
-                        } else {
-                            GOLD_BRIGHT.copy(alpha = 0.2f + 0.75f * blinkFactor)
+                        val isYellowLight = ((bIndex + r + c) % 4) != 0
+                        val baseColor = if (isYellowLight) GOLD_ACCENT else GOLD_BRIGHT
+
+                        // 1. Vầng sáng tỏa ra (Glow) quanh ô cửa sổ
+                        if (blinkFactor > 0.45f) {
+                            drawRect(
+                                color = baseColor.copy(alpha = 0.25f * blinkFactor),
+                                topLeft = Offset(winX - 1.5f, winY - 1.5f),
+                                size = Size(9f, 9f)
+                            )
                         }
 
+                        // 2. Tâm bóng đèn sáng rực
                         drawRect(
-                            color = winColor,
+                            color = baseColor.copy(alpha = (0.15f + 0.85f * blinkFactor).coerceIn(0f, 1f)),
                             topLeft = Offset(winX, winY),
-                            size = androidx.compose.ui.geometry.Size(5f, 5f)
+                            size = Size(6f, 6f)
                         )
                     }
                 }
@@ -174,36 +192,36 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
 
             // Vạch mép đường màu vàng kim
             drawLine(
-                color = GOLD_ACCENT.copy(alpha = 0.7f),
+                color = GOLD_ACCENT.copy(alpha = 0.75f),
                 start = Offset((w - roadTopW) / 2f, horizonY),
                 end = Offset((w - roadBottomW) / 2f, bottomY),
                 strokeWidth = 3f
             )
             drawLine(
-                color = GOLD_ACCENT.copy(alpha = 0.7f),
+                color = GOLD_ACCENT.copy(alpha = 0.75f),
                 start = Offset((w + roadTopW) / 2f, horizonY),
                 end = Offset((w + roadBottomW) / 2f, bottomY),
                 strokeWidth = 3f
             )
 
-            // Vạch kẻ đường giữa làn di chuyển liên tục
+            // Vạch kẻ giữa làn đường di chuyển
             val centerX = w / 2f
             val totalDashes = 7
             for (i in 0..totalDashes) {
                 val progress = ((i.toFloat() + roadOffset) % totalDashes) / totalDashes.toFloat()
-                val dashY = horizonY + (bottomY - horizonY) * (progress * progress) // Phối cảnh xa gần 3D
+                val dashY = horizonY + (bottomY - horizonY) * (progress * progress)
                 val dashH = 10f + 32f * progress
                 val dashW = 2.5f + 5f * progress
 
                 drawRect(
                     color = ROAD_MARKING.copy(alpha = 0.3f + 0.7f * progress),
                     topLeft = Offset(centerX - dashW / 2f, dashY),
-                    size = androidx.compose.ui.geometry.Size(dashW, dashH)
+                    size = Size(dashW, dashH)
                 )
             }
         }
 
-        // HÌNH ẢNH XE MAZDA CX-5 ĐỎ ĐẶT Ở GIỮA ĐƯỜNG
+        // HÌNH ẢNH XE MAZDA CX-5 ĐỎ Ở GIỮA ĐƯỜNG
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
