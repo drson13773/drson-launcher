@@ -1,13 +1,13 @@
 package com.drson.launcher.ui
 
 import android.app.Application
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.Typeface
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -40,11 +40,12 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         apps.clear()
 
-        // 1. Thêm Ứng dụng Điện thoại Batman Gold Custom
+        // 1. Thêm Ứng dụng Điện thoại (Dùng icon_phone_gold.png)
         val phoneIcon = loadDrawableBitmap(R.drawable.icon_phone_gold) ?: createPhoneGoldFallbackBitmap()
         apps.add(
             AppItem(
                 packageName = "com.drson.launcher.dialer",
+                activityClassName = DialerActivity::class.java.name,
                 label = "Điện thoại",
                 icon = phoneIcon
             )
@@ -55,19 +56,28 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         apps.add(
             AppItem(
                 packageName = "com.drson.launcher.music",
+                activityClassName = DrSonMusicActivity::class.java.name,
                 label = "Dr. Sơn Music",
                 icon = musicIcon
             )
         )
 
-        // 3. Thêm các ứng dụng được cài đặt trên hệ thống Zestech
+        // 3. Thêm các ứng dụng cài đặt trên màn hình Android
         for (info in resolveInfos) {
             val pkg = info.activityInfo.packageName
             if (pkg == getApplication<Application>().packageName) continue
+            val actName = info.activityInfo.name ?: ""
             val label = info.loadLabel(pm).toString()
             val drawable = info.loadIcon(pm)
             val bitmap = drawable.toBitmap(128, 128, Bitmap.Config.ARGB_8888).asImageBitmap()
-            apps.add(AppItem(packageName = pkg, label = label, icon = bitmap))
+            apps.add(
+                AppItem(
+                    packageName = pkg,
+                    activityClassName = actName,
+                    label = label,
+                    icon = bitmap
+                )
+            )
         }
     }
 
@@ -75,21 +85,21 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         homeSlots.clear()
         dockSlots.clear()
 
-        // Mặc định Dock gán app Điện thoại ở ô số 1
+        // Gán sẵn Dock: Ô 1 Điện thoại, Ô 2 Music
         dockSlots.add("com.drson.launcher.dialer")
         dockSlots.add("com.drson.launcher.music")
         dockSlots.add(null)
         dockSlots.add(null)
 
-        // Các slot desktop trên màn hình chính
-        val availableApps = apps.filter { 
-            it.packageName != "com.drson.launcher.dialer" && it.packageName != "com.drson.launcher.music" 
+        // Các slot trên Desktop
+        val availableApps = apps.filter {
+            it.packageName != "com.drson.launcher.dialer" && it.packageName != "com.drson.launcher.music"
         }
         for (i in 0 until 6) {
             if (i < availableApps.size) {
                 homeSlots.add(HomeSlotContent.App(availableApps[i].packageName))
             } else {
-                homeSlots.add(HomeSlotContent.Empty)
+                homeSlots.add(HomeSlotContent.None)
             }
         }
     }
@@ -114,10 +124,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 context.startActivity(intent)
             }
             else -> {
-                val intent = context.packageManager.getLaunchIntentForPackage(app.packageName)
-                if (intent != null) {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    context.startActivity(intent)
+                if (app.activityClassName.isNotBlank()) {
+                    val intent = Intent().apply {
+                        component = ComponentName(app.packageName, app.activityClassName)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    try {
+                        context.startActivity(intent)
+                        return
+                    } catch (_: Exception) {}
+                }
+                val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
+                if (launchIntent != null) {
+                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    context.startActivity(launchIntent)
                 }
             }
         }
