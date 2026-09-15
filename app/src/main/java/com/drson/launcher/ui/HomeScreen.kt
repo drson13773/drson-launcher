@@ -118,14 +118,14 @@ fun HomeScreen(
                 )
             }
     ) {
-        // Nền nguyên bản
+        // Nền đường lái xe 3D
         DrivingRoadBackground()
 
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // TẦNG TRÊN: Logo/Giờ (Trái) & App Slots (Phải)
+            // TẦNG TRÊN: Logo Dr Sơn không viền + Đồng hồ (Trái) & Ứng dụng Desktop (Phải)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -172,7 +172,7 @@ fun HomeScreen(
                 }
             }
 
-            // TẦNG GIỮA DƯỚI: Tốc độ xe (Trái)
+            // TẦNG GIỮA DƯỚI: Đồng hồ đo tốc độ GPS
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -183,7 +183,7 @@ fun HomeScreen(
                 SpeedometerWidget()
             }
 
-            // TẦNG ĐÁY: Thanh Dock 64dp
+            // TẦNG ĐÁY: Thanh Dock cố định
             BottomDock(
                 viewModel = viewModel,
                 isEditMode = isEditMode,
@@ -461,6 +461,7 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // Nút Menu chính sử dụng ic_launcher.png (Logo Dr Sơn có viền tròn vàng)
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -472,17 +473,18 @@ private fun BottomDock(
                     else Modifier.border(1.dp, GOLD_BRIGHT.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
                 )
                 .clickable(onClick = onOpenMenu)
-                .padding(4.dp),
+                .padding(2.dp),
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(id = R.drawable.icon_menu_brand),
+                painter = painterResource(id = R.drawable.ic_launcher),
                 contentDescription = "Menu ứng dụng",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit
             )
         }
 
+        // 4 ô ứng dụng trên Dock
         viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
@@ -500,6 +502,7 @@ private fun BottomDock(
 
         Spacer(Modifier.width(6.dp))
 
+        // Trình phát nhạc & Âm lượng kéo dài
         ExpandedNowPlayingBar(
             modifier = Modifier
                 .weight(1f)
