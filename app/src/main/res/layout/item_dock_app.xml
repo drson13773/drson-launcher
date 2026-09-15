@@ -1,14 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="52dp"
-    android:layout_height="52dp"
-    android:layout_marginEnd="6dp"
-    android:padding="4dp">
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    android:layout_marginEnd="8dp"
+    android:clickable="true"
+    android:focusable="true">
 
+    <!-- Khung viền nền cho ô Dock -->
+    <View
+        android:id="@+id/dockItemBg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:drawable/dialog_holo_dark_frame" />
+
+    <!-- Icon ứng dụng khi đã ghim -->
     <ImageView
         android:id="@+id/imgAppIcon"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:padding="4dp"
         android:scaleType="fitCenter"
+        android:contentDescription="@null" />
+
+    <!-- Biểu tượng dấu cộng vàng khi ô còn trống -->
+    <ImageView
+        android:id="@+id/imgAddIcon"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:layout_gravity="center"
+        android:src="@android:drawable/ic_input_add"
+        android:tint="#D4AF37"
+        android:visibility="gone"
         android:contentDescription="@null" />
 </FrameLayout>
