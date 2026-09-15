@@ -20,23 +20,21 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 
-private val SKY_TOP = Color(0xFF14120F)
-private val SKY_BOTTOM = Color(0xFF2C251C)
-private val ROAD_DARK = Color(0xFF1E1C1A)
+private val SKY_TOP = Color(0xFF100E0C)
+private val SKY_BOTTOM = Color(0xFF262018)
+private val ROAD_COLOR = Color(0xFF1C1A17)
 private val ROAD_EDGE = Color(0xFFD4AF37).copy(alpha = 0.5f)
-private val ROAD_LANE = Color(0xFFFFF0B8).copy(alpha = 0.8f)
+private val ROAD_LANE = Color(0xFFFFF0B8).copy(alpha = 0.85f)
 
-// Bảng màu Mazda CX-5 Soul Red Crystal đa tầng
-private val RED_HIGHLIGHT = Color(0xFFE5242D)
-private val RED_MAIN = Color(0xFFB8141B)
-private val RED_DARK = Color(0xFF6B0B10)
-private val RED_SHADOW = Color(0xFF420508)
-private val BUMPER_BLACK = Color(0xFF181716)
-private val GLASS_GRADIENT_TOP = Color(0xFF0D1217)
-private val GLASS_GRADIENT_BOTTOM = Color(0xFF1D2833)
-private val TAIL_LIGHT_ON = Color(0xFFFF1B25)
-private val TAIL_LIGHT_DARK = Color(0xFF7A050A)
-private val CHROME_GOLD = Color(0xFFFFF0B8)
+// Màu sắc Mazda CX-5 Soul Red Crystal đa tầng
+private val CX5_RED_LIGHT = Color(0xFFDC242C)
+private val CX5_RED_MAIN = Color(0xFFB31219)
+private val CX5_RED_DARK = Color(0xFF6E0A0F)
+private val CX5_RED_DEEP = Color(0xFF450508)
+private val CX5_GLASS_TOP = Color(0xFF0F151B)
+private val CX5_GLASS_BOT = Color(0xFF202C38)
+private val CX5_TAILLIGHT = Color(0xFFFF1E27)
+private val CX5_TAILLIGHT_INNER = Color(0xFF78080E)
 
 @Composable
 fun DrivingRoadBackground(modifier: Modifier = Modifier) {
@@ -56,247 +54,268 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(SKY_TOP, SKY_BOTTOM)))
     ) {
-        // 1. Phối cảnh đường chạy 3D
+        // 1. Toàn bộ nền: Dãy tòa nhà thành phố + Mặt đường 3D chuyển động
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
-            val horizonY = h * 0.44f
+            val horizonY = h * 0.45f
 
+            // A. Dãy tòa nhà thành phố với các ô cửa sổ sáng đèn (Skyline ban đêm)
+            drawCitySkyline(w, horizonY)
+
+            // B. Mặt đường 3D
             val roadPath = Path().apply {
-                moveTo(w * 0.45f, horizonY)
-                lineTo(w * 0.55f, horizonY)
-                lineTo(w * 0.82f, h)
-                lineTo(w * 0.18f, h)
+                moveTo(w * 0.44f, horizonY)
+                lineTo(w * 0.56f, horizonY)
+                lineTo(w * 0.84f, h)
+                lineTo(w * 0.16f, h)
                 close()
             }
             drawPath(
                 path = roadPath,
                 brush = Brush.verticalGradient(
-                    colors = listOf(ROAD_DARK.copy(alpha = 0.85f), ROAD_DARK),
+                    colors = listOf(ROAD_COLOR.copy(alpha = 0.9f), ROAD_COLOR),
                     startY = horizonY,
                     endY = h
                 )
             )
 
+            // Viền vàng 2 bên làn đường
             drawLine(
                 color = ROAD_EDGE,
-                start = Offset(w * 0.45f, horizonY),
-                end = Offset(w * 0.18f, h),
+                start = Offset(w * 0.44f, horizonY),
+                end = Offset(w * 0.16f, h),
                 strokeWidth = 3f
             )
             drawLine(
                 color = ROAD_EDGE,
-                start = Offset(w * 0.55f, horizonY),
-                end = Offset(w * 0.82f, h),
+                start = Offset(w * 0.56f, horizonY),
+                end = Offset(w * 0.84f, h),
                 strokeWidth = 3f
             )
 
+            // Vạch kẻ đứt tim đường chuyển động
             val laneCount = 5
             for (i in 0..laneCount) {
                 val progress = (i.toFloat() / laneCount + laneOffset * (1f / laneCount)) % 1f
                 val startY = horizonY + (h - horizonY) * (progress * progress)
-                val endY = startY + 28f * (progress + 0.3f)
+                val endY = startY + 30f * (progress + 0.35f)
                 if (endY <= h) {
                     drawLine(
                         color = ROAD_LANE,
                         start = Offset(w * 0.5f, startY),
                         end = Offset(w * 0.5f, endY),
-                        strokeWidth = 4f + progress * 6f
+                        strokeWidth = 4f + progress * 7f
                     )
                 }
             }
         }
 
-        // 2. Mazda CX-5 Vector chi tiết cao (khoảng cách cân đối, sắc nét)
+        // 2. Xe Mazda CX-5 nguyên bản sắc nét, vị trí hạ xuống 1/2 khoảng cách tới Dock
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 110.dp)
-                .width(360.dp)
-                .height(230.dp)
+                .padding(bottom = 76.dp) // Vị trí hạ thấp cân đối sát ngay trên Dock 64dp
+                .width(330.dp)
+                .height(215.dp)
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
-                drawDetailedMazdaCX5()
+                drawOriginalDetailedMazda()
             }
         }
     }
 }
 
-private fun DrawScope.drawDetailedMazdaCX5() {
+// Vẽ dãy tòa nhà thành phố với cửa sổ vàng
+private fun DrawScope.drawCitySkyline(w: Float, horizonY: Float) {
+    val buildingColor = Color(0xFF0A0908)
+    val windowColor = Color(0xFFFFD700).copy(alpha = 0.75f)
+
+    val buildings = listOf(
+        Triple(0.08f, 0.08f, 50f),
+        Triple(0.18f, 0.09f, 75f),
+        Triple(0.28f, 0.07f, 60f),
+        Triple(0.38f, 0.06f, 45f),
+        Triple(0.48f, 0.10f, 85f),
+        Triple(0.60f, 0.07f, 55f),
+        Triple(0.70f, 0.09f, 70f),
+        Triple(0.82f, 0.08f, 65f),
+        Triple(0.91f, 0.07f, 40f)
+    )
+
+    for ((leftRatio, widthRatio, bHeight) in buildings) {
+        val bLeft = w * leftRatio
+        val bWidth = w * widthRatio
+        val bTop = horizonY - bHeight
+
+        // Khối tòa nhà đen
+        drawRect(
+            color = buildingColor,
+            topLeft = Offset(bLeft, bTop),
+            size = Size(bWidth, bHeight)
+        )
+
+        // Các ô cửa sổ sáng đèn
+        var winY = bTop + 8f
+        while (winY < horizonY - 10f) {
+            var winX = bLeft + 6f
+            while (winX < bLeft + bWidth - 8f) {
+                if (((winX + winY).toInt() % 3) != 0) {
+                    drawRect(
+                        color = windowColor,
+                        topLeft = Offset(winX, winY),
+                        size = Size(5f, 4f)
+                    )
+                }
+                winX += 10f
+            }
+            winY += 12f
+        }
+    }
+}
+
+// Vẽ Mazda CX-5 nguyên bản chuẩn tỉ lệ và sắc nét
+private fun DrawScope.drawOriginalDetailedMazda() {
     val w = size.width
     val h = size.height
 
-    // Đổ bóng thực tế gầm xe
+    // 1. Bóng gầm xe
     drawOval(
         brush = Brush.radialGradient(
-            colors = listOf(Color.Black.copy(alpha = 0.85f), Color.Transparent),
+            colors = listOf(Color.Black.copy(alpha = 0.8f), Color.Transparent),
             center = Offset(w * 0.5f, h * 0.88f),
-            radius = w * 0.48f
+            radius = w * 0.46f
         ),
-        topLeft = Offset(w * 0.05f, h * 0.78f),
-        size = Size(w * 0.90f, h * 0.20f)
+        topLeft = Offset(w * 0.08f, h * 0.78f),
+        size = Size(w * 0.84f, h * 0.20f)
     )
 
-    // Bánh lốp sau (Gai lốp thể thao rộng)
+    // 2. Hai bánh lốp sau
     drawRoundRect(
-        color = Color(0xFF111111),
-        topLeft = Offset(w * 0.12f, h * 0.62f),
-        size = Size(w * 0.14f, h * 0.28f),
-        cornerRadius = CornerRadius(12f, 12f)
+        color = Color(0xFF141414),
+        topLeft = Offset(w * 0.14f, h * 0.62f),
+        size = Size(w * 0.12f, h * 0.26f),
+        cornerRadius = CornerRadius(10f, 10f)
     )
     drawRoundRect(
-        color = Color(0xFF111111),
+        color = Color(0xFF141414),
         topLeft = Offset(w * 0.74f, h * 0.62f),
-        size = Size(w * 0.14f, h * 0.28f),
-        cornerRadius = CornerRadius(12f, 12f)
+        size = Size(w * 0.12f, h * 0.26f),
+        cornerRadius = CornerRadius(10f, 10f)
     )
 
-    // Cản sau & ốp gầm nhựa sần thể thao (Rear Diffuser)
-    val diffuserPath = Path().apply {
-        moveTo(w * 0.14f, h * 0.78f)
-        lineTo(w * 0.18f, h * 0.65f)
-        lineTo(w * 0.82f, h * 0.65f)
-        lineTo(w * 0.86f, h * 0.78f)
-        lineTo(w * 0.82f, h * 0.86f)
-        lineTo(w * 0.18f, h * 0.86f)
+    // 3. Cản sau thể thao (Rear Bumper Diffuser)
+    val bumperPath = Path().apply {
+        moveTo(w * 0.16f, h * 0.74f)
+        lineTo(w * 0.20f, h * 0.66f)
+        lineTo(w * 0.80f, h * 0.66f)
+        lineTo(w * 0.84f, h * 0.74f)
+        lineTo(w * 0.80f, h * 0.84f)
+        lineTo(w * 0.20f, h * 0.84f)
         close()
     }
-    drawPath(diffuserPath, color = BUMPER_BLACK)
+    drawPath(bumperPath, color = Color(0xFF181716))
 
-    // Ống xả đôi Chrome đối xứng hai bên
-    drawCircle(color = Color(0xFFAAAAAA), radius = 8f, center = Offset(w * 0.23f, h * 0.82f))
-    drawCircle(color = Color(0xFF000000), radius = 5.5f, center = Offset(w * 0.23f, h * 0.82f))
+    // 4. Ống xả kép mạ chrome
+    drawCircle(color = Color(0xFFA0A0A0), radius = 7.5f, center = Offset(w * 0.24f, h * 0.80f))
+    drawCircle(color = Color(0xFF000000), radius = 5f, center = Offset(w * 0.24f, h * 0.80f))
+    drawCircle(color = Color(0xFFA0A0A0), radius = 7.5f, center = Offset(w * 0.76f, h * 0.80f))
+    drawCircle(color = Color(0xFF000000), radius = 5f, center = Offset(w * 0.76f, h * 0.80f))
 
-    drawCircle(color = Color(0xFFAAAAAA), radius = 8f, center = Offset(w * 0.77f, h * 0.82f))
-    drawCircle(color = Color(0xFF000000), radius = 5.5f, center = Offset(w * 0.77f, h * 0.82f))
-
-    // Thân xe chính (Soul Red Crystal Dynamic Body)
+    // 5. Thân xe Mazda Soul Red
     val bodyPath = Path().apply {
-        moveTo(w * 0.15f, h * 0.66f)
-        cubicTo(w * 0.11f, h * 0.50f, w * 0.13f, h * 0.38f, w * 0.24f, h * 0.34f)
-        lineTo(w * 0.76f, h * 0.34f)
-        cubicTo(w * 0.87f, h * 0.38f, w * 0.89f, h * 0.50f, w * 0.85f, h * 0.66f)
-        lineTo(w * 0.82f, h * 0.76f)
-        lineTo(w * 0.18f, h * 0.76f)
+        moveTo(w * 0.17f, h * 0.64f)
+        cubicTo(w * 0.13f, h * 0.48f, w * 0.15f, h * 0.36f, w * 0.25f, h * 0.32f)
+        lineTo(w * 0.75f, h * 0.32f)
+        cubicTo(w * 0.85f, h * 0.36f, w * 0.87f, h * 0.48f, w * 0.83f, h * 0.64f)
+        lineTo(w * 0.80f, h * 0.74f)
+        lineTo(w * 0.20f, h * 0.74f)
         close()
     }
     drawPath(
         path = bodyPath,
-        brush = Brush.verticalGradient(
-            listOf(RED_HIGHLIGHT, RED_MAIN, RED_DARK, RED_SHADOW)
-        )
+        brush = Brush.verticalGradient(listOf(CX5_RED_LIGHT, CX5_RED_MAIN, CX5_RED_DARK, CX5_RED_DEEP))
     )
 
-    // Cột C & Kính sau khí động học (Aerodynamic Rear Window)
+    // 6. Kính hậu (Rear Windshield)
     val glassPath = Path().apply {
-        moveTo(w * 0.27f, h * 0.34f)
-        cubicTo(w * 0.30f, h * 0.20f, w * 0.33f, h * 0.14f, w * 0.37f, h * 0.13f)
-        lineTo(w * 0.63f, h * 0.13f)
-        cubicTo(w * 0.67f, h * 0.20f, w * 0.70f, h * 0.20f, w * 0.73f, h * 0.34f)
+        moveTo(w * 0.28f, h * 0.32f)
+        cubicTo(w * 0.31f, h * 0.20f, w * 0.34f, h * 0.14f, w * 0.38f, h * 0.13f)
+        lineTo(w * 0.62f, h * 0.13f)
+        cubicTo(w * 0.66f, h * 0.20f, w * 0.69f, h * 0.20f, w * 0.72f, h * 0.32f)
         close()
     }
     drawPath(
         path = glassPath,
-        brush = Brush.verticalGradient(listOf(GLASS_GRADIENT_TOP, GLASS_GRADIENT_BOTTOM))
+        brush = Brush.verticalGradient(listOf(CX5_GLASS_TOP, CX5_GLASS_BOT))
     )
 
-    // Cánh gió mui xe (Roof Spoiler) + Đèn phanh trên cao
+    // 7. Cánh lướt gió đuôi (Spoiler)
     val spoilerPath = Path().apply {
-        moveTo(w * 0.34f, h * 0.12f)
-        lineTo(w * 0.66f, h * 0.12f)
-        lineTo(w * 0.64f, h * 0.15f)
-        lineTo(w * 0.36f, h * 0.15f)
+        moveTo(w * 0.35f, h * 0.12f)
+        lineTo(w * 0.65f, h * 0.12f)
+        lineTo(w * 0.63f, h * 0.15f)
+        lineTo(w * 0.37f, h * 0.15f)
         close()
     }
-    drawPath(spoilerPath, color = RED_DARK)
+    drawPath(spoilerPath, color = CX5_RED_DARK)
     drawLine(
         color = Color(0xFFFF2222),
-        start = Offset(w * 0.45f, h * 0.14f),
-        end = Offset(w * 0.55f, h * 0.14f),
-        strokeWidth = 3f
+        start = Offset(w * 0.46f, h * 0.135f),
+        end = Offset(w * 0.54f, h * 0.135f),
+        strokeWidth = 2.5f
     )
 
-    // Gương chiếu hậu 2 bên (Side Mirrors)
-    drawRoundRect(
-        brush = Brush.horizontalGradient(listOf(RED_DARK, RED_MAIN)),
-        topLeft = Offset(w * 0.08f, h * 0.38f),
-        size = Size(w * 0.11f, h * 0.08f),
-        cornerRadius = CornerRadius(8f, 8f)
-    )
-    drawRoundRect(
-        brush = Brush.horizontalGradient(listOf(RED_MAIN, RED_DARK)),
-        topLeft = Offset(w * 0.81f, h * 0.38f),
-        size = Size(w * 0.11f, h * 0.08f),
-        cornerRadius = CornerRadius(8f, 8f)
-    )
-
-    // Cụm đèn hậu LED KODO sắc lẹm (Mazda KODO Signature Taillights)
-    val leftTaillight = Path().apply {
-        moveTo(w * 0.14f, h * 0.44f)
-        lineTo(w * 0.37f, h * 0.46f)
-        lineTo(w * 0.35f, h * 0.52f)
-        lineTo(w * 0.18f, h * 0.50f)
+    // 8. Cụm đèn hậu LED KODO
+    val leftLight = Path().apply {
+        moveTo(w * 0.16f, h * 0.42f)
+        lineTo(w * 0.37f, h * 0.44f)
+        lineTo(w * 0.35f, h * 0.50f)
+        lineTo(w * 0.19f, h * 0.48f)
         close()
     }
-    drawPath(
-        path = leftTaillight,
-        brush = Brush.horizontalGradient(listOf(TAIL_LIGHT_ON, TAIL_LIGHT_DARK))
-    )
+    drawPath(leftLight, brush = Brush.horizontalGradient(listOf(CX5_TAILLIGHT, CX5_TAILLIGHT_INNER)))
 
-    val rightTaillight = Path().apply {
-        moveTo(w * 0.86f, h * 0.44f)
-        lineTo(w * 0.63f, h * 0.46f)
-        lineTo(w * 0.65f, h * 0.52f)
-        lineTo(w * 0.82f, h * 0.50f)
+    val rightLight = Path().apply {
+        moveTo(w * 0.84f, h * 0.42f)
+        lineTo(w * 0.63f, h * 0.44f)
+        lineTo(w * 0.65f, h * 0.50f)
+        lineTo(w * 0.81f, h * 0.48f)
         close()
     }
-    drawPath(
-        path = rightTaillight,
-        brush = Brush.horizontalGradient(listOf(TAIL_LIGHT_DARK, TAIL_LIGHT_ON))
-    )
+    drawPath(rightLight, brush = Brush.horizontalGradient(listOf(CX5_TAILLIGHT_INNER, CX5_TAILLIGHT)))
 
-    // Dải Chrome nối cốp & Logo Mazda mạ Chrome Vàng/Bạc
-    drawCircle(color = CHROME_GOLD, radius = 13f, center = Offset(w * 0.5f, h * 0.46f))
-    drawCircle(color = RED_MAIN, radius = 9.5f, center = Offset(w * 0.5f, h * 0.46f))
+    // 9. Logo Mazda Chrome trung tâm
+    drawCircle(color = Color(0xFFFFF0B8), radius = 11f, center = Offset(w * 0.5f, h * 0.44f))
+    drawCircle(color = CX5_RED_MAIN, radius = 8f, center = Offset(w * 0.5f, h * 0.44f))
 
-    // Hốc gắn biển số cách điệu
-    val plateHolderPath = Path().apply {
-        moveTo(w * 0.36f, h * 0.56f)
-        lineTo(w * 0.64f, h * 0.56f)
-        lineTo(w * 0.62f, h * 0.70f)
-        lineTo(w * 0.38f, h * 0.70f)
-        close()
-    }
-    drawPath(plateHolderPath, color = RED_SHADOW)
-
-    // Biển số nền trắng viền đen
+    // 10. Biển số xe Mazda: 79A - 137.73
     drawRoundRect(
-        color = Color(0xFFF8F8F8),
-        topLeft = Offset(w * 0.39f, h * 0.58f),
-        size = Size(w * 0.22f, h * 0.10f),
+        color = Color(0xFFF6F6F6),
+        topLeft = Offset(w * 0.39f, h * 0.54f),
+        size = Size(w * 0.22f, h * 0.11f),
         cornerRadius = CornerRadius(5f, 5f)
     )
     drawRoundRect(
         color = Color(0xFF1E1E1E),
-        topLeft = Offset(w * 0.39f, h * 0.58f),
-        size = Size(w * 0.22f, h * 0.10f),
+        topLeft = Offset(w * 0.39f, h * 0.54f),
+        size = Size(w * 0.22f, h * 0.11f),
         cornerRadius = CornerRadius(5f, 5f),
-        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
     )
 
-    // Dập nổi số xe: 79A - 137.73
     drawIntoCanvas { canvas ->
         val paint = Paint().apply {
             color = android.graphics.Color.BLACK
-            textSize = 21f
+            textSize = 20f
             typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
             textAlign = Paint.Align.CENTER
             isAntiAlias = true
         }
-        canvas.nativeCanvas.drawText("79A - 137.73", w * 0.5f, h * 0.655f, paint)
+        canvas.nativeCanvas.drawText("79A - 137.73", w * 0.5f, h * 0.62f, paint)
     }
 
-    // Đèn phản quang đỏ phía dưới cản
-    drawRoundRect(color = Color(0xFFFF2222), topLeft = Offset(w * 0.20f, h * 0.72f), size = Size(w * 0.08f, 6f), cornerRadius = CornerRadius(3f, 3f))
-    drawRoundRect(color = Color(0xFFFF2222), topLeft = Offset(w * 0.72f, h * 0.72f), size = Size(w * 0.08f, 6f), cornerRadius = CornerRadius(3f, 3f))
+    // Đèn phản quang đỏ
+    drawRoundRect(color = Color(0xFFFF2222), topLeft = Offset(w * 0.21f, h * 0.70f), size = Size(w * 0.08f, 5f), cornerRadius = CornerRadius(2f, 2f))
+    drawRoundRect(color = Color(0xFFFF2222), topLeft = Offset(w * 0.71f, h * 0.70f), size = Size(w * 0.08f, 5f), cornerRadius = CornerRadius(2f, 2f))
 }
