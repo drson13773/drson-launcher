@@ -3,7 +3,6 @@
 package com.drson.launcher.ui
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Paint
@@ -61,7 +60,6 @@ import androidx.core.content.ContextCompat
 import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
 import kotlinx.coroutines.delay
-import java.lang.reflect.Method
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.cos
@@ -73,16 +71,6 @@ private val GOLD_ACCENT = Color(0xFFD4AF37)
 private val GOLD_MUTED = Color(0xFFC7A75C)
 private val DARK_CARD_BG = Color(0xFF14120E)
 
-@SuppressLint("WrongConstant")
-fun openNotificationPanel(context: Context) {
-    try {
-        val statusBarService = context.getSystemService("statusbar")
-        val statusBarManager = Class.forName("android.app.StatusBarManager")
-        val expandMethod: Method = statusBarManager.getMethod("expandNotificationsPanel")
-        expandMethod.invoke(statusBarService)
-    } catch (_: Exception) {}
-}
-
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -92,6 +80,7 @@ fun HomeScreen(
     var isEditMode by remember { mutableStateOf(false) }
     var isAppDrawerOpen by remember { mutableStateOf(false) }
     var isControlCenterOpen by remember { mutableStateOf(false) }
+    var isNotificationOpen by remember { mutableStateOf(false) }
     val initialFocusRequester = remember { FocusRequester() }
 
     val configuration = LocalConfiguration.current
@@ -118,10 +107,10 @@ fun HomeScreen(
                         dragStartY = offset.y
                     },
                     onVerticalDrag = { change, dragAmount ->
-                        // Chỉ kích hoạt khi điểm bắt đầu vuốt nằm ở 25% phía trên cùng màn hình
+                        // Chỉ kích hoạt khi bắt đầu vuốt từ vùng 25% phía trên
                         if (dragStartY < screenHeightPx * 0.25f && dragAmount > 20f) {
                             if (dragStartX < screenWidthPx / 2f) {
-                                openNotificationPanel(context)
+                                isNotificationOpen = true
                             } else {
                                 isControlCenterOpen = true
                             }
@@ -130,7 +119,7 @@ fun HomeScreen(
                 )
             }
     ) {
-        // 1. Phối cảnh đường chạy 3D và Mazda CX-5 tự thích ứng %
+        // 1. Phối cảnh đường chạy 3D và Mazda CX-5
         DrivingRoadBackground()
 
         // 2. Góc trên bên trái: Logo Dr Sơn + Đồng hồ vàng mềm mại in nghiêng
@@ -179,7 +168,13 @@ fun HomeScreen(
             }
         )
 
-        // 6. Trung tâm điều khiển
+        // 6. Cửa sổ Thông báo thu gọn ở NỬA TRÁI màn hình
+        NotificationPanelOverlay(
+            isOpen = isNotificationOpen,
+            onDismiss = { isNotificationOpen = false }
+        )
+
+        // 7. Trung tâm điều khiển ở NỬA PHẢI màn hình
         ControlCenterOverlay(
             isOpen = isControlCenterOpen,
             onDismiss = { isControlCenterOpen = false }
