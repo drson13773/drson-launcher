@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     android:background="@android:color/black">
 
-    <!-- 1. NỀN ĐƯỜNG CHẠY 3D VÀ XE MAZDA -->
+    <!-- 1. Nền đường chạy 3D và Mazda CX-5 -->
     <androidx.compose.ui.platform.ComposeView
         android:id="@+id/composeRoadBackground"
         android:layout_width="0dp"
@@ -16,7 +16,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 2. WIDGET ĐỒNG HỒ & LOGO GÓC TRÊN TRÁI -->
+    <!-- 2. Logo Dr. Sơn & Đồng hồ thời gian -->
     <LinearLayout
         android:id="@+id/brandClockContainer"
         android:layout_width="wrap_content"
@@ -45,7 +45,6 @@
                 android:id="@+id/tvClockTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="16:04"
                 android:textColor="#FFF0B8"
                 android:textSize="32sp"
                 android:textStyle="bold|italic" />
@@ -54,14 +53,13 @@
                 android:id="@+id/tvClockDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Thứ Ba, 15 thg 9"
                 android:textColor="#D4AF37"
                 android:textSize="13sp"
                 android:textStyle="italic" />
         </LinearLayout>
     </LinearLayout>
 
-    <!-- 3. ĐỒNG HỒ TỐC ĐỘ GÓC DƯỚI TRÁI -->
+    <!-- 3. Đồng hồ tốc độ GPS -->
     <androidx.compose.ui.platform.ComposeView
         android:id="@+id/composeSpeedometer"
         android:layout_width="135dp"
@@ -71,7 +69,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- 4. THANH DOCK ĐÁY MÀN HÌNH (DÙNG RECYCLERVIEW VỚI GRIDLAYOUTMANAGER) -->
+    <!-- 4. Thanh Dock đáy màn hình -->
     <androidx.cardview.widget.CardView
         android:id="@+id/bottomDockCard"
         android:layout_width="0dp"
@@ -94,31 +92,21 @@
             android:paddingStart="8dp"
             android:paddingEnd="8dp">
 
-            <!-- Nút Mở Menu chính -->
             <ImageView
                 android:id="@+id/btnMainMenu"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
                 android:src="@drawable/ic_launcher"
-                android:background="?attr/selectableItemBackgroundBorderless"
                 android:padding="3dp"
                 android:contentDescription="@null" />
 
-            <!-- Grid danh sách ứng dụng ghim nhanh trên Dock -->
+            <!-- RecyclerView sử dụng GridLayoutManager -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvDockApps"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
-                android:layout_marginStart="8dp"
-                android:orientation="horizontal" />
+                android:layout_marginStart="8dp" />
 
-            <!-- Khung phát nhạc bên phải -->
-            <androidx.compose.ui.platform.ComposeView
-                android:id="@+id/composeMusicBar"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:layout_marginStart="10dp" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
