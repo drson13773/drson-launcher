@@ -31,7 +31,7 @@ private val ROAD_MARKING = Color(0xFFE5C158)
 fun DrivingRoadBackground(modifier: Modifier = Modifier) {
     val infiniteTransition = rememberInfiniteTransition(label = "driving_sync_anim")
     
-    // Tốc độ giảm đi một nửa: Tăng thời gian từ 1600ms lên 3200ms
+    // Chu kỳ chuyển động chậm rãi, êm ái
     val roadProgress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
@@ -42,7 +42,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
         label = "road_progress"
     )
 
-    // Hiệu ứng đèn các tòa nhà nhấp nháy
+    // Hiệu ứng nhấp nháy đèn các tòa nhà
     val fastBlink1 by infiniteTransition.animateFloat(
         initialValue = 0.05f,
         targetValue = 1.0f,
@@ -68,15 +68,20 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
         val screenHeightPx = constraints.maxHeight.toFloat()
         val density = LocalDensity.current
 
-        // Tỷ lệ chuẩn gốc
-        val horizonY = screenHeightPx * 0.44f
+        // TÍNH TOÁN THEO % MÀN HÌNH THỰC TẾ
+        val horizonY = screenHeightPx * 0.42f
         val bottomY = screenHeightPx * 0.88f
-        val roadTopW = screenWidthPx * 0.16f
-        val roadBottomW = screenWidthPx * 0.82f
+        val roadTopW = screenWidthPx * 0.15f
+        val roadBottomW = screenWidthPx * 0.80f
         val centerX = screenWidthPx / 2f
 
+        // Kích thước xe và mặt trăng tự động co giãn theo % màn hình
+        val carWidthDp = with(density) { (screenWidthPx * 0.25f).toDp() }
+        val carHeightDp = with(density) { (screenHeightPx * 0.23f).toDp() }
+        val moonSizeDp = with(density) { (screenHeightPx * 0.13f).toDp() }
+
         Canvas(modifier = Modifier.fillMaxSize()) {
-            // 1. Bầu trời đêm
+            // 1. Nền bầu trời đêm
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
@@ -88,19 +93,22 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 size = size
             )
 
-            // 2. Dãy tòa nhà
+            // 2. Dãy tòa nhà tỉ lệ theo % màn hình
+            val bWidthBase = screenWidthPx * 0.075f
+            val bHeightBase = screenHeightPx * 0.22f
+
             val buildingConfigs = listOf(
-                Triple(screenWidthPx * 0.08f, 75f, 110f),
-                Triple(screenWidthPx * 0.16f, 65f, 140f),
-                Triple(screenWidthPx * 0.23f, 70f, 95f),
-                Triple(screenWidthPx * 0.30f, 60f, 130f),
-                Triple(screenWidthPx * 0.36f, 55f, 85f),
-                Triple(screenWidthPx * 0.45f, 90f, 150f),
-                Triple(screenWidthPx * 0.55f, 60f, 90f),
-                Triple(screenWidthPx * 0.62f, 65f, 135f),
-                Triple(screenWidthPx * 0.70f, 75f, 115f),
-                Triple(screenWidthPx * 0.78f, 70f, 145f),
-                Triple(screenWidthPx * 0.86f, 80f, 100f)
+                Triple(screenWidthPx * 0.04f, bWidthBase * 1.1f, bHeightBase * 0.9f),
+                Triple(screenWidthPx * 0.13f, bWidthBase * 0.9f, bHeightBase * 1.2f),
+                Triple(screenWidthPx * 0.21f, bWidthBase * 1.0f, bHeightBase * 0.8f),
+                Triple(screenWidthPx * 0.29f, bWidthBase * 0.85f, bHeightBase * 1.1f),
+                Triple(screenWidthPx * 0.36f, bWidthBase * 0.8f, bHeightBase * 0.7f),
+                Triple(screenWidthPx * 0.45f, bWidthBase * 1.3f, bHeightBase * 1.3f),
+                Triple(screenWidthPx * 0.56f, bWidthBase * 0.85f, bHeightBase * 0.75f),
+                Triple(screenWidthPx * 0.63f, bWidthBase * 0.95f, bHeightBase * 1.15f),
+                Triple(screenWidthPx * 0.71f, bWidthBase * 1.05f, bHeightBase * 0.95f),
+                Triple(screenWidthPx * 0.80f, bWidthBase * 1.0f, bHeightBase * 1.25f),
+                Triple(screenWidthPx * 0.88f, bWidthBase * 1.15f, bHeightBase * 0.85f)
             )
 
             buildingConfigs.forEachIndexed { bIndex, (startX, bWidth, bHeight) ->
@@ -119,7 +127,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 )
 
                 val cols = 4
-                val rows = (bHeight / 15f).toInt().coerceAtLeast(3)
+                val rows = (bHeight / (screenHeightPx * 0.035f)).toInt().coerceAtLeast(3)
                 val padX = bWidth / (cols + 1)
                 val padY = bHeight / (rows + 1)
 
@@ -134,7 +142,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                         drawRect(
                             color = baseColor.copy(alpha = (0.15f + 0.85f * blinkFactor).coerceIn(0f, 1f)),
                             topLeft = Offset(winX, winY),
-                            size = Size(6f, 6f)
+                            size = Size(screenHeightPx * 0.012f, screenHeightPx * 0.012f)
                         )
                     }
                 }
@@ -160,25 +168,25 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
 
             // Vạch mép đường vàng kim
             drawLine(
-                color = GOLD_ACCENT.copy(alpha = 0.75f),
+                color = GOLD_ACCENT.copy(alpha = 0.85f),
                 start = Offset((screenWidthPx - roadTopW) / 2f, horizonY),
                 end = Offset((screenWidthPx - roadBottomW) / 2f, bottomY),
                 strokeWidth = 3f
             )
             drawLine(
-                color = GOLD_ACCENT.copy(alpha = 0.75f),
+                color = GOLD_ACCENT.copy(alpha = 0.85f),
                 start = Offset((screenWidthPx + roadTopW) / 2f, horizonY),
                 end = Offset((screenWidthPx + roadBottomW) / 2f, bottomY),
                 strokeWidth = 3f
             )
 
-            // Vạch kẻ làn giữa trôi chậm đồng bộ
+            // Vạch kẻ làn giữa
             val totalDashes = 6
             for (i in 0 until totalDashes) {
                 val p = ((i.toFloat() / totalDashes) + roadProgress) % 1.0f
                 val dashY = horizonY + (bottomY - horizonY) * (p * p)
-                val dashH = 10f + 32f * p
-                val dashW = 2.5f + 5f * p
+                val dashH = (screenHeightPx * 0.025f) + (screenHeightPx * 0.06f) * p
+                val dashW = (screenWidthPx * 0.003f) + (screenWidthPx * 0.005f) * p
 
                 drawRect(
                     color = ROAD_MARKING.copy(alpha = 0.3f + 0.7f * p),
@@ -188,12 +196,12 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             }
         }
 
-        // 4. MẶT TRĂNG GÓC TRÊN BÊN PHẢI
+        // 4. MẶT TRĂNG TỰ ĐỘNG SCALE THEO TỶ LỆ
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 16.dp, end = 28.dp)
-                .size(76.dp),
+                .padding(top = 14.dp, end = 24.dp)
+                .size(moonSizeDp),
             contentAlignment = Alignment.Center
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -206,9 +214,9 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                             Color.Transparent
                         ),
                         center = center,
-                        radius = size.minDimension / 1.8f
+                        radius = size.minDimension / 1.7f
                     ),
-                    radius = size.minDimension / 1.8f,
+                    radius = size.minDimension / 1.7f,
                     center = center
                 )
             }
@@ -217,19 +225,20 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 painter = painterResource(id = R.drawable.bg_moon),
                 contentDescription = "Moon",
                 modifier = Modifier
-                    .size(60.dp)
+                    .fillMaxSize(0.82f)
                     .clip(CircleShape),
                 contentScale = ContentScale.Fit
             )
         }
 
-        // 5. CÂY BÊN TRÁI ĐƯỜNG: bg_tree_2 (Chuyển động chậm đồng bộ)
+        // 5. CÂY BÊN TRÁI ĐƯỜNG: bg_tree_2
         val leftTreeP = (roadProgress + 0.5f) % 1.0f
-        RoadsideMovingTree(
+        ResponsiveRoadsideTree(
             treeRes = R.drawable.bg_tree_2,
             progress = leftTreeP,
             isRightSide = false,
             screenWidthPx = screenWidthPx,
+            screenHeightPx = screenHeightPx,
             horizonY = horizonY,
             bottomY = bottomY,
             roadTopW = roadTopW,
@@ -237,13 +246,14 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             density = density
         )
 
-        // 6. CÂY 1 BÊN PHẢI ĐƯỜNG: bg_tree_1 (Chuyển động chậm đồng bộ)
+        // 6. CÂY 1 BÊN PHẢI ĐƯỜNG: bg_tree_1
         val rightTree1P = roadProgress % 1.0f
-        RoadsideMovingTree(
+        ResponsiveRoadsideTree(
             treeRes = R.drawable.bg_tree_1,
             progress = rightTree1P,
             isRightSide = true,
             screenWidthPx = screenWidthPx,
+            screenHeightPx = screenHeightPx,
             horizonY = horizonY,
             bottomY = bottomY,
             roadTopW = roadTopW,
@@ -251,13 +261,14 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             density = density
         )
 
-        // 7. CÂY 2 BÊN PHẢI ĐƯỜNG: bg_tree_1 (Chuyển động chậm đồng bộ)
+        // 7. CÂY 2 BÊN PHẢI ĐƯỜNG: bg_tree_1
         val rightTree2P = (roadProgress + 0.5f) % 1.0f
-        RoadsideMovingTree(
+        ResponsiveRoadsideTree(
             treeRes = R.drawable.bg_tree_1,
             progress = rightTree2P,
             isRightSide = true,
             screenWidthPx = screenWidthPx,
+            screenHeightPx = screenHeightPx,
             horizonY = horizonY,
             bottomY = bottomY,
             roadTopW = roadTopW,
@@ -265,12 +276,12 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             density = density
         )
 
-        // 8. XE MAZDA CX-5 ĐỎ Ở TRUNG TÂM
+        // 8. XE MAZDA CX-5 ĐỎ CĂN CHÍNH GIỮA ĐƯỜNG
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(top = 70.dp)
-                .size(width = 240.dp, height = 175.dp),
+                .offset(y = with(density) { (screenHeightPx * 0.07f).toDp() })
+                .size(width = carWidthDp, height = carHeightDp),
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -284,11 +295,12 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun RoadsideMovingTree(
+private fun ResponsiveRoadsideTree(
     treeRes: Int,
     progress: Float,
     isRightSide: Boolean,
     screenWidthPx: Float,
+    screenHeightPx: Float,
     horizonY: Float,
     bottomY: Float,
     roadTopW: Float,
@@ -299,18 +311,16 @@ private fun RoadsideMovingTree(
     val currentRoadHalfW = (roadTopW + (roadBottomW - roadTopW) * (progress * progress)) / 2f
     val centerX = screenWidthPx / 2f
 
-    val baseWidthDp = 26f + 95f * progress
-    val baseHeightDp = 30f + 115f * progress
+    // Chiều rộng và chiều cao cây co giãn theo % màn hình
+    val treeWPx = (screenWidthPx * 0.035f) + (screenWidthPx * 0.125f) * progress
+    val treeHPx = (screenHeightPx * 0.055f) + (screenHeightPx * 0.195f) * progress
 
-    val widthPx = with(density) { baseWidthDp.dp.toPx() }
-    val heightPx = with(density) { baseHeightDp.dp.toPx() }
-
-    val roadsideMargin = with(density) { (2f + 8f * progress).dp.toPx() }
+    val roadsideMargin = (screenWidthPx * 0.012f) + (screenWidthPx * 0.025f) * progress
 
     val currentXPx = if (isRightSide) {
         centerX + currentRoadHalfW + roadsideMargin
     } else {
-        centerX - currentRoadHalfW - roadsideMargin - widthPx
+        centerX - currentRoadHalfW - roadsideMargin - treeWPx
     }
 
     val alpha = when {
@@ -323,9 +333,12 @@ private fun RoadsideMovingTree(
         modifier = Modifier
             .offset(
                 x = with(density) { currentXPx.toDp() },
-                y = with(density) { (currentYPx - heightPx * 0.95f).toDp() }
+                y = with(density) { (currentYPx - treeHPx * 0.95f).toDp() }
             )
-            .size(width = baseWidthDp.dp, height = baseHeightDp.dp)
+            .size(
+                width = with(density) { treeWPx.toDp() },
+                height = with(density) { treeHPx.toDp() }
+            )
             .alpha(alpha)
     ) {
         Image(
