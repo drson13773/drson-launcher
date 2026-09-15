@@ -3,6 +3,7 @@
 package com.drson.launcher.ui
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Paint
@@ -21,7 +22,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
@@ -62,6 +63,7 @@ import com.drson.launcher.model.AppItem
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -94,26 +96,42 @@ fun HomeScreen(
         } catch (_: Exception) {}
     }
 
-    var dragStartY by remember { mutableFloatStateOf(0f) }
     var dragStartX by remember { mutableFloatStateOf(0f) }
+    var dragStartY by remember { mutableFloatStateOf(0f) }
+    var totalDragX by remember { mutableFloatStateOf(0f) }
+    var totalDragY by remember { mutableFloatStateOf(0f) }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .pointerInput(Unit) {
-                detectVerticalDragGestures(
+                detectDragGestures(
                     onDragStart = { offset ->
                         dragStartX = offset.x
                         dragStartY = offset.y
+                        totalDragX = 0f
+                        totalDragY = 0f
                     },
-                    onVerticalDrag = { change, dragAmount ->
-                        // Chỉ kích hoạt khi bắt đầu vuốt từ vùng 25% phía trên
-                        if (dragStartY < screenHeightPx * 0.25f && dragAmount > 20f) {
+                    onDrag = { change, dragAmount ->
+                        change.consume()
+                        totalDragX += dragAmount.x
+                        totalDragY += dragAmount.y
+                    },
+                    onDragEnd = {
+                        val isFromTop = dragStartY < screenHeightPx * 0.28f
+                        val isFromMiddle = dragStartY >= screenHeightPx * 0.28f && dragStartY <= screenHeightPx * 0.80f
+
+                        // 1. Vuốt từ mép trên xuống
+                        if (isFromTop && totalDragY > 40f && abs(totalDragY) > abs(totalDragX)) {
                             if (dragStartX < screenWidthPx / 2f) {
                                 isNotificationOpen = true
                             } else {
                                 isControlCenterOpen = true
                             }
+                        }
+                        // 2. Vuốt ngang từ giữa màn hình (sang trái hoặc sang phải đều mở App Drawer)
+                        else if (isFromMiddle && abs(totalDragX) > 50f && abs(totalDragX) > abs(totalDragY)) {
+                            isAppDrawerOpen = true
                         }
                     }
                 )
