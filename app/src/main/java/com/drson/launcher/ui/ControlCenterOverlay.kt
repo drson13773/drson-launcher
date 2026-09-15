@@ -1,15 +1,20 @@
 package com.drson.launcher.ui
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.provider.Settings
 import android.telephony.TelephonyManager
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -34,6 +39,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import java.lang.reflect.Method
 
 private val GOLD_BRIGHT = Color(0xFFFFF0B8)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
@@ -59,17 +66,17 @@ fun ControlCenterOverlay(
     val bluetoothAdapter: BluetoothAdapter? = remember { bluetoothManager?.adapter }
     var isBluetoothOn by remember { mutableStateOf(bluetoothAdapter?.isEnabled ?: false) }
 
-    // Quản lý Dữ liệu di động (Mobile Data 4G)
+    // Quản lý Dữ liệu di động 4G
     val telephonyManager = remember { context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager }
-    var isDataOn by remember {
-        mutableStateOf(
-            try {
-                val method = telephonyManager?.javaClass?.getDeclaredMethod("getDataEnabled")
-                (method?.invoke(telephonyManager) as? Boolean) ?: false
-            } catch (_: Exception) {
-                false
-            }
-        )
+    var isDataOn by remember { mutableStateOf(checkMobileDataState(context, telephonyManager)) }
+
+    // Xin quyền Bluetooth trên Android 12+ nếu chưa có
+    val btPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            toggleBluetoothDirectly(bluetoothAdapter) { isBluetoothOn = it }
+        }
     }
 
     var isMuted by remember { mutableStateOf(false) }
@@ -80,11 +87,12 @@ fun ControlCenterOverlay(
     }
     var brightnessLevel by remember { mutableFloatStateOf(0.75f) }
 
-    // Cập nhật trạng thái thực tế mỗi khi mở Control Center
+    // Đồng bộ lại trạng thái thực tế mỗi khi mở bảng
     LaunchedEffect(isOpen) {
         if (isOpen) {
             isWifiOn = wifiManager?.isWifiEnabled ?: false
             isBluetoothOn = bluetoothAdapter?.isEnabled ?: false
+            isDataOn = checkMobileDataState(context, telephonyManager)
         }
     }
 
@@ -114,61 +122,62 @@ fun ControlCenterOverlay(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // HÀNG 1: WIFI, DATA 4G, BLUETOOTH, MUTE (THỰC THI NGAY)
+                    // HÀNG 1: WIFI, DATA 4G, BLUETOOTH, ÂM THANH
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // 1. Nút Wi-Fi
+                        // 1. Nút Wi-Fi (Bật/tắt ăn ngay)
                         ControlTile(
                             icon = Icons.Default.Wifi,
                             isActive = isWifiOn,
                             onClick = {
-                                val targetState = !isWifiOn
-                                isWifiOn = targetState
-                                try {
-                                    @Suppress("DEPRECATION")
-                                    wifiManager?.isWifiEnabled = targetState
-                                } catch (_: Exception) {
+                                val target = !isWifiOn
+                                val success = setWifiDirectly(context, wifiManager, target)
+                                if (success) {
+                                    isWifiOn = target
+                                } else {
+                                    // Fallback sang giao diện nhanh nếu bản ROM chặn hẳn
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                                         context.startActivity(Intent(Settings.Panel.ACTION_WIFI).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                    } else {
+                                        context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                                     }
                                 }
                             }
                         )
 
-                        // 2. Nút Dữ liệu 4G (Mobile Data)
+                        // 2. Nút Dữ liệu 4G (Bật/tắt ăn ngay)
                         ControlTile(
                             icon = Icons.Default.SignalCellularAlt,
                             isActive = isDataOn,
                             onClick = {
-                                val targetState = !isDataOn
-                                isDataOn = targetState
-                                try {
-                                    val setMethod = telephonyManager?.javaClass?.getDeclaredMethod("setDataEnabled", Boolean::class.javaPrimitiveType)
-                                    setMethod?.invoke(telephonyManager, targetState)
-                                } catch (_: Exception) {
-                                    context.startActivity(Intent(Settings.ACTION_DATA_ROAMING_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                val target = !isDataOn
+                                val success = setMobileDataDirectly(telephonyManager, target)
+                                if (success) {
+                                    isDataOn = target
+                                } else {
+                                    try {
+                                        context.startActivity(Intent(Settings.ACTION_DATA_ROAMING_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                    } catch (_: Exception) {
+                                        context.startActivity(Intent(Settings.ACTION_NETWORK_OPERATOR_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                                    }
                                 }
                             }
                         )
 
-                        // 3. Nút Bluetooth
+                        // 3. Nút Bluetooth (Bật/tắt ăn ngay)
                         ControlTile(
                             icon = Icons.Default.Bluetooth,
                             isActive = isBluetoothOn,
                             onClick = {
-                                val targetState = !isBluetoothOn
-                                isBluetoothOn = targetState
-                                try {
-                                    if (targetState) {
-                                        @Suppress("DEPRECATION")
-                                        bluetoothAdapter?.enable()
-                                    } else {
-                                        @Suppress("DEPRECATION")
-                                        bluetoothAdapter?.disable()
-                                    }
-                                } catch (_: Exception) {}
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                                    ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    btPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                                } else {
+                                    toggleBluetoothDirectly(bluetoothAdapter) { isBluetoothOn = it }
+                                }
                             }
                         )
 
@@ -184,7 +193,7 @@ fun ControlCenterOverlay(
                         )
                     }
 
-                    // HÀNG 2: 2 CỘT THANH TRƯỢT ÂM LƯỢNG & ĐỘ SÁNG THON GỌN
+                    // HÀNG 2: THANH TRƯỢT ÂM LƯỢNG & ĐỘ SÁNG
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(14.dp)
@@ -270,6 +279,82 @@ fun ControlCenterOverlay(
                     }
                 }
             }
+        }
+    }
+}
+
+// HÀM CAN THIỆP PHẦN CỨNG TRỰC TIẾP (DIRECT AUTOMOTIVE CONTROLS)
+
+@Suppress("DEPRECATION")
+private fun setWifiDirectly(context: Context, wifiManager: WifiManager?, targetState: Boolean): Boolean {
+    if (wifiManager == null) return false
+    return try {
+        // Thử cách chuẩn trực tiếp
+        wifiManager.isWifiEnabled = targetState
+        true
+    } catch (_: Exception) {
+        try {
+            // Thử qua Reflection bypass SDK limit
+            val method: Method = wifiManager.javaClass.getDeclaredMethod("setWifiEnabled", Boolean::class.javaPrimitiveType)
+            method.isAccessible = true
+            method.invoke(wifiManager, targetState)
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+}
+
+@SuppressLint("MissingPermission")
+private fun toggleBluetoothDirectly(bluetoothAdapter: BluetoothAdapter?, onStateChanged: (Boolean) -> Unit) {
+    if (bluetoothAdapter == null) return
+    try {
+        @Suppress("DEPRECATION")
+        if (bluetoothAdapter.isEnabled) {
+            bluetoothAdapter.disable()
+            onStateChanged(false)
+        } else {
+            bluetoothAdapter.enable()
+            onStateChanged(true)
+        }
+    } catch (_: Exception) {}
+}
+
+private fun checkMobileDataState(context: Context, telephonyManager: TelephonyManager?): Boolean {
+    return try {
+        val method = telephonyManager?.javaClass?.getDeclaredMethod("getDataEnabled")
+        (method?.invoke(telephonyManager) as? Boolean) ?: run {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            val net = cm?.activeNetwork
+            val caps = cm?.getNetworkCapabilities(net)
+            caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true
+        }
+    } catch (_: Exception) {
+        false
+    }
+}
+
+private fun setMobileDataDirectly(telephonyManager: TelephonyManager?, targetState: Boolean): Boolean {
+    if (telephonyManager == null) return false
+    return try {
+        val setMethod = telephonyManager.javaClass.getDeclaredMethod("setDataEnabled", Boolean::class.javaPrimitiveType)
+        setMethod.isAccessible = true
+        setMethod.invoke(telephonyManager, targetState)
+        true
+    } catch (_: Exception) {
+        try {
+            // Thử qua ITelephony Service ngầm của Android Automotive
+            val getITelephony: Method = telephonyManager.javaClass.getDeclaredMethod("getITelephony")
+            getITelephony.isAccessible = true
+            val iTelephony = getITelephony.invoke(telephonyManager)
+            val dataToggleMethod = iTelephony?.javaClass?.getDeclaredMethod(
+                if (targetState) "enableDataConnectivity" else "disableDataConnectivity"
+            )
+            dataToggleMethod?.isAccessible = true
+            dataToggleMethod?.invoke(iTelephony)
+            true
+        } catch (_: Exception) {
+            false
         }
     }
 }
