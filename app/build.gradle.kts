@@ -41,6 +41,11 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // Bỏ qua cảnh báo lệch phiên bản Kotlin và Compose Compiler
+        freeCompilerArgs += listOf(
+            "-P",
+            "plugin:androidx.compose.compiler.plugins.kotlin:suppressKotlinVersionCompatibilityCheck=true"
+        )
     }
 
     buildFeatures {
@@ -81,13 +86,13 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
 
-    // 4. AndroidX Media3 (ExoPlayer + Chạy nền ngầm liên tục)
+    // 4. AndroidX Media3 (ExoPlayer + Service chạy ngầm)
     implementation("androidx.media3:media3-exoplayer:1.3.0")
     implementation("androidx.media3:media3-session:1.3.0")
     implementation("androidx.media3:media3-ui:1.3.0")
     implementation("androidx.media3:media3-common:1.3.0")
 
-    // 5. NewPipe Extractor (Định danh chuẩn chữ hoa TeamNewPipe trên JitPack)
+    // 5. NewPipe Extractor
     implementation("com.github.TeamNewPipe.NewPipeExtractor:extractor:v0.24.3")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
