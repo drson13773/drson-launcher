@@ -31,6 +31,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         loadDefaultSlots()
     }
 
+    fun load() {
+        loadInstalledApps()
+    }
+
     fun loadInstalledApps() {
         val pm = getApplication<Application>().packageManager
         val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
@@ -40,7 +44,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         apps.clear()
 
-        // 1. Thêm Ứng dụng Điện thoại (Dùng icon_phone_gold.png)
+        // 1. Icon App Điện thoại (icon_phone_gold.png độ phân giải gốc 512x512)
         val phoneIcon = loadDrawableBitmap(R.drawable.icon_phone_gold) ?: createPhoneGoldFallbackBitmap()
         apps.add(
             AppItem(
@@ -51,8 +55,8 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             )
         )
 
-        // 2. Thêm Ứng dụng YouTube Music Dr Sơn
-        val musicIcon = loadDrawableBitmap(R.drawable.icon_menu_brand) ?: createMusicFallbackBitmap()
+        // 2. Icon App Nghe nhạc Dr Sơn Music (Icon Nhạc Gold sắc nét)
+        val musicIcon = createMusicGoldIconBitmap()
         apps.add(
             AppItem(
                 packageName = "com.drson.launcher.music",
@@ -62,14 +66,14 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             )
         )
 
-        // 3. Thêm các ứng dụng cài đặt trên màn hình Android
+        // 3. Các ứng dụng khác của hệ thống
         for (info in resolveInfos) {
             val pkg = info.activityInfo.packageName
             if (pkg == getApplication<Application>().packageName) continue
             val actName = info.activityInfo.name ?: ""
             val label = info.loadLabel(pm).toString()
             val drawable = info.loadIcon(pm)
-            val bitmap = drawable.toBitmap(128, 128, Bitmap.Config.ARGB_8888).asImageBitmap()
+            val bitmap = drawable.toBitmap(256, 256, Bitmap.Config.ARGB_8888).asImageBitmap()
             apps.add(
                 AppItem(
                     packageName = pkg,
@@ -85,19 +89,11 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         homeSlots.clear()
         dockSlots.clear()
 
-        // Gán sẵn Dock: Ô 1 Điện thoại, Ô 2 Music
+        // Gán thanh Dock: Ô 1 Điện thoại, Ô 2 Music
         dockSlots.add("com.drson.launcher.dialer")
         dockSlots.add("com.drson.launcher.music")
         dockSlots.add(null)
         dockSlots.add(null)
-
-        // Các slot trên Desktop: chỉ nạp các app khả dụng
-        val availableApps = apps.filter {
-            it.packageName != "com.drson.launcher.dialer" && it.packageName != "com.drson.launcher.music"
-        }
-        for (i in 0 until minOf(6, availableApps.size)) {
-            homeSlots.add(HomeSlotContent.App(availableApps[i].packageName))
-        }
     }
 
     fun appFor(packageName: String?): AppItem? {
@@ -148,25 +144,57 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private fun loadDrawableBitmap(resId: Int): ImageBitmap? {
         return try {
             val drawable = ResourcesCompat.getDrawable(getApplication<Application>().resources, resId, null)
-            drawable?.toBitmap(160, 160, Bitmap.Config.ARGB_8888)?.asImageBitmap()
+            drawable?.toBitmap(300, 300, Bitmap.Config.ARGB_8888)?.asImageBitmap()
         } catch (_: Exception) {
             null
         }
     }
 
     private fun createPhoneGoldFallbackBitmap(): ImageBitmap {
-        val b = Bitmap.createBitmap(160, 160, Bitmap.Config.ARGB_8888)
+        val b = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
         val c = Canvas(b)
         val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#D4AF37") }
-        c.drawRoundRect(10f, 10f, 150f, 150f, 30f, 30f, p)
+        c.drawRoundRect(10f, 10f, 246f, 246f, 40f, 40f, p)
         return b.asImageBitmap()
     }
 
-    private fun createMusicFallbackBitmap(): ImageBitmap {
-        val b = Bitmap.createBitmap(160, 160, Bitmap.Config.ARGB_8888)
+    private fun createMusicGoldIconBitmap(): ImageBitmap {
+        val b = Bitmap.createBitmap(256, 256, Bitmap.Config.ARGB_8888)
         val c = Canvas(b)
-        val p = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#FF0000") }
-        c.drawRoundRect(10f, 10f, 150f, 150f, 30f, 30f, p)
+        
+        // Khung nền vuông bo góc Carbon
+        val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = android.graphics.Color.parseColor("#151310") }
+        c.drawRoundRect(8f, 8f, 248f, 248f, 48f, 48f, bgPaint)
+        
+        // Viền vàng kim 3D
+        val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { 
+            color = android.graphics.Color.parseColor("#D4AF37")
+            style = Paint.Style.STROKE
+            strokeWidth = 10f
+        }
+        c.drawRoundRect(8f, 8f, 248f, 248f, 48f, 48f, borderPaint)
+
+        // Vòng tròn trung tâm
+        val circlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { 
+            color = android.graphics.Color.parseColor("#B8860B")
+            style = Paint.Style.STROKE
+            strokeWidth = 6f
+        }
+        c.drawCircle(128f, 128f, 85f, circlePaint)
+
+        // Biểu tượng tam giác Play / Nốt nhạc vàng
+        val playPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { 
+            color = android.graphics.Color.parseColor("#FFF0B8")
+            style = Paint.Style.FILL
+        }
+        val path = android.graphics.Path().apply {
+            moveTo(110f, 95f)
+            lineTo(165f, 128f)
+            lineTo(110f, 161f)
+            close()
+        }
+        c.drawPath(path, playPaint)
+
         return b.asImageBitmap()
     }
 }
