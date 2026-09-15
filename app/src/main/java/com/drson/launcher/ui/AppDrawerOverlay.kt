@@ -70,7 +70,7 @@ fun AppDrawerOverlay(
             .clickable(onClick = onDismiss)
             .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
-        // 1. Logo & Tia sáng ở góc dưới bên trái mờ nhẹ
+        // Logo & Tia sáng ở góc dưới bên trái
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -95,7 +95,7 @@ fun AppDrawerOverlay(
             )
         }
 
-        // 2. Danh sách ứng dụng: Cố định 8 Cột, icon gọn gàng
+        // Danh sách ứng dụng: 8 Cột, chữ tên ứng dụng màu Vàng Kim
         Column(
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -121,12 +121,12 @@ fun AppDrawerOverlay(
             }
 
             LazyVerticalGrid(
-                columns = GridCells.Fixed(8), // Cố định chính xác 8 cột
+                columns = GridCells.Fixed(8),
                 modifier = Modifier
                     .weight(1f)
                     .padding(top = 6.dp, bottom = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp), // Thu hẹp khoảng cách giữa các hàng
-                horizontalArrangement = Arrangement.spacedBy(6.dp)  // Thu hẹp khoảng cách giữa các cột
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 items(apps) { app ->
                     Column(
@@ -140,16 +140,16 @@ fun AppDrawerOverlay(
                             bitmap = app.icon,
                             contentDescription = app.label,
                             modifier = Modifier
-                                .size(44.dp) // Kích thước icon thu nhỏ tinh gọn
+                                .size(44.dp)
                                 .clip(RoundedCornerShape(10.dp)),
                             contentScale = ContentScale.Fit
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
                             text = app.label,
-                            color = Color.White.copy(alpha = 0.9f),
-                            fontSize = 9.5.sp, // Chữ nhỏ vừa vặn dưới icon
-                            fontWeight = FontWeight.Normal,
+                            color = GOLD_BRIGHT, // Tên app toàn bộ chuyển sang màu Vàng Kim
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Medium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Center
