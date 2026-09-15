@@ -84,20 +84,6 @@ fun openNotificationPanel(context: Context) {
     } catch (_: Exception) {}
 }
 
-@SuppressLint("WrongConstant")
-fun openQuickSettingsPanel(context: Context) {
-    try {
-        val statusBarService = context.getSystemService("statusbar")
-        val statusBarManager = Class.forName("android.app.StatusBarManager")
-        val expandMethod: Method = try {
-            statusBarManager.getMethod("expandSettingsPanel")
-        } catch (_: Exception) {
-            statusBarManager.getMethod("expandNotificationsPanel")
-        }
-        expandMethod.invoke(statusBarService)
-    } catch (_: Exception) {}
-}
-
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
@@ -106,6 +92,7 @@ fun HomeScreen(
     val context = LocalContext.current
     var isEditMode by remember { mutableStateOf(false) }
     var isAppDrawerOpen by remember { mutableStateOf(false) }
+    var isControlCenterOpen by remember { mutableStateOf(false) }
     val initialFocusRequester = remember { FocusRequester() }
 
     val configuration = LocalConfiguration.current
@@ -129,7 +116,7 @@ fun HomeScreen(
                             if (touchX < screenWidthPx / 2) {
                                 openNotificationPanel(context)
                             } else {
-                                openQuickSettingsPanel(context)
+                                isControlCenterOpen = true
                             }
                         }
                     }
@@ -148,7 +135,7 @@ fun HomeScreen(
             BrandClockWidget()
         }
 
-        // 3. Vị trí mới: Nâng cao lên (bottom = 112.dp) để không che vào con đường
+        // 3. Góc tam giác bên trái: Đồng hồ tốc độ tròn (bottom = 112dp)
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -183,6 +170,12 @@ fun HomeScreen(
                 viewModel.launchApp(context, app)
                 isAppDrawerOpen = false
             }
+        )
+
+        // 6. Trung tâm điều khiển (Control Center) riêng biệt từng khối
+        ControlCenterOverlay(
+            isOpen = isControlCenterOpen,
+            onDismiss = { isControlCenterOpen = false }
         )
     }
 }
@@ -332,14 +325,12 @@ fun CircularLuxurySpeedometer() {
             val center = Offset(w / 2f, h / 2f)
             val radius = w / 2f - 4f
 
-            // 1. Mặt đồng hồ
             drawCircle(
                 color = Color(0xFF0C0B0A),
                 radius = radius,
                 center = center
             )
 
-            // 2. Viền Bezel 3D
             drawCircle(
                 brush = Brush.sweepGradient(
                     colors = listOf(
@@ -361,7 +352,6 @@ fun CircularLuxurySpeedometer() {
                 style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
             )
 
-            // 3. Vạch chia và số 0 - 180
             val startAngle = 135f
             val totalSweep = 270f
             val maxSpeed = 180f
@@ -412,7 +402,6 @@ fun CircularLuxurySpeedometer() {
                 }
             }
 
-            // 4. Chữ "Dr Sơn", số tốc độ GPS và chữ "km/h"
             drawIntoCanvas { canvas ->
                 val brandPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#FFDF73")
@@ -442,7 +431,6 @@ fun CircularLuxurySpeedometer() {
                 canvas.nativeCanvas.drawText("km/h", center.x, center.y + 54f, kmhPaint)
             }
 
-            // 5. Kim quay
             val needleFraction = animatedSpeed / maxSpeed
             val needleAngleDeg = startAngle + needleFraction * totalSweep
 
@@ -522,7 +510,6 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu mở App Drawer
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -545,7 +532,6 @@ private fun BottomDock(
             )
         }
 
-        // 4 ô ứng dụng trên Dock
         viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
@@ -563,7 +549,6 @@ private fun BottomDock(
 
         Spacer(Modifier.width(4.dp))
 
-        // Trình phát nhạc & Âm lượng kéo dài
         ExpandedNowPlayingBar(
             modifier = Modifier
                 .weight(1f)
@@ -622,7 +607,6 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Thông tin bài hát
         Row(
             modifier = Modifier
                 .width(135.dp)
@@ -670,7 +654,6 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             }
         }
 
-        // Nút điều khiển
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -698,7 +681,6 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             }
         }
 
-        // Thanh tiến độ bài hát
         Row(
             modifier = Modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
@@ -718,7 +700,6 @@ private fun ExpandedNowPlayingBar(modifier: Modifier = Modifier) {
             Text("04:10", color = GOLD_MUTED, fontSize = 9.sp, fontWeight = FontWeight.Medium)
         }
 
-        // Thanh âm lượng
         Row(
             modifier = Modifier.width(95.dp),
             verticalAlignment = Alignment.CenterVertically,
