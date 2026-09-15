@@ -6,12 +6,18 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,14 +31,14 @@ import kotlinx.coroutines.withContext
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = HomeLayoutRepository(application)
-    
+
     var apps: List<AppItem> = emptyList()
         private set
 
     var dockSlots: List<String?> = listOf(null, null, null, null)
         private set
 
-    // Trạng thái tốc độ thời gian thực (km/h)
+    // Tốc độ GPS thời gian thực (km/h)
     private val _currentSpeed = mutableFloatStateOf(0f)
     val currentSpeed: State<Float> = _currentSpeed
 
@@ -41,7 +47,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val locationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
             if (location.hasSpeed()) {
-                // Đổi m/s sang km/h
                 val speedKmh = location.speed * 3.6f
                 _currentSpeed.floatValue = if (speedKmh < 1.5f) 0f else speedKmh
             } else {
@@ -99,6 +104,19 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun drawableToImageBitmap(drawable: Drawable): ImageBitmap {
+        if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            return drawable.bitmap.asImageBitmap()
+        }
+        val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 96
+        val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 96
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bitmap.asImageBitmap()
+    }
+
     private fun loadInstalledApps() {
         viewModelScope.launch(Dispatchers.IO) {
             val pm: PackageManager = getApplication<Application>().packageManager
@@ -115,17 +133,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
                 val label = info.loadLabel(pm).toString()
                 val isCameraApp = pkgName.lowercase().contains("camera") || label.lowercase().contains("camera")
-                val customIcon = if (isCameraApp) {
+
+                val drawableIcon = if (isCameraApp) {
                     ContextCompat.getDrawable(getApplication(), R.drawable.icon_camera_gold) ?: info.loadIcon(pm)
                 } else {
                     info.loadIcon(pm)
                 }
 
+                val composeImageBitmap = drawableToImageBitmap(drawableIcon)
+
                 appItemList.add(
                     AppItem(
                         label = label,
                         packageName = pkgName,
-                        icon = customIcon
+                        icon = composeImageBitmap
                     )
                 )
             }
