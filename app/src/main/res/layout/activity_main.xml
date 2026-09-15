@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <!-- 1. NỀN ĐƯỜNG CHẠY 3D VÀ XE MAZDA -->
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/composeRoadBackground"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 2. WIDGET ĐỒNG HỒ & LOGO GÓC TRÊN TRÁI -->
+    <LinearLayout
+        android:id="@+id/brandClockContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageView
+            android:id="@+id/imgBrandLogo"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:src="@drawable/icon_menu_brand"
+            android:contentDescription="@null" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginStart="12dp">
+
+            <TextView
+                android:id="@+id/tvClockTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="16:04"
+                android:textColor="#FFF0B8"
+                android:textSize="32sp"
+                android:textStyle="bold|italic" />
+
+            <TextView
+                android:id="@+id/tvClockDate"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Thứ Ba, 15 thg 9"
+                android:textColor="#D4AF37"
+                android:textSize="13sp"
+                android:textStyle="italic" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 3. ĐỒNG HỒ TỐC ĐỘ GÓC DƯỚI TRÁI -->
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/composeSpeedometer"
+        android:layout_width="135dp"
+        android:layout_height="135dp"
+        android:layout_marginStart="28dp"
+        android:layout_marginBottom="80dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- 4. THANH DOCK ĐÁY MÀN HÌNH (DÙNG RECYCLERVIEW VỚI GRIDLAYOUTMANAGER) -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/bottomDockCard"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginBottom="8dp"
+        app:cardCornerRadius="18dp"
+        app:cardBackgroundColor="#D9000000"
+        app:cardElevation="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp">
+
+            <!-- Nút Mở Menu chính -->
+            <ImageView
+                android:id="@+id/btnMainMenu"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:src="@drawable/ic_launcher"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:padding="3dp"
+                android:contentDescription="@null" />
+
+            <!-- Grid danh sách ứng dụng ghim nhanh trên Dock -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvDockApps"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:orientation="horizontal" />
+
+            <!-- Khung phát nhạc bên phải -->
+            <androidx.compose.ui.platform.ComposeView
+                android:id="@+id/composeMusicBar"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
