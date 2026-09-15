@@ -12,10 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -41,7 +39,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
         label = "road_offset"
     )
 
-    // 2. Hiệu ứng nháy đèn cửa sổ nhanh & sắc nét
+    // 2. Hiệu ứng nháy đèn các tòa nhà
     val fastBlink1 by infiniteTransition.animateFloat(
         initialValue = 0.05f,
         targetValue = 1.0f,
@@ -88,7 +86,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             val w = size.width
             val h = size.height
 
-            // Bầu trời đêm
+            // Nền bầu trời đêm
             drawRect(
                 brush = Brush.verticalGradient(
                     colors = listOf(
@@ -100,7 +98,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 size = size
             )
 
-            // Dãy tòa nhà với đèn nhấp nháy
+            // Dãy tòa nhà
             val horizonY = h * 0.44f
             val buildingConfigs = listOf(
                 Triple(w * 0.08f, 75f, 110f),
@@ -221,42 +219,40 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             }
         }
 
-        // 1. MẶT TRĂNG HÒA TRỘN TỰ NHIÊN VỚI BẦU TRỜI (KHÔNG LỘ ĐƯỜNG GHÉP)
+        // 1. MẶT TRĂNG TRONG SUỐT NỔI VÂN CHÂN THỰC + VẦNG SÁNG VÀNG DỊU
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 14.dp, end = 26.dp)
-                .size(92.dp),
+                .padding(top = 16.dp, end = 28.dp)
+                .size(76.dp),
             contentAlignment = Alignment.Center
         ) {
-            // A. Vầng hào quang ánh trăng tỏa mềm ra bầu trời
+            // Vầng sáng dịu tỏa nhẹ quanh trăng
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val center = Offset(size.width / 2f, size.height / 2f)
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            Color(0xFFFFF6D6).copy(alpha = 0.45f),
-                            Color(0xFFFFDF73).copy(alpha = 0.22f),
-                            Color(0xFF8C7335).copy(alpha = 0.08f),
+                            Color(0xFFFFFAEB).copy(alpha = 0.35f),
+                            Color(0xFFFFDF73).copy(alpha = 0.15f),
                             Color.Transparent
                         ),
                         center = center,
-                        radius = size.minDimension / 2f
+                        radius = size.minDimension / 1.8f
                     ),
-                    radius = size.minDimension / 2f,
+                    radius = size.minDimension / 1.8f,
                     center = center
                 )
             }
 
-            // B. Ảnh mặt trăng hòa trộn quang học (BlendMode.Screen) không để lại viền đen/viền cắt
+            // Ảnh mặt trăng PNG chi tiết rõ ràng
             Image(
                 painter = painterResource(id = R.drawable.bg_moon),
-                contentDescription = "Natural Moon",
+                contentDescription = "Moon",
                 modifier = Modifier
-                    .size(62.dp)
+                    .size(60.dp)
                     .clip(CircleShape),
-                contentScale = ContentScale.Crop,
-                colorFilter = ColorFilter.tint(Color.White, BlendMode.Screen)
+                contentScale = ContentScale.Fit
             )
         }
 
@@ -264,8 +260,8 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
         Box(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .padding(start = 14.dp, top = 25.dp)
-                .size(width = 95.dp, height = 110.dp)
+                .padding(start = 18.dp, top = 20.dp)
+                .size(width = 85.dp, height = 95.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.bg_tree_2),
@@ -275,13 +271,13 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             )
         }
 
-        // 3. BÊN PHẢI ĐƯỜNG: 2 CÂY XANH (1 XA NHỎ HƠN, 1 GẦN LỚN HƠN)
-        // Cây 1 bên phải (Ở xa)
+        // 3. BÊN PHẢI ĐƯỜNG: 2 CÂY XANH (PHỐI CẢNH XA - GẦN)
+        // Cây ở xa (nhỏ hơn, nằm phía trên)
         Box(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .padding(end = 120.dp, top = 10.dp)
-                .size(width = 75.dp, height = 90.dp)
+                .padding(end = 115.dp, top = 10.dp)
+                .size(width = 70.dp, height = 80.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.bg_tree_2),
@@ -291,12 +287,12 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             )
         }
 
-        // Cây 2 bên phải (Ở gần)
+        // Cây ở gần (lớn hơn, nằm phía dưới lề đường)
         Box(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 18.dp, bottom = 78.dp)
-                .size(width = 115.dp, height = 135.dp)
+                .padding(end = 22.dp, bottom = 80.dp)
+                .size(width = 105.dp, height = 120.dp)
         ) {
             Image(
                 painter = painterResource(id = R.drawable.bg_tree_1),
@@ -306,7 +302,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             )
         }
 
-        // 4. XE MAZDA CX-5 ĐỎ Ở CHÍNH GIỮA ĐƯỜNG
+        // 4. XE MAZDA CX-5 ĐỎ Ở GIỮA ĐƯỜNG
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
