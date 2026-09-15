@@ -19,7 +19,7 @@
     <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
 
-    <!-- Tuyên bố phần cứng GPS không bắt buộc để tránh chặn cài đặt trên các thiết bị chỉ có GPS ngoài -->
+    <!-- Tuyên bố phần cứng GPS không bắt buộc để hỗ trợ đa dạng thiết bị màn hình -->
     <uses-feature
         android:name="android.hardware.location.gps"
         android:required="false" />
@@ -29,8 +29,6 @@
 
     <application
         android:allowBackup="true"
-        android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@drawable/ic_launcher"
