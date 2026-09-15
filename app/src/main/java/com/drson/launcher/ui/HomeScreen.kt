@@ -122,10 +122,10 @@ fun HomeScreen(
                 )
             }
     ) {
-        // 1. NỀN PHỐI CẢNH 3D & XE MAZDA CX-5
+        // Nền đường 3D
         DrivingRoadBackground()
 
-        // 2. GÓC TRÊN TRÁI: Logo Dr Sơn (Tia sáng xoay) + Đồng hồ (Không viền khung)
+        // 1. GÓC TRÊN TRÁI: Logo Dr Sơn không viền (icon_menu_brand.png) + Hào quang xoay + Đồng hồ
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -134,7 +134,7 @@ fun HomeScreen(
             BrandClockWidget()
         }
 
-        // 3. GÓC TRÊN PHẢI: Lưới ứng dụng màn hình chính
+        // 2. GÓC TRÊN PHẢI: Các ô ứng dụng desktop
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -177,7 +177,7 @@ fun HomeScreen(
             }
         }
 
-        // 4. GÓC DƯỚI TRÁI: Đồng hồ đo tốc độ GPS (Luôn ghim ngay trên Dock)
+        // 3. GÓC DƯỚI TRÁI: Widget đo tốc độ GPS
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -186,7 +186,7 @@ fun HomeScreen(
             SpeedometerWidget()
         }
 
-        // 5. ĐÁY MÀN HÌNH: Thanh Dock điều khiển cố định
+        // 4. ĐÁY MÀN HÌNH: Thanh Dock với nút Menu là ic_launcher.png và icon phone vàng
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -202,7 +202,7 @@ fun HomeScreen(
             )
         }
 
-        // Menu App Drawer
+        // App Drawer Menu
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -220,13 +220,13 @@ fun BrandClockWidget() {
     var currentTime by remember { mutableStateOf("") }
     var currentDate by remember { mutableStateOf("") }
 
-    // Hiệu ứng tia sáng / vầng hào quang xoay tròn quanh Logo Dr Sơn
-    val infiniteTransition = rememberInfiniteTransition(label = "logo_rotation")
+    // Hào quang vàng xoay tròn 360 độ
+    val infiniteTransition = rememberInfiniteTransition(label = "logo_glow_rotation")
     val rotationAngle by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(6000, easing = LinearEasing),
+            animation = tween(5000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "rotation_angle"
@@ -248,12 +248,11 @@ fun BrandClockWidget() {
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         modifier = Modifier.padding(4.dp)
     ) {
-        // Cụm Logo sắc nét cùng vòng tia sáng xoay
         Box(
-            modifier = Modifier.size(62.dp),
+            modifier = Modifier.size(64.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Vòng hào quang vàng xoay tròn phía sau
+            // Vòng hào quang sáng vàng kim xoay quanh logo
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
@@ -263,9 +262,9 @@ fun BrandClockWidget() {
                     brush = Brush.sweepGradient(
                         colors = listOf(
                             Color.Transparent,
-                            GOLD_ACCENT.copy(alpha = 0.6f),
+                            GOLD_ACCENT.copy(alpha = 0.5f),
                             Color.Transparent,
-                            GOLD_BRIGHT.copy(alpha = 0.9f),
+                            GOLD_BRIGHT.copy(alpha = 0.85f),
                             Color.Transparent
                         )
                     ),
@@ -273,16 +272,16 @@ fun BrandClockWidget() {
                 )
             }
 
-            // Logo Dr Sơn sắc nét
+            // Dùng icon_menu_brand.png (Logo không viền) sắc nét
             Image(
                 painter = painterResource(id = R.drawable.icon_menu_brand),
                 contentDescription = "Dr Son Brand",
-                modifier = Modifier.size(54.dp),
+                modifier = Modifier.size(56.dp),
                 contentScale = ContentScale.Fit
             )
         }
 
-        // Cụm giờ và ngày tháng (Không khung viền)
+        // Cụm Đồng hồ (Không khung viền đen)
         Column(verticalArrangement = Arrangement.Center) {
             Text(
                 text = currentTime,
@@ -501,7 +500,7 @@ private fun BottomDock(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Nút Menu chính với icon_launcher.png
+        // Nút Menu mở App Drawer sử dụng ic_launcher.png (Logo Dr Sơn có viền tròn vàng)
         Box(
             modifier = Modifier
                 .size(44.dp)
@@ -524,7 +523,7 @@ private fun BottomDock(
             )
         }
 
-        // 4 ô ứng dụng trên Dock
+        // 4 ô ứng dụng trên Dock (Ô 1: Điện thoại icon vàng 3D, Ô 2: Music)
         viewModel.dockSlots.take(4).forEachIndexed { index, packageName ->
             val app = viewModel.appFor(packageName)
             FocusableDockSlotCell(
