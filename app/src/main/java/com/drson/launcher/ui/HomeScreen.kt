@@ -3,7 +3,6 @@
 package com.drson.launcher.ui
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Paint
@@ -22,7 +21,6 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
@@ -37,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -46,11 +43,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -62,7 +56,6 @@ import androidx.core.content.ContextCompat
 import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
 import kotlinx.coroutines.delay
-import java.lang.reflect.Method
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.cos
@@ -73,16 +66,6 @@ private val GOLD_MID = Color(0xFFFFDF73)
 private val GOLD_ACCENT = Color(0xFFD4AF37)
 private val GOLD_MUTED = Color(0xFFC7A75C)
 private val DARK_CARD_BG = Color(0xFF14120E)
-
-@SuppressLint("WrongConstant")
-fun openNotificationPanel(context: Context) {
-    try {
-        val statusBarService = context.getSystemService("statusbar")
-        val statusBarManager = Class.forName("android.app.StatusBarManager")
-        val expandMethod: Method = statusBarManager.getMethod("expandNotificationsPanel")
-        expandMethod.invoke(statusBarService)
-    } catch (_: Exception) {}
-}
 
 @Composable
 fun HomeScreen(
@@ -95,35 +78,17 @@ fun HomeScreen(
     var isControlCenterOpen by remember { mutableStateOf(false) }
     val initialFocusRequester = remember { FocusRequester() }
 
-    val configuration = LocalConfiguration.current
-    val density = LocalDensity.current
-    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
-
     LaunchedEffect(Unit) {
         try {
             initialFocusRequester.requestFocus()
         } catch (_: Exception) {}
     }
 
+    // ĐÃ LOẠI BỎ TOÀN BỘ CỬ CHỈ VUỐT KÉO TRÊN NỀN MÀN HÌNH
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectVerticalDragGestures(
-                    onVerticalDrag = { change, dragAmount ->
-                        if (dragAmount > 35f) {
-                            val touchX = change.position.x
-                            if (touchX < screenWidthPx / 2) {
-                                openNotificationPanel(context)
-                            } else {
-                                isControlCenterOpen = true
-                            }
-                        }
-                    }
-                )
-            }
+        modifier = modifier.fillMaxSize()
     ) {
-        // 1. Phối cảnh đường chạy 3D và Mazda CX-5
+        // 1. Phối cảnh đường chạy 3D và Mazda CX-5 tự thích ứng %
         DrivingRoadBackground()
 
         // 2. Góc trên bên trái: Logo Dr Sơn + Đồng hồ vàng mềm mại in nghiêng
@@ -135,12 +100,12 @@ fun HomeScreen(
             BrandClockWidget()
         }
 
-        // 3. Đồng hồ tốc độ tròn (bottom = 112dp)
+        // 3. Đồng hồ tốc độ tròn (Nâng vị trí thoáng đãng trên màn Zestech)
         Box(
             modifier = Modifier
                 .align(Alignment.BottomStart)
-                .padding(start = 22.dp, bottom = 112.dp)
-                .size(138.dp)
+                .padding(start = 28.dp, bottom = 85.dp)
+                .size(132.dp)
         ) {
             CircularLuxurySpeedometer()
         }
@@ -161,7 +126,7 @@ fun HomeScreen(
             )
         }
 
-        // 5. Trang danh sách ứng dụng
+        // 5. Trang danh sách ứng dụng (Chỉ mở khi bấm nút Menu)
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -402,7 +367,7 @@ fun CircularLuxurySpeedometer() {
                 }
             }
 
-            // 4. Chữ Dr Sơn hạ thấp căn giữa gốc kim và vành đáy đồng hồ
+            // 4. Cụm chữ "Dr Sơn" căn giữa phần đáy đồng hồ
             drawIntoCanvas { canvas ->
                 val speedValPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#FFF0B8")
