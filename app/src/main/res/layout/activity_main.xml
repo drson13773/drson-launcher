@@ -2,6 +2,7 @@
 <androidx.constraintlayout.widget.ConstraintLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/black">
@@ -92,6 +93,7 @@
             android:paddingStart="8dp"
             android:paddingEnd="8dp">
 
+            <!-- Nút mở Menu chính -->
             <ImageView
                 android:id="@+id/btnMainMenu"
                 android:layout_width="44dp"
@@ -100,7 +102,7 @@
                 android:padding="3dp"
                 android:contentDescription="@null" />
 
-            <!-- RecyclerView sử dụng GridLayoutManager -->
+            <!-- Danh sách ứng dụng Dock (GridLayoutManager) -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rvDockApps"
                 android:layout_width="wrap_content"
