@@ -29,20 +29,20 @@ private val ROAD_MARKING = Color(0xFFE5C158)
 
 @Composable
 fun DrivingRoadBackground(modifier: Modifier = Modifier) {
-    // 1. Animation chu kỳ di chuyển lái xe (khoảng 2.4 giây một chu kỳ trôi qua cây)
-    val infiniteTransition = rememberInfiniteTransition(label = "driving_anim")
+    // 1. Đồng bộ hoàn toàn tốc độ chu kỳ giữa Tim đường và Cây (1400ms)
+    val infiniteTransition = rememberInfiniteTransition(label = "driving_sync_anim")
     
     val roadProgress by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = LinearEasing),
+            animation = tween(1400, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "road_progress"
     )
 
-    // 2. Hiệu ứng đèn các tòa nhà nhấp nháy nhanh
+    // 2. Hiệu ứng nháy đèn các tòa nhà
     val fastBlink1 by infiniteTransition.animateFloat(
         initialValue = 0.05f,
         targetValue = 1.0f,
@@ -196,10 +196,10 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
                 strokeWidth = 3f
             )
 
-            // Vạch kẻ làn đường giữa di chuyển liên tục
+            // Vạch kẻ làn giữa di chuyển đồng bộ
             val totalDashes = 7
             for (i in 0..totalDashes) {
-                val progress = ((i.toFloat() + roadProgress * 2f) % totalDashes) / totalDashes.toFloat()
+                val progress = ((i.toFloat() + roadProgress) % totalDashes) / totalDashes.toFloat()
                 val dashY = horizonY + (bottomY - horizonY) * (progress * progress)
                 val dashH = 10f + 32f * progress
                 val dashW = 2.5f + 5f * progress
@@ -212,7 +212,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             }
         }
 
-        // 1. MẶT TRĂNG GÓC TRÊN BÊN PHẢI (TRONG SUỐT NỔI VÂN)
+        // MẶT TRĂNG GÓC TRÊN BÊN PHẢI
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -247,9 +247,9 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             )
         }
 
-        // ================= HIỆU ỨNG CÂY TRÔI QUA XE THEO PHỐI CẢNH 3D =================
+        // ================= CÂY BÁM SÁT MÉP ĐƯỜNG & ĐỒNG TỐC VỚI TIM ĐƯỜNG =================
         
-        // 2. BÊN TRÁI ĐƯỜNG: 1 CÂY `bg_tree_2`
+        // 1. Bên trái đường: 1 cây `bg_tree_2`
         val leftTreeProgress = (roadProgress + 0.45f) % 1.0f
         RoadsideMovingTree(
             treeRes = R.drawable.bg_tree_2,
@@ -263,8 +263,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             density = density
         )
 
-        // 3. BÊN PHẢI ĐƯỜNG: 2 CÂY `bg_tree_1` (Lệch pha nhau 0.5 chu kỳ để luân phiên lướt qua)
-        // Cây bên phải thứ 1
+        // 2. Bên phải đường: Cây `bg_tree_1` thứ 1
         val rightTree1Progress = (roadProgress + 0.15f) % 1.0f
         RoadsideMovingTree(
             treeRes = R.drawable.bg_tree_1,
@@ -278,7 +277,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             density = density
         )
 
-        // Cây bên phải thứ 2
+        // 3. Bên phải đường: Cây `bg_tree_1` thứ 2
         val rightTree2Progress = (roadProgress + 0.65f) % 1.0f
         RoadsideMovingTree(
             treeRes = R.drawable.bg_tree_1,
@@ -292,7 +291,7 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
             density = density
         )
 
-        // 4. XE MAZDA CX-5 Ở CHÍNH GIỮA ĐƯỜNG
+        // XE MAZDA CX-5 Ở CHÍNH GIỮA ĐƯỜNG
         Box(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -310,9 +309,6 @@ fun DrivingRoadBackground(modifier: Modifier = Modifier) {
     }
 }
 
-/**
- * Hàm tính toán vị trí, kích thước phối cảnh xa - gần và độ mờ cho từng cây ven đường
- */
 @Composable
 private fun RoadsideMovingTree(
     treeRes: Int,
@@ -325,31 +321,30 @@ private fun RoadsideMovingTree(
     roadBottomW: Float,
     density: androidx.compose.ui.unit.Density
 ) {
-    // 1. Tọa độ Y theo độ dốc phối cảnh
+    // 1. Tọa độ Y theo đúng hàm mũ phối cảnh của vạch kẻ đường
     val currentYPx = horizonY + (bottomY - horizonY) * (progress * progress)
 
-    // 2. Độ rộng đường tại vị trí Y hiện tại
-    val currentRoadHalfW = (roadTopW + (roadBottomW - roadTopW) * progress) / 2f
+    // 2. Độ rộng nửa làn đường tại vị trí Y hiện tại
+    val currentRoadHalfW = (roadTopW + (roadBottomW - roadTopW) * (progress * progress)) / 2f
     val centerX = screenWidthPx / 2f
 
-    // 3. Kích thước cây (lớn dần từ 28dp khi ở xa lên đến 135dp khi tới gần)
-    val baseWidthDp = 28f + 105f * progress
-    val baseHeightDp = 32f + 125f * progress
+    // 3. Kích thước phối cảnh
+    val baseWidthDp = 26f + 95f * progress
+    val baseHeightDp = 30f + 115f * progress
 
     val widthPx = with(density) { baseWidthDp.dp.toPx() }
     val heightPx = with(density) { baseHeightDp.dp.toPx() }
 
-    // Khoảng cách từ mép đường ra lề cây
-    val roadsideMargin = 12f + 55f * progress
+    // 4. Đặt sát gốc cây chạm vào vạch kẻ đường vàng
+    val roadsideMargin = with(density) { (2f + 8f * progress).dp.toPx() }
 
-    // 4. Tọa độ X
     val currentXPx = if (isRightSide) {
         centerX + currentRoadHalfW + roadsideMargin
     } else {
         centerX - currentRoadHalfW - roadsideMargin - widthPx
     }
 
-    // 5. Độ trong suốt: Hiện dần khi vừa ra khỏi đường chân trời và mờ dần khi trôi qua đáy màn hình
+    // 5. Độ mờ mượt mà
     val alpha = when {
         progress < 0.08f -> progress / 0.08f
         progress > 0.88f -> (1.0f - progress) / 0.12f
@@ -360,7 +355,7 @@ private fun RoadsideMovingTree(
         modifier = Modifier
             .offset(
                 x = with(density) { currentXPx.toDp() },
-                y = with(density) { (currentYPx - heightPx * 0.9f).toDp() }
+                y = with(density) { (currentYPx - heightPx * 0.95f).toDp() }
             )
             .size(width = baseWidthDp.dp, height = baseHeightDp.dp)
             .alpha(alpha)
