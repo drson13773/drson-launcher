@@ -1,11 +1,16 @@
 package com.drson.launcher
 
+import android.graphics.Color
+import android.graphics.drawable.Drawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TextView
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.recyclerview.widget.RecyclerView
+import com.drson.launcher.R
 import com.drson.launcher.model.AppItem
 
 class DockGridAdapter(
@@ -16,58 +21,60 @@ class DockGridAdapter(
 ) : RecyclerView.Adapter<DockGridAdapter.DockViewHolder>() {
 
     class DockViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val dockItemBg: View = itemView.findViewById(R.id.dockItemBg)
-        val imgAppIcon: ImageView = itemView.findViewById(R.id.imgAppIcon)
-        val imgAddIcon: ImageView = itemView.findViewById(R.id.imgAddIcon)
+        val imgIcon: ImageView = itemView.findViewById(R.id.imgDockIcon)
+        val tvPlus: TextView? = itemView.findViewById(R.id.tvDockPlus)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DockViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_dock_app, parent, false)
+        val view = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_dock_app, parent, false)
         return DockViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: DockViewHolder, position: Int) {
-        val item = appList.getOrNull(position)
+        val app = appList.getOrNull(position)
 
-        if (item != null) {
-            // Ô đã có app: luôn hiển thị icon app
-            holder.itemView.visibility = View.VISIBLE
-            holder.dockItemBg.visibility = View.VISIBLE
-            holder.imgAppIcon.visibility = View.VISIBLE
-            holder.imgAddIcon.visibility = View.GONE
-            holder.imgAppIcon.setImageBitmap(item.icon.asAndroidBitmap())
+        if (app != null) {
+            holder.tvPlus?.visibility = View.GONE
+            holder.imgIcon.visibility = View.VISIBLE
+            
+            when (val icon = app.icon) {
+                is Drawable -> holder.imgIcon.setImageDrawable(icon)
+                is ImageBitmap -> holder.imgIcon.setImageBitmap(icon.asAndroidBitmap())
+                else -> holder.imgIcon.setImageResource(android.R.drawable.sym_def_app_icon)
+            }
         } else {
-            // Ô còn trống: chỉ hiện khi đang ở Edit Mode (nhấn giữ)
             if (isEditMode) {
-                holder.itemView.visibility = View.VISIBLE
-                holder.dockItemBg.visibility = View.VISIBLE
-                holder.imgAppIcon.visibility = View.GONE
-                holder.imgAddIcon.visibility = View.VISIBLE
+                holder.imgIcon.visibility = View.GONE
+                holder.tvPlus?.visibility = View.VISIBLE
+                holder.tvPlus?.text = "+"
+                holder.tvPlus?.setTextColor(Color.parseColor("#D4AF37"))
             } else {
-                holder.itemView.visibility = View.GONE
+                holder.imgIcon.visibility = View.INVISIBLE
+                holder.tvPlus?.visibility = View.GONE
             }
         }
 
         holder.itemView.setOnClickListener {
-            onItemClick(position, item)
+            onItemClick(position, app)
         }
 
         holder.itemView.setOnLongClickListener {
-            onItemLongClick(position, item)
+            onItemLongClick(position, app)
             true
         }
     }
 
     override fun getItemCount(): Int = 4
 
-    fun updateData(newList: List<AppItem?>, editMode: Boolean = isEditMode) {
-        appList = newList
-        isEditMode = editMode
+    fun updateData(newApps: List<AppItem?>, editMode: Boolean = isEditMode) {
+        this.appList = newApps
+        this.isEditMode = editMode
         notifyDataSetChanged()
     }
 
     fun setEditMode(editMode: Boolean) {
-        isEditMode = editMode
+        this.isEditMode = editMode
         notifyDataSetChanged()
     }
 }
