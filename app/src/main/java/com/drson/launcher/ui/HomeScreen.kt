@@ -132,7 +132,7 @@ fun HomeScreen(
         // 1. Nền 3D thành phố & xe Mazda CX-5
         DrivingRoadBackground()
 
-        // 2. Góc trên bên trái: Logo Dr Sơn + Đồng hồ (Không viền)
+        // 2. Góc trên bên trái: Logo Dr Sơn + Chùm ánh sáng phía sau + Đồng hồ (Không viền)
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -141,12 +141,12 @@ fun HomeScreen(
             BrandClockWidget()
         }
 
-        // 3. Góc tam giác bên trái đường: Đồng hồ tốc độ tròn Luxury Gold
+        // 3. Góc tam giác bên trái: Đồng hồ tốc độ tròn Luxury Gold (Kích thước 145dp nhỏ gọn, cân đối)
         Box(
             modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = 24.dp, top = 65.dp)
-                .size(190.dp)
+                .align(Alignment.BottomStart)
+                .padding(start = 28.dp, bottom = 80.dp)
+                .size(145.dp)
         ) {
             CircularLuxurySpeedometer()
         }
@@ -167,7 +167,7 @@ fun HomeScreen(
             )
         }
 
-        // 5. Trang danh sách ứng dụng (App Drawer)
+        // 5. Trang danh sách ứng dụng
         AppDrawerOverlay(
             isOpen = isAppDrawerOpen,
             apps = viewModel.apps,
@@ -190,7 +190,7 @@ fun BrandClockWidget() {
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(2200, easing = LinearEasing),
+            animation = tween(2400, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "rotation_angle"
@@ -213,21 +213,23 @@ fun BrandClockWidget() {
         modifier = Modifier.padding(4.dp)
     ) {
         Box(
-            modifier = Modifier.size(70.dp),
+            modifier = Modifier.size(76.dp),
             contentAlignment = Alignment.Center
         ) {
+            // Chùm ánh sáng rẻ quạt nằm ở lớp dưới (phía sau Logo)
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
                     .rotate(rotationAngle)
             ) {
-                drawSunburstRays(size.minDimension / 1.8f, 16)
+                drawSunburstRays(maxRadius = size.minDimension / 1.7f, rayCount = 16)
             }
 
+            // Logo Dr Sơn nằm đè lên trên chùm ánh sáng
             Image(
                 painter = painterResource(id = R.drawable.icon_menu_brand),
                 contentDescription = "Dr Son Brand",
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(54.dp),
                 contentScale = ContentScale.Fit
             )
         }
@@ -319,7 +321,7 @@ fun CircularLuxurySpeedometer() {
             val w = size.width
             val h = size.height
             val center = Offset(w / 2f, h / 2f)
-            val radius = w / 2f - 6f
+            val radius = w / 2f - 4f
 
             // Mặt đồng hồ đen
             drawCircle(
@@ -341,13 +343,13 @@ fun CircularLuxurySpeedometer() {
                 ),
                 radius = radius,
                 center = center,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 8f)
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6.5f)
             )
             drawCircle(
                 color = Color(0xFF1E1A14),
-                radius = radius - 6f,
+                radius = radius - 5f,
                 center = center,
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.5f)
             )
 
             // Vạch chia và số 0 - 180 km/h
@@ -361,10 +363,10 @@ fun CircularLuxurySpeedometer() {
                 val angleRad = Math.toRadians(angleDeg.toDouble())
 
                 val isMajor = (speed % 20 == 0)
-                val tickLength = if (isMajor) 14f else 8f
-                val strokeW = if (isMajor) 2.5f else 1.2f
+                val tickLength = if (isMajor) 11f else 6f
+                val strokeW = if (isMajor) 2f else 1f
 
-                val outerR = radius - 12f
+                val outerR = radius - 9f
                 val innerR = outerR - tickLength
 
                 val startP = Offset(
@@ -384,14 +386,14 @@ fun CircularLuxurySpeedometer() {
                 )
 
                 if (isMajor) {
-                    val textR = innerR - 16f
+                    val textR = innerR - 13f
                     val textX = (center.x + textR * cos(angleRad)).toFloat()
-                    val textY = (center.y + textR * sin(angleRad)).toFloat() + 5f
+                    val textY = (center.y + textR * sin(angleRad)).toFloat() + 4f
 
                     drawIntoCanvas { canvas ->
                         val paint = Paint().apply {
                             color = android.graphics.Color.parseColor("#FFF0B8")
-                            textSize = 19f
+                            textSize = 14f
                             typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
                             textAlign = Paint.Align.CENTER
                             isAntiAlias = true
@@ -405,30 +407,30 @@ fun CircularLuxurySpeedometer() {
             drawIntoCanvas { canvas ->
                 val brandPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#E6CA65")
-                    textSize = 28f
+                    textSize = 21f
                     typeface = Typeface.create(Typeface.SERIF, Typeface.BOLD_ITALIC)
                     textAlign = Paint.Align.CENTER
                     isAntiAlias = true
                 }
-                canvas.nativeCanvas.drawText("Dr Sơn", center.x, center.y + 36f, brandPaint)
+                canvas.nativeCanvas.drawText("Dr Sơn", center.x, center.y + 26f, brandPaint)
 
                 val speedValPaint = Paint().apply {
                     color = android.graphics.Color.WHITE
-                    textSize = 24f
+                    textSize = 19f
                     typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
                     textAlign = Paint.Align.CENTER
                     isAntiAlias = true
                 }
-                canvas.nativeCanvas.drawText(String.format(Locale.US, "%.0f", currentSpeed), center.x, center.y + 58f, speedValPaint)
+                canvas.nativeCanvas.drawText(String.format(Locale.US, "%.0f", currentSpeed), center.x, center.y + 44f, speedValPaint)
 
                 val kmhPaint = Paint().apply {
                     color = android.graphics.Color.parseColor("#9E9E9E")
-                    textSize = 12f
+                    textSize = 10f
                     typeface = Typeface.DEFAULT_BOLD
                     textAlign = Paint.Align.CENTER
                     isAntiAlias = true
                 }
-                canvas.nativeCanvas.drawText("km/h", center.x, center.y + 70f, kmhPaint)
+                canvas.nativeCanvas.drawText("km/h", center.x, center.y + 54f, kmhPaint)
             }
 
             // Kim quay
@@ -437,17 +439,17 @@ fun CircularLuxurySpeedometer() {
 
             rotate(degrees = needleAngleDeg + 90f, pivot = center) {
                 val needlePath = Path().apply {
-                    moveTo(center.x - 3.5f, center.y)
-                    lineTo(center.x - 1f, center.y - (radius - 22f))
-                    lineTo(center.x + 1f, center.y - (radius - 22f))
-                    lineTo(center.x + 3.5f, center.y)
+                    moveTo(center.x - 2.5f, center.y)
+                    lineTo(center.x - 0.8f, center.y - (radius - 17f))
+                    lineTo(center.x + 0.8f, center.y - (radius - 17f))
+                    lineTo(center.x + 2.5f, center.y)
                     close()
                 }
                 drawPath(needlePath, brush = Brush.verticalGradient(listOf(GOLD_BRIGHT, GOLD_ACCENT)))
             }
 
-            drawCircle(color = Color(0xFF1E1912), radius = 11f, center = center)
-            drawCircle(color = GOLD_ACCENT, radius = 11f, center = center, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
+            drawCircle(color = Color(0xFF1E1912), radius = 8f, center = center)
+            drawCircle(color = GOLD_ACCENT, radius = 8f, center = center, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f))
         }
     }
 }
