@@ -1,42 +1,61 @@
 package com.drson.launcher
 
 import android.Manifest
-import android.app.Dialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
-import android.view.ViewGroup
-import android.view.Window
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
-import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.ComposeView
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
-import androidx.recyclerview.widget.GridLayoutManager
-import androidx.recyclerview.widget.RecyclerView
+import com.drson.launcher.model.AppItem
 import com.drson.launcher.music.PureMusicActivity
 import com.drson.launcher.ui.CircularLuxurySpeedometer
+import com.drson.launcher.ui.ControlCenterSheet
 import com.drson.launcher.ui.DrivingRoadBackground
 import com.drson.launcher.ui.HomeViewModel
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -61,11 +80,10 @@ class MainActivity : ComponentActivity() {
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             try {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")
-                ).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
-                startActivity(intent)
+                startActivity(
+                    Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                )
             } catch (_: Exception) {}
         }
     }
@@ -74,148 +92,104 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         hideSystemBars()
 
-        setContentView(R.layout.activity_main)
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
-
-        setupComposeViews()
-        startClockUpdates()
-        setupDockClicks()
         checkAndRequestPermissions()
-    }
 
-    private fun setupDockClicks() {
-        // 1. Nút Menu mở App Drawer lưới 6 cột
-        findViewById<View>(R.id.btnMainMenu)?.setOnClickListener {
-            showFullAppDrawerDialog()
-        }
+        setContent {
+            var showAppDrawer by remember { mutableStateOf(false) }
+            var showControlCenter by remember { mutableStateOf(false) }
 
-        // 2. Nút Điện thoại
-        findViewById<View>(R.id.btnDockPhone)?.setOnClickListener {
-            try {
-                val intent = Intent(Intent.ACTION_DIAL).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    // BẮT CỬ CHỈ VUỐT: Vuốt từ trên xuống -> Control Center; Vuốt từ dưới lên -> App Drawer
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures { _, dragAmount ->
+                            if (dragAmount > 40f) {
+                                showControlCenter = true
+                            } else if (dragAmount < -40f) {
+                                showAppDrawer = true
+                            }
+                        }
+                    }
+            ) {
+                val speed by viewModel.currentSpeed
+
+                // 1. NỀN ĐƯỜNG 3D VÀ XE MAZDA CX-5
+                DrivingRoadBackground(
+                    speedKmH = speed,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // 2. LOGO DR SƠN VÀ ĐỒNG HỒ
+                TopBrandAndClock(
+                    onLogoClick = {
+                        startActivity(Intent(this@MainActivity, PureMusicActivity::class.java))
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 24.dp, top = 16.dp)
+                )
+
+                // 3. ĐỒNG HỒ TỐC ĐỘ GPS
+                CircularLuxurySpeedometer(
+                    speedKmH = speed,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(start = 28.dp, bottom = 80.dp)
+                )
+
+                // 4. THANH DOCK TỰ CO DÃN ÔM KHÍT CÁC ỨNG DỤNG
+                LuxuryBottomDock(
+                    onMenuClick = { showAppDrawer = true },
+                    onPhoneClick = { launchDialer() },
+                    onCameraClick = { launchAppByKeywords(listOf("camera", "cam360", "panorama", "dvr", "cam"), "Camera 360") },
+                    onMusicClick = { startActivity(Intent(this@MainActivity, PureMusicActivity::class.java)) },
+                    onZingClick = { launchAppByKeywords(listOf("com.zing.mp3", "zingmp3", "zing"), "Zing MP3") },
+                    onVietmapClick = { launchAppByKeywords(listOf("vietmap", "live.vietmap", "navigation", "navitel", "maps"), "Vietmap") },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 12.dp)
+                )
+
+                // TRANG DANH SÁCH TẤT CẢ ỨNG DỤNG (LƯỚI 6 CỘT)
+                if (showAppDrawer) {
+                    AppDrawerGridDialog(
+                        apps = viewModel.apps,
+                        onAppClick = { app ->
+                            showAppDrawer = false
+                            viewModel.launchApp(this@MainActivity, app)
+                        },
+                        onDismiss = { showAppDrawer = false }
+                    )
                 }
-                startActivity(intent)
-            } catch (_: Exception) {
-                Toast.makeText(this, "Không tìm thấy ứng dụng gọi điện", Toast.LENGTH_SHORT).show()
+
+                // TRUNG TÂM ĐIỀU KHIỂN (VUỐT XUỐNG HOẶC MỞ NHANH)
+                ControlCenterSheet(
+                    isVisible = showControlCenter,
+                    onDismiss = { showControlCenter = false }
+                )
             }
-        }
-
-        // 3. Nút Camera 360
-        findViewById<View>(R.id.btnDockCamera)?.setOnClickListener {
-            openAppByKeywords(
-                listOf("camera", "cam360", "panorama", "dvr", "cam"),
-                "Camera 360"
-            )
-        }
-
-        // 4. Nút Dr Sơn Music
-        findViewById<View>(R.id.btnDrSonMusic)?.setOnClickListener {
-            startActivity(Intent(this, PureMusicActivity::class.java))
-        }
-
-        // 5. Nút Zing MP3
-        findViewById<View>(R.id.btnDockZingMp3)?.setOnClickListener {
-            openAppByKeywords(
-                listOf("com.zing.mp3", "zingmp3", "zing"),
-                "Zing MP3"
-            )
-        }
-
-        // 6. Nút Vietmap
-        findViewById<View>(R.id.btnDockVietmap)?.setOnClickListener {
-            openAppByKeywords(
-                listOf("vietmap", "live.vietmap", "navigation", "navitel", "maps"),
-                "Vietmap"
-            )
-        }
-
-        // Bấm vào Logo phía trên để mở nhanh Dr Sơn Music
-        findViewById<View>(R.id.imgBrandLogo)?.setOnClickListener {
-            startActivity(Intent(this, PureMusicActivity::class.java))
         }
     }
 
-    private fun openAppByKeywords(keywords: List<String>, appTitle: String) {
-        val app = viewModel.apps.firstOrNull { item ->
-            keywords.any { kw ->
-                item.packageName.lowercase().contains(kw) || item.label.lowercase().contains(kw)
-            }
+    private fun launchDialer() {
+        try {
+            startActivity(Intent(Intent.ACTION_DIAL).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
+        } catch (_: Exception) {
+            Toast.makeText(this, "Không tìm thấy ứng dụng gọi điện", Toast.LENGTH_SHORT).show()
         }
+    }
 
+    private fun launchAppByKeywords(keywords: List<String>, title: String) {
+        val app = viewModel.apps.firstOrNull { item ->
+            keywords.any { kw -> item.packageName.lowercase().contains(kw) || item.label.lowercase().contains(kw) }
+        }
         if (app != null) {
             viewModel.launchApp(this, app)
         } else {
-            val directPackages = when (appTitle) {
-                "Zing MP3" -> listOf("com.zing.mp3")
-                "Vietmap" -> listOf("com.vietmap.live", "com.vietmap.s1", "com.vietmap.s2")
-                else -> emptyList()
-            }
-            var launched = false
-            for (pkg in directPackages) {
-                val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
-                if (launchIntent != null) {
-                    launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    startActivity(launchIntent)
-                    launched = true
-                    break
-                }
-            }
-            if (!launched) {
-                Toast.makeText(this, "Không tìm thấy $appTitle trên thiết bị", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
-    private fun showFullAppDrawerDialog() {
-        val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
-        dialog.setContentView(R.layout.dialog_app_drawer)
-
-        dialog.window?.let { w ->
-            w.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            w.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-        }
-
-        val rvGrid = dialog.findViewById<RecyclerView>(R.id.rvAppDrawerGrid)
-        val btnClose = dialog.findViewById<ImageView>(R.id.btnAppDrawerClose)
-
-        rvGrid.layoutManager = GridLayoutManager(this, 6)
-        rvGrid.adapter = AppDrawerAdapter(viewModel.apps) { app ->
-            dialog.dismiss()
-            viewModel.launchApp(this, app)
-        }
-
-        btnClose.setOnClickListener {
-            dialog.dismiss()
-        }
-
-        dialog.show()
-    }
-
-    private fun setupComposeViews() {
-        findViewById<ComposeView>(R.id.composeRoadBackground)?.setContent {
-            val speed by viewModel.currentSpeed
-            DrivingRoadBackground(speedKmH = speed)
-        }
-        findViewById<ComposeView>(R.id.composeSpeedometer)?.setContent {
-            val speed by viewModel.currentSpeed
-            CircularLuxurySpeedometer(speedKmH = speed)
-        }
-    }
-
-    private fun startClockUpdates() {
-        val tvTime = findViewById<TextView>(R.id.tvClockTime)
-        val tvDate = findViewById<TextView>(R.id.tvClockDate)
-        lifecycleScope.launch {
-            val tFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-            val dFormat = SimpleDateFormat("EEEE, dd 'thg' M", Locale("vi", "VN"))
-            while (true) {
-                val now = Calendar.getInstance().time
-                tvTime?.text = tFormat.format(now)
-                tvDate?.text = dFormat.format(now)
-                delay(1000)
-            }
+            Toast.makeText(this, "Không tìm thấy ứng dụng $title", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -237,9 +211,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) {
-            hideSystemBars()
-        }
+        if (hasFocus) hideSystemBars()
     }
 
     @Suppress("DEPRECATION")
@@ -247,14 +219,12 @@ class MainActivity : ComponentActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.hide(WindowInsetsCompat.Type.systemBars())
-        controller.systemBarsBehavior =
-            WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.insetsController?.let {
                 it.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
-                it.systemBarsBehavior =
-                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                it.systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
         } else {
             window.decorView.systemUiVisibility = (
@@ -264,8 +234,215 @@ class MainActivity : ComponentActivity() {
                     or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                     or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                     or View.SYSTEM_UI_FLAG_FULLSCREEN
-                )
+            )
             window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        }
+    }
+}
+
+@Composable
+fun TopBrandAndClock(
+    onLogoClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var timeStr by remember { mutableStateOf("") }
+    var dateStr by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        val tFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+        val dFormat = SimpleDateFormat("EEEE, dd 'thg' M", Locale("vi", "VN"))
+        while (true) {
+            val now = Calendar.getInstance().time
+            timeStr = tFormat.format(now)
+            dateStr = dFormat.format(now)
+            delay(1000)
+        }
+    }
+
+    Row(
+        modifier = modifier.clickable { onLogoClick() },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.icon_menu_brand),
+            contentDescription = "Brand Logo",
+            modifier = Modifier.size(68.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Column {
+            Text(
+                text = timeStr,
+                color = Color(0xFFFFF0B8),
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = dateStr,
+                color = Color(0xFFD4AF37),
+                fontSize = 13.sp
+            )
+        }
+    }
+}
+
+@Composable
+fun LuxuryBottomDock(
+    onMenuClick: () -> Unit,
+    onPhoneClick: () -> Unit,
+    onCameraClick: () -> Unit,
+    onMusicClick: () -> Unit,
+    onZingClick: () -> Unit,
+    onVietmapClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.wrapContentWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xE612100C)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 1. Nút Menu mở App Drawer
+            DockIconButton(iconRes = R.drawable.ic_launcher, onClick = onMenuClick)
+            Spacer(modifier = Modifier.width(10.dp))
+
+            // 2. Nút Điện thoại
+            DockVectorButton(icon = Icons.Default.Call, tint = Color(0xFFD4AF37), onClick = onPhoneClick)
+            Spacer(modifier = Modifier.width(10.dp))
+
+            // 3. Nút Camera 360 (Icon Gold)
+            DockIconButton(iconRes = R.drawable.icon_camera_gold, onClick = onCameraClick)
+            Spacer(modifier = Modifier.width(10.dp))
+
+            // 4. Nút Dr Sơn Music (Icon YouTube Gold)
+            DockIconButton(iconRes = R.drawable.ic_drson_music, onClick = onMusicClick)
+            Spacer(modifier = Modifier.width(10.dp))
+
+            // 5. Nút Zing MP3
+            DockVectorButton(icon = Icons.Default.PlayArrow, tint = Color(0xFFFFF0B8), onClick = onZingClick)
+            Spacer(modifier = Modifier.width(10.dp))
+
+            // 6. Nút Vietmap
+            DockVectorButton(icon = Icons.Default.Map, tint = Color(0xFFD4AF37), onClick = onVietmapClick)
+        }
+    }
+}
+
+@Composable
+private fun DockIconButton(iconRes: Int, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = iconRes),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+private fun DockVectorButton(icon: ImageVector, tint: Color, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(Color(0xFF221E18))
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier.size(26.dp)
+        )
+    }
+}
+
+@Composable
+fun AppDrawerGridDialog(
+    apps: List<AppItem>,
+    onAppClick: (AppItem) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xF2080706))
+            .clickable { onDismiss() }
+            .padding(16.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "TẤT CẢ ỨNG DỤNG",
+                    color = Color(0xFFD4AF37),
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Đóng",
+                        tint = Color(0xFFFFF0B8)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // LƯỚI 6 CỘT CHUẨN MÀN HÌNH XE HƠI
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(6),
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(apps) { app ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onAppClick(app) }
+                            .padding(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(54.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color(0xFF242018)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                bitmap = app.icon,
+                                contentDescription = app.label,
+                                modifier = Modifier.size(42.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = app.label,
+                            color = Color(0xFFFFF0B8),
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
         }
     }
 }
