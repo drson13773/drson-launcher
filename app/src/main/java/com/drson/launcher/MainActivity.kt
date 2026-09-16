@@ -42,13 +42,13 @@ class MainActivity : ComponentActivity() {
                     .fillMaxSize()
                     .background(Color.Black)
             ) {
-                // 1. Nền đường, xe chạy và mặt trăng góc trên phải
+                // 1. Nền đường (bg_rice_field.png) và xe chạy đồng bộ theo tốc độ
                 DrivingRoadBackground(
                     speedKmH = speed,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 2. Logo, chữ Dr. Sơn và đồng hồ thời gian font mềm mại góc trên trái
+                // 2. Logo gốc (đã có sẵn Dr. Sơn & dao mổ) và đồng hồ thời gian font mềm mại ở góc trên trái
                 TopBrandAndClock(
                     onLogoClick = {
                         startActivity(
@@ -86,28 +86,16 @@ fun TopBrandAndClock(
         modifier = modifier.clickable { onLogoClick() },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Cột chứa Logo và chữ Dr. Sơn bên dưới
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.icon_menu_brand),
-                contentDescription = "Brand Logo",
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "Dr. Sơn",
-                color = Color(0xFFD4AF37),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
-            )
-        }
+        // Logo gốc đúng chuẩn, không vẽ thêm chữ bên ngoài
+        Image(
+            painter = painterResource(id = R.drawable.icon_menu_brand),
+            contentDescription = "Brand Logo",
+            modifier = Modifier.size(64.dp)
+        )
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Cột chứa đồng hồ thời gian với font mềm mại, thanh thoát
+        // Đồng hồ thời gian với font mềm mại, thanh thoát
         Column {
             Text(
                 text = timeStr,
