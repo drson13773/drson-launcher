@@ -1,6 +1,7 @@
 package com.drson.launcher
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -53,6 +54,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import com.drson.launcher.model.AppItem
 import com.drson.launcher.music.PureMusicActivity
+import com.drson.launcher.music.ZingMusicController
 import com.drson.launcher.ui.CircularLuxurySpeedometer
 import com.drson.launcher.ui.ControlCenterSheet
 import com.drson.launcher.ui.DrivingRoadBackground
@@ -98,6 +100,7 @@ class MainActivity : ComponentActivity() {
 
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
         checkAndRequestPermissions()
+        checkNotificationPermission()
 
         setContent {
             var showAppDrawer by remember { mutableStateOf(false) }
@@ -305,6 +308,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun checkNotificationPermission() {
+        val cn = ComponentName(this, android.service.notification.NotificationListenerService::class.java)
+        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+        if (flat == null || !flat.contains(cn.flattenToString())) {
+            try {
+                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            } catch (_: Exception) {}
+        }
+    }
+
     private fun checkAndRequestPermissions() {
         val missing = requiredPermissions.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
@@ -500,6 +513,9 @@ fun LuxuryBottomDock(
     onOpenZing: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val musicState by ZingMusicController.musicState.collectAsState()
+
     Card(
         modifier = modifier.wrapContentWidth(),
         shape = RoundedCornerShape(22.dp),
@@ -541,18 +557,18 @@ fun LuxuryBottomDock(
                 )
             }
 
-            // 3. THANH NHẠC ZING MP3 NẰM TRONG DOCK
+            // 3. THANH NHẠC ZING MP3 LIÊN KẾT TRỰC TIẾP TRÊN DOCK
             ZingMiniDockPlayer(
-                songTitle = "Zing MP3 Player",
-                artistName = "Sẵn sàng phát nhạc",
-                isPlaying = false,
-                currentProgress = 0f,
-                volume = 0.5f,
-                onPlayPauseClick = {},
-                onNextClick = {},
-                onPrevClick = {},
-                onSeekChanged = {},
-                onVolumeChanged = {},
+                songTitle = musicState.title,
+                artistName = musicState.artist,
+                isPlaying = musicState.isPlaying,
+                currentProgress = musicState.progress,
+                volume = musicState.volume,
+                onPlayPauseClick = { ZingMusicController.playPause(context) },
+                onNextClick = { ZingMusicController.next(context) },
+                onPrevClick = { ZingMusicController.previous(context) },
+                onSeekChanged = { progress -> ZingMusicController.seekTo(context, progress) },
+                onVolumeChanged = { vol -> ZingMusicController.setVolume(context, vol) },
                 onOpenZingClick = onOpenZing
             )
         }
