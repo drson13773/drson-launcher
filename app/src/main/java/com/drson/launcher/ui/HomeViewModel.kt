@@ -1,11 +1,9 @@
 package com.drson.launcher.ui
 
-import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.pm.ResolveInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
@@ -14,99 +12,101 @@ import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.runtime.mutableStateListOf
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
-import com.drson.launcher.R
-import com.drson.launcher.data.HomeLayoutRepository
 import com.drson.launcher.model.AppItem
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import java.util.*
 
 class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = HomeLayoutRepository(application)
-
-    var apps: List<AppItem> = emptyList()
-        private set
-
-    var dockSlots: List<String?> = listOf(null, null, null, null)
-        private set
-
-    // Tốc độ GPS thời gian thực (km/h)
     private val _currentSpeed = mutableFloatStateOf(0f)
     val currentSpeed: State<Float> = _currentSpeed
 
-    private var locationManager: LocationManager? = null
-
-    private val locationListener = object : LocationListener {
-        override fun onLocationChanged(location: Location) {
-            if (location.hasSpeed()) {
-                val speedKmh = location.speed * 3.6f
-                _currentSpeed.floatValue = if (speedKmh < 1.5f) 0f else speedKmh
-            } else {
-                _currentSpeed.floatValue = 0f
-            }
-        }
-        @Deprecated("Deprecated in Java")
-        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-        override fun onProviderEnabled(provider: String) {}
-        override fun onProviderDisabled(provider: String) {
-            _currentSpeed.floatValue = 0f
-        }
-    }
+    private val _apps = mutableStateListOf<AppItem>()
+    val apps: List<AppItem> = _apps
 
     init {
         loadInstalledApps()
-        loadDockSlots()
-        initGpsSpeedListener()
     }
 
-    @SuppressLint("MissingPermission")
-    fun initGpsSpeedListener() {
+    private fun loadInstalledApps() {
+        val pm = getApplication<Application>().packageManager
+        val intent = Intent(Intent.ACTION_MAIN, null).apply {
+            addCategory(Intent.CATEGORY_LAUNCHER)
+        }
+        val resolveInfos = pm.queryIntentActivities(intent, 0)
+        val list = mutableListOf<AppItem>()
+
+        for (info in resolveInfos) {
+            val pkg = info.activityInfo.packageName
+            // Bỏ qua chính launcher để tránh tự hiển thị
+            if (pkg == getApplication<Application>().packageName) continue
+            val label = info.loadLabel(pm).toString()
+            val iconDrawable = info.loadIcon(pm)
+            val bitmap = drawableToBitmap(iconDrawable)
+            list.add(AppItem(packageName = pkg, label = label, icon = bitmap))
+        }
+
+        list.sortBy { it.label.lowercase(Locale.getDefault()) }
+        _apps.clear()
+        _apps.addAll(list)
+    }
+
+    fun appFor(packageName: String): AppItem? {
+        return _apps.find { it.packageName == packageName }
+    }
+
+    fun launchApp(context: Context, app: AppItem) {
         try {
-            locationManager = getApplication<Application>().getSystemService(Context.LOCATION_SERVICE) as? LocationManager
-            val finePerm = ContextCompat.checkSelfPermission(getApplication(), android.Manifest.permission.ACCESS_FINE_LOCATION)
-            if (finePerm == PackageManager.PERMISSION_GRANTED) {
-                locationManager?.requestLocationUpdates(
-                    LocationManager.GPS_PROVIDER,
-                    500L,
-                    0f,
-                    locationListener
-                )
+            val intent = context.packageManager.getLaunchIntentForPackage(app.packageName)
+            if (intent != null) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
             }
         } catch (_: Exception) {}
     }
 
-    fun loadDockSlots() {
-        dockSlots = repository.getDockSlots()
+    fun initGpsSpeedListener() {
+        try {
+            val context = getApplication<Application>()
+            val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return
+            
+            val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+            if (!hasFine && !hasCoarse) return
+
+            val locationListener = object : LocationListener {
+                override fun onLocationChanged(location: Location) {
+                    val speedMs = location.speed
+                    val speedKm = if (speedMs > 0f) speedMs * 3.6f else 0f
+                    // Cập nhật tốc độ an toàn trên luồng chính
+                    Handler(Looper.getMainLooper()).post {
+                        _currentSpeed.floatValue = speedKm
+                    }
+                }
+                override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+                override fun onProviderEnabled(provider: String) {}
+                override fun onProviderDisabled(provider: String) {}
+            }
+
+            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000L, 1f, locationListener)
+            }
+            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000L, 1f, locationListener)
+            }
+        } catch (_: Exception) {}
     }
 
-    fun setDockSlot(context: Context, index: Int, packageName: String?) {
-        repository.setDockSlot(index, packageName)
-        loadDockSlots()
-    }
-
-    fun appFor(packageName: String): AppItem? {
-        return apps.firstOrNull { it.packageName == packageName }
-    }
-
-    fun launchApp(context: Context, app: AppItem) {
-        val launchIntent = context.packageManager.getLaunchIntentForPackage(app.packageName)
-        if (launchIntent != null) {
-            launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            context.startActivity(launchIntent)
-        }
-    }
-
-    private fun drawableToImageBitmap(drawable: Drawable): ImageBitmap {
-        if (drawable is BitmapDrawable && drawable.bitmap != null) {
-            return drawable.bitmap.asImageBitmap()
+    private fun drawableToBitmap(drawable: Drawable): Bitmap {
+        if (drawable is BitmapDrawable) {
+            if (drawable.bitmap != null) return drawable.bitmap
         }
         val width = if (drawable.intrinsicWidth > 0) drawable.intrinsicWidth else 96
         val height = if (drawable.intrinsicHeight > 0) drawable.intrinsicHeight else 96
@@ -114,55 +114,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         val canvas = Canvas(bitmap)
         drawable.setBounds(0, 0, canvas.width, canvas.height)
         drawable.draw(canvas)
-        return bitmap.asImageBitmap()
-    }
-
-    private fun loadInstalledApps() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val pm: PackageManager = getApplication<Application>().packageManager
-            val mainIntent = Intent(Intent.ACTION_MAIN, null).apply {
-                addCategory(Intent.CATEGORY_LAUNCHER)
-            }
-
-            val resolveInfos: List<ResolveInfo> = pm.queryIntentActivities(mainIntent, 0)
-            val appItemList = mutableListOf<AppItem>()
-
-            for (info in resolveInfos) {
-                val pkgName = info.activityInfo.packageName
-                if (pkgName == getApplication<Application>().packageName) continue
-
-                val label = info.loadLabel(pm).toString()
-                val isCameraApp = pkgName.lowercase().contains("camera") || label.lowercase().contains("camera")
-
-                val drawableIcon = if (isCameraApp) {
-                    ContextCompat.getDrawable(getApplication(), R.drawable.icon_camera_gold) ?: info.loadIcon(pm)
-                } else {
-                    info.loadIcon(pm)
-                }
-
-                val composeImageBitmap = drawableToImageBitmap(drawableIcon)
-
-                appItemList.add(
-                    AppItem(
-                        label = label,
-                        packageName = pkgName,
-                        icon = composeImageBitmap
-                    )
-                )
-            }
-
-            appItemList.sortBy { it.label.lowercase() }
-
-            withContext(Dispatchers.Main) {
-                apps = appItemList
-            }
-        }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        try {
-            locationManager?.removeUpdates(locationListener)
-        } catch (_: Exception) {}
+        return bitmap
     }
 }
