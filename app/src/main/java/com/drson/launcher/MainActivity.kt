@@ -1,6 +1,7 @@
 package com.drson.launcher
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -15,10 +16,13 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -26,15 +30,18 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,6 +61,7 @@ import com.drson.launcher.ui.HomeViewModel
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
 class MainActivity : ComponentActivity() {
 
@@ -94,66 +102,156 @@ class MainActivity : ComponentActivity() {
         setContent {
             var showAppDrawer by remember { mutableStateOf(false) }
             var showControlCenter by remember { mutableStateOf(false) }
+            var isEditMode by remember { mutableStateOf(false) }
+            var selectedSlotForAdd by remember { mutableStateOf<Int?>(null) }
+            var selectedAppForOption by remember { mutableStateOf<Pair<Int, AppItem>?>(null) }
 
-            // BOX TỰ CO DÃN TỶ LỆ THEO MỌI LOẠI MÀN HÌNH XE Ô TÔ
+            // Quản lý 8 vị trí ô tiện ích lưu vào SharedPreferences
+            val context = LocalContext.current
+            val prefs = remember { context.getSharedPreferences("launcher_slots", Context.MODE_PRIVATE) }
+            val pinnedPackages = remember { mutableStateListOf<String?>().apply {
+                for (i in 0 until 8) {
+                    add(prefs.getString("slot_$i", null))
+                }
+            }}
+
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
+                    // XỬ LÝ TOÀN BỘ CỬ CHỈ VUỐT
                     .pointerInput(Unit) {
-                        detectVerticalDragGestures { _, dragAmount ->
-                            if (dragAmount > 45f) {
-                                showControlCenter = true
-                            } else if (dragAmount < -45f) {
-                                showAppDrawer = true
+                        detectDragGestures(
+                            onDragEnd = {},
+                            onDrag = { change, dragAmount ->
+                                val position = change.position
+                                val screenWidth = size.width
+                                val (dx, dy) = dragAmount
+
+                                // 1. Vuốt ngang giữa màn hình -> Mở App Drawer
+                                if (abs(dx) > abs(dy) && abs(dx) > 28f) {
+                                    showAppDrawer = true
+                                    change.consume()
+                                }
+                                // 2. Vuốt từ trên xuống
+                                else if (dy > 30f && position.y < size.height * 0.4f) {
+                                    if (position.x > screenWidth / 2f) {
+                                        // Vuốt trên-phải xuống -> Trung tâm điều khiển
+                                        showControlCenter = true
+                                    } else {
+                                        // Vuốt trên-trái xuống -> Thông báo hệ thống
+                                        openSystemNotificationShade()
+                                    }
+                                    change.consume()
+                                }
                             }
-                        }
+                        )
                     }
             ) {
                 val screenW = maxWidth
                 val screenH = maxHeight
                 val speed by viewModel.currentSpeed
 
-                // 1. NỀN ĐƯỜNG 3D VÀ XE MAZDA CX-5 TỰ SCALE THEO CHIỀU CAO
+                // 1. NỀN GỐC, VẠCH ĐƯỜNG TRÔI, CÂY CỐI, XE MAZDA
                 DrivingRoadBackground(
                     speedKmH = speed,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 2. LOGO VÀ ĐỒNG HỒ THỜI GIAN (GÓC TRÊN TRÁI)
+                // 2. PHÍA TRÊN TRÁI: LOGO VÀ ĐỒNG HỒ THỜI GIAN
                 TopBrandAndClock(
                     onLogoClick = {
-                        startActivity(Intent(this@MainActivity, PureMusicActivity::class.java))
+                        startActivity(Intent(this@MainActivity, PureMusicActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     },
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(start = screenW * 0.03f, top = screenH * 0.04f)
+                        .padding(start = screenW * 0.025f, top = screenH * 0.025f)
                 )
 
-                // 3. ĐỒNG HỒ TỐC ĐỘ GPS (CHIẾM ~28% CHIỀU CAO MÀN HÌNH)
+                // 3. KHOẢNG TRỐNG BÊN TRÁI ĐƯỜNG: ĐỒNG HỒ TỐC ĐỘ GPS
                 val speedometerSize = screenH * 0.28f
                 CircularLuxurySpeedometer(
                     speedKmH = speed,
                     modifier = Modifier
                         .size(speedometerSize)
-                        .align(Alignment.BottomStart)
-                        .padding(start = screenW * 0.03f, bottom = screenH * 0.14f)
+                        .align(Alignment.CenterStart)
+                        .padding(start = screenW * 0.035f)
                 )
 
-                // 4. THANH DOCK CÂN ĐỐI TỰ ÔM KHÍT Ở ĐÁY
+                // 4. LƯỚI Ô TIỆN ÍCH QUANH XE (Ẩn mặc định, giữ lâu nổi ô chờ ghim)
+                HomeScreenWidgetGrid(
+                    pinnedPackages = pinnedPackages,
+                    viewModel = viewModel,
+                    isEditMode = isEditMode,
+                    onEmptySlotClick = { slotIdx ->
+                        selectedSlotForAdd = slotIdx
+                    },
+                    onAppClick = { app ->
+                        viewModel.launchApp(this@MainActivity, app)
+                    },
+                    onAppLongClick = { slotIdx, app ->
+                        selectedAppForOption = Pair(slotIdx, app)
+                    },
+                    onBackgroundLongClick = {
+                        isEditMode = !isEditMode
+                    },
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                // 5. THANH DOCK DƯỚI ĐÁY TỰ CO GIÃN
                 LuxuryBottomDock(
-                    onMenuClick = { showAppDrawer = true },
                     onPhoneClick = { launchDialer() },
-                    onCameraClick = { launchAppByKeywords(listOf("camera", "cam360", "panorama", "dvr", "cam"), "Camera 360") },
-                    onMusicClick = { startActivity(Intent(this@MainActivity, PureMusicActivity::class.java)) },
-                    onZingClick = { launchAppByKeywords(listOf("com.zing.mp3", "zingmp3", "zing"), "Zing MP3") },
-                    onVietmapClick = { launchAppByKeywords(listOf("vietmap", "live.vietmap", "navigation", "navitel", "maps"), "Vietmap") },
+                    onMusicClick = {
+                        startActivity(Intent(this@MainActivity, PureMusicActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    },
+                    onAppDrawerClick = { showAppDrawer = true },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = screenH * 0.025f)
+                        .padding(bottom = 12.dp)
                 )
 
-                // TRANG DANH SÁCH ỨNG DỤNG LƯỚI 6 CỘT
+                // DIALOG CHỌN APP KHI BẤM Ô DẤU CỘNG
+                selectedSlotForAdd?.let { slotIndex ->
+                    AppPickerDialog(
+                        apps = viewModel.apps,
+                        onAppSelected = { app ->
+                            pinnedPackages[slotIndex] = app.packageName
+                            prefs.edit().putString("slot_$slotIndex", app.packageName).apply()
+                            selectedSlotForAdd = null
+                        },
+                        onDismiss = { selectedSlotForAdd = null }
+                    )
+                }
+
+                // DIALOG ĐỔI HOẶC XÓA APP ĐÃ GHIM
+                selectedAppForOption?.let { (slotIndex, app) ->
+                    AlertDialog(
+                        onDismissRequest = { selectedAppForOption = null },
+                        title = { Text(text = app.label, color = Color(0xFFD4AF37)) },
+                        text = { Text("Bạn muốn đổi sang ứng dụng khác hay gỡ khỏi màn hình?", color = Color.White) },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                val target = slotIndex
+                                selectedAppForOption = null
+                                selectedSlotForAdd = target
+                            }) {
+                                Text("Đổi ứng dụng", color = Color(0xFFD4AF37))
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = {
+                                pinnedPackages[slotIndex] = null
+                                prefs.edit().remove("slot_$slotIndex").apply()
+                                selectedAppForOption = null
+                            }) {
+                                Text("Gỡ bỏ", color = Color(0xFFFF6B6B))
+                            }
+                        },
+                        containerColor = Color(0xFF1E1A16)
+                    )
+                }
+
+                // TRANG DANH SÁCH TẤT CẢ ỨNG DỤNG (6 CỘT)
                 if (showAppDrawer) {
                     AppDrawerGridDialog(
                         apps = viewModel.apps,
@@ -174,22 +272,23 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun openSystemNotificationShade() {
+        try {
+            @Suppress("WrongConstant")
+            val sbservice = getSystemService("statusbar")
+            val statusbarManager = Class.forName("android.app.StatusBarManager")
+            val showsb = statusbarManager.getMethod("expandNotificationsPanel")
+            showsb.invoke(sbservice)
+        } catch (_: Exception) {
+            Toast.makeText(this, "Không thể mở thanh thông báo", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun launchDialer() {
         try {
             startActivity(Intent(Intent.ACTION_DIAL).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
         } catch (_: Exception) {
             Toast.makeText(this, "Không tìm thấy ứng dụng gọi điện", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun launchAppByKeywords(keywords: List<String>, title: String) {
-        val app = viewModel.apps.firstOrNull { item ->
-            keywords.any { kw -> item.packageName.lowercase().contains(kw) || item.label.lowercase().contains(kw) }
-        }
-        if (app != null) {
-            viewModel.launchApp(this, app)
-        } else {
-            Toast.makeText(this, "Không tìm thấy ứng dụng $title", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -268,97 +367,236 @@ fun TopBrandAndClock(
             contentDescription = "Brand Logo",
             modifier = Modifier.size(68.dp)
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(10.dp))
         Column {
-            Text(
-                text = timeStr,
-                color = Color(0xFFFFF0B8),
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = dateStr,
-                color = Color(0xFFD4AF37),
-                fontSize = 13.sp
-            )
+            Text(text = timeStr, color = Color(0xFFFFF0B8), fontSize = 28.sp, fontWeight = FontWeight.Bold)
+            Text(text = dateStr, color = Color(0xFFD4AF37), fontSize = 12.sp)
         }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun HomeScreenWidgetGrid(
+    pinnedPackages: List<String?>,
+    viewModel: HomeViewModel,
+    isEditMode: Boolean,
+    onEmptySlotClick: (Int) -> Unit,
+    onAppClick: (AppItem) -> Unit,
+    onAppLongClick: (Int, AppItem) -> Unit,
+    onBackgroundLongClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .combinedClickable(
+                onClick = {},
+                onLongClick = onBackgroundLongClick
+            )
+    ) {
+        // Hàng 1: Phía trên xe (3 vị trí 0, 1, 2)
+        Row(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset(y = (-110).dp),
+            horizontalArrangement = Arrangement.spacedBy(28.dp)
+        ) {
+            WidgetSlotItem(0, pinnedPackages.getOrNull(0), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
+            WidgetSlotItem(1, pinnedPackages.getOrNull(1), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
+            WidgetSlotItem(2, pinnedPackages.getOrNull(2), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
+        }
+
+        // Hàng 2: Hai bên sườn xe (Vị trí 3, 4 ở bên trái và 5, 6 ở bên phải, chừa trống giữa cho xe)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .align(Alignment.Center)
+                .offset(y = 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                WidgetSlotItem(3, pinnedPackages.getOrNull(3), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
+                WidgetSlotItem(4, pinnedPackages.getOrNull(4), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
+            }
+            Spacer(modifier = Modifier.width(180.dp)) // Tránh che xe Mazda
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                WidgetSlotItem(5, pinnedPackages.getOrNull(5), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
+                WidgetSlotItem(6, pinnedPackages.getOrNull(6), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun WidgetSlotItem(
+    index: Int,
+    packageName: String?,
+    viewModel: HomeViewModel,
+    isEditMode: Boolean,
+    onEmptySlotClick: (Int) -> Unit,
+    onAppClick: (AppItem) -> Unit,
+    onAppLongClick: (Int, AppItem) -> Unit
+) {
+    val app = if (!packageName.isNullOrEmpty()) viewModel.appFor(packageName) else null
+
+    if (app != null) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .combinedClickable(
+                    onClick = { onAppClick(app) },
+                    onLongClick = { onAppLongClick(index, app) }
+                )
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0x991E1A16)),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(bitmap = app.icon, contentDescription = app.label, modifier = Modifier.size(42.dp))
+            }
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(text = app.label, color = Color(0xFFC7B299), fontSize = 11.sp, maxLines = 1)
+        }
+    } else if (isEditMode) {
+        // Chỉ hiện ô dấu cộng khi nhấn giữ vào màn hình
+        Box(
+            modifier = Modifier
+                .size(54.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .border(1.5.dp, Color(0xFFD4AF37), RoundedCornerShape(12.dp))
+                .background(Color(0x551E1A16))
+                .clickable { onEmptySlotClick(index) },
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(imageVector = Icons.Default.Add, contentDescription = "Thêm app", tint = Color(0xFFD4AF37))
+        }
+    } else {
+        // Bình thường ẩn hoàn toàn ô trống
+        Spacer(modifier = Modifier.size(54.dp))
     }
 }
 
 @Composable
 fun LuxuryBottomDock(
-    onMenuClick: () -> Unit,
     onPhoneClick: () -> Unit,
-    onCameraClick: () -> Unit,
     onMusicClick: () -> Unit,
-    onZingClick: () -> Unit,
-    onVietmapClick: () -> Unit,
+    onAppDrawerClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier.wrapContentWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xE612100C)),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xD914120E)),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            DockIconButton(iconRes = R.drawable.ic_launcher, onClick = onMenuClick)
-            Spacer(modifier = Modifier.width(10.dp))
+            // 1. Phím tắt Gọi điện (icon_phone_gold.png)
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .clickable { onPhoneClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.icon_phone_gold),
+                    contentDescription = "Gọi điện",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
-            DockVectorButton(icon = Icons.Default.Call, tint = Color(0xFFD4AF37), onClick = onPhoneClick)
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
-            DockIconButton(iconRes = R.drawable.icon_camera_gold, onClick = onCameraClick)
-            Spacer(modifier = Modifier.width(10.dp))
+            // 2. Trình phát nhạc nhỏ Dr Sơn Music (ic_drson_music.xml)
+            Card(
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0x66332D24)),
+                modifier = Modifier.clickable { onMusicClick() }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_drson_music),
+                        contentDescription = "Music Icon",
+                        modifier = Modifier.size(30.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(text = "Dr Sơn Music", color = Color(0xFFFFF0B8), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Nhạc không quảng cáo", color = Color(0xFFB89E72), fontSize = 9.sp)
+                    }
+                }
+            }
 
-            DockIconButton(iconRes = R.drawable.ic_drson_music, onClick = onMusicClick)
-            Spacer(modifier = Modifier.width(10.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
-            DockVectorButton(icon = Icons.Default.PlayArrow, tint = Color(0xFFFFF0B8), onClick = onZingClick)
-            Spacer(modifier = Modifier.width(10.dp))
-
-            DockVectorButton(icon = Icons.Default.Map, tint = Color(0xFFD4AF37), onClick = onVietmapClick)
+            // 3. Nút mở App Drawer 6 cột (ic_launcher.png)
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .clickable { onAppDrawerClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher),
+                    contentDescription = "Menu",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun DockIconButton(iconRes: Int, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Image(
-            painter = painterResource(id = iconRes),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize()
-        )
-    }
-}
-
-@Composable
-private fun DockVectorButton(icon: ImageVector, tint: Color, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .background(Color(0xFF221E18))
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(26.dp)
-        )
-    }
+fun AppPickerDialog(
+    apps: List<AppItem>,
+    onAppSelected: (AppItem) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Chọn ứng dụng để ghim", color = Color(0xFFD4AF37)) },
+        text = {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(4),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(apps) { app ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clickable { onAppSelected(app) }
+                            .padding(4.dp)
+                    ) {
+                        Image(bitmap = app.icon, contentDescription = app.label, modifier = Modifier.size(40.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(text = app.label, color = Color.White, fontSize = 10.sp, maxLines = 1)
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Hủy", color = Color(0xFFD4AF37)) }
+        },
+        containerColor = Color(0xFF1E1A16)
+    )
 }
 
 @Composable
@@ -371,10 +609,20 @@ fun AppDrawerGridDialog(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xF2080706))
-            .clickable { onDismiss() }
-            .padding(16.dp)
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = R.drawable.wallpaper_left_small),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+            alpha = 0.35f
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -387,11 +635,7 @@ fun AppDrawerGridDialog(
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Đóng",
-                        tint = Color(0xFFFFF0B8)
-                    )
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "Đóng", tint = Color(0xFFFFF0B8))
                 }
             }
 
@@ -419,11 +663,7 @@ fun AppDrawerGridDialog(
                                 .background(Color(0xFF242018)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Image(
-                                bitmap = app.icon,
-                                contentDescription = app.label,
-                                modifier = Modifier.size(42.dp)
-                            )
+                            Image(bitmap = app.icon, contentDescription = app.label, modifier = Modifier.size(42.dp))
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
