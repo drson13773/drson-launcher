@@ -1,7 +1,6 @@
 package com.drson.launcher
 
 import android.Manifest
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -100,7 +99,7 @@ class MainActivity : ComponentActivity() {
 
         viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
         checkAndRequestPermissions()
-        checkNotificationPermission()
+        checkNotificationPermissionSafe()
 
         setContent {
             var showAppDrawer by remember { mutableStateOf(false) }
@@ -109,7 +108,6 @@ class MainActivity : ComponentActivity() {
             var selectedSlotForAdd by remember { mutableStateOf<Int?>(null) }
             var selectedAppForOption by remember { mutableStateOf<Pair<Int, AppItem>?>(null) }
 
-            // Quản lý 8 vị trí ô tiện ích lưu trữ cục bộ
             val context = LocalContext.current
             val prefs = remember { context.getSharedPreferences("launcher_slots", Context.MODE_PRIVATE) }
             val pinnedPackages = remember {
@@ -124,7 +122,6 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    // BẮT CỬ CHỈ VUỐT ĐA HƯỚNG
                     .pointerInput(Unit) {
                         detectDragGestures(
                             onDragEnd = {},
@@ -133,18 +130,13 @@ class MainActivity : ComponentActivity() {
                                 val screenWidth = size.width
                                 val (dx, dy) = dragAmount
 
-                                // 1. Vuốt ngang giữa màn hình -> Mở App Drawer
                                 if (abs(dx) > abs(dy) && abs(dx) > 28f) {
                                     showAppDrawer = true
                                     change.consume()
-                                }
-                                // 2. Vuốt từ trên xuống
-                                else if (dy > 30f && position.y < size.height * 0.4f) {
+                                } else if (dy > 30f && position.y < size.height * 0.4f) {
                                     if (position.x > screenWidth / 2f) {
-                                        // Vuốt góc trên - phải -> Trung tâm điều khiển
                                         showControlCenter = true
                                     } else {
-                                        // Vuốt góc trên - trái -> Thông báo hệ thống
                                         openSystemNotificationShade()
                                     }
                                     change.consume()
@@ -157,13 +149,11 @@ class MainActivity : ComponentActivity() {
                 val screenH = maxHeight
                 val speed by viewModel.currentSpeed
 
-                // 1. NỀN GỐC, TIM ĐƯỜNG TRÔI, CÂY CỐI, XE MAZDA
                 DrivingRoadBackground(
                     speedKmH = speed,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 2. GÓC TRÊN TRÁI: LOGO VÀ ĐỒNG HỒ THỜI GIAN
                 TopBrandAndClock(
                     onLogoClick = {
                         startActivity(
@@ -176,7 +166,6 @@ class MainActivity : ComponentActivity() {
                         .padding(start = screenW * 0.025f, top = screenH * 0.025f)
                 )
 
-                // 3. KHOẢNG TRỐNG BÊN TRÁI ĐƯỜNG: ĐỒNG HỒ TỐC ĐỘ GPS
                 val speedometerSize = screenH * 0.28f
                 CircularLuxurySpeedometer(
                     speedKmH = speed,
@@ -186,27 +175,17 @@ class MainActivity : ComponentActivity() {
                         .padding(start = screenW * 0.035f)
                 )
 
-                // 4. HỆ THỐNG Ô TIỆN ÍCH QUANH XE
                 HomeScreenWidgetGrid(
                     pinnedPackages = pinnedPackages,
                     viewModel = viewModel,
                     isEditMode = isEditMode,
-                    onEmptySlotClick = { slotIdx ->
-                        selectedSlotForAdd = slotIdx
-                    },
-                    onAppClick = { app ->
-                        viewModel.launchApp(this@MainActivity, app)
-                    },
-                    onAppLongClick = { slotIdx, app ->
-                        selectedAppForOption = Pair(slotIdx, app)
-                    },
-                    onBackgroundLongClick = {
-                        isEditMode = !isEditMode
-                    },
+                    onEmptySlotClick = { slotIdx -> selectedSlotForAdd = slotIdx },
+                    onAppClick = { app -> viewModel.launchApp(this@MainActivity, app) },
+                    onAppLongClick = { slotIdx, app -> selectedAppForOption = Pair(slotIdx, app) },
+                    onBackgroundLongClick = { isEditMode = !isEditMode },
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 5. THANH DOCK TỰ CO GIÃN TÍCH HỢP NÚT MENU, GỌI ĐIỆN VÀ ZING MINI PLAYER
                 LuxuryBottomDock(
                     onAppDrawerClick = { showAppDrawer = true },
                     onPhoneClick = { launchDialer() },
@@ -216,7 +195,6 @@ class MainActivity : ComponentActivity() {
                         .padding(bottom = 12.dp)
                 )
 
-                // DIALOG CHỌN APP KHI BẤM DẤU CỘNG
                 selectedSlotForAdd?.let { slotIndex ->
                     AppPickerDialog(
                         apps = viewModel.apps,
@@ -229,7 +207,6 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // DIALOG ĐỔI HOẶC XÓA APP ĐÃ GHIM
                 selectedAppForOption?.let { (slotIndex, app) ->
                     AlertDialog(
                         onDismissRequest = { selectedAppForOption = null },
@@ -257,7 +234,6 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // TRANG DANH SÁCH ỨNG DỤNG LƯỚI 6 CỘT
                 if (showAppDrawer) {
                     AppDrawerGridDialog(
                         apps = viewModel.apps,
@@ -269,7 +245,6 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // TRUNG TÂM ĐIỀU KHIỂN
                 ControlCenterSheet(
                     isVisible = showControlCenter,
                     onDismiss = { showControlCenter = false }
@@ -308,25 +283,26 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun checkNotificationPermission() {
-        val cn = ComponentName(this, android.service.notification.NotificationListenerService::class.java)
-        val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
-        if (flat == null || !flat.contains(cn.flattenToString())) {
-            try {
-                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-            } catch (_: Exception) {}
-        }
+    private fun checkNotificationPermissionSafe() {
+        try {
+            val flat = Settings.Secure.getString(contentResolver, "enabled_notification_listeners")
+            if (flat == null || !flat.contains(packageName)) {
+                // Không bắt buộc mở setting lúc khởi động để tránh crash
+            }
+        } catch (_: Exception) {}
     }
 
     private fun checkAndRequestPermissions() {
-        val missing = requiredPermissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-        if (missing.isNotEmpty()) {
-            permissionLauncher.launch(missing.toTypedArray())
-        } else {
-            viewModel.initGpsSpeedListener()
-        }
+        try {
+            val missing = requiredPermissions.filter {
+                ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+            }
+            if (missing.isNotEmpty()) {
+                permissionLauncher.launch(missing.toTypedArray())
+            } else {
+                viewModel.initGpsSpeedListener()
+            }
+        } catch (_: Exception) {}
     }
 
     override fun onResume() {
@@ -416,12 +392,8 @@ fun HomeScreenWidgetGrid(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .combinedClickable(
-                onClick = {},
-                onLongClick = onBackgroundLongClick
-            )
+            .combinedClickable(onClick = {}, onLongClick = onBackgroundLongClick)
     ) {
-        // Hàng 1: Phía trên xe (3 vị trí 0, 1, 2)
         Row(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -433,7 +405,6 @@ fun HomeScreenWidgetGrid(
             WidgetSlotItem(2, pinnedPackages.getOrNull(2), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
         }
 
-        // Hàng 2: Hai bên sườn xe
         Row(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
@@ -471,11 +442,10 @@ private fun WidgetSlotItem(
     if (app != null) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .combinedClickable(
-                    onClick = { onAppClick(app) },
-                    onLongClick = { onAppLongClick(index, app) }
-                )
+            modifier = Modifier.combinedClickable(
+                onClick = { onAppClick(app) },
+                onLongClick = { onAppLongClick(index, app) }
+            )
         ) {
             Box(
                 modifier = Modifier
@@ -527,7 +497,6 @@ fun LuxuryBottomDock(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // 1. NÚT MENU BÊN TRÁI CÙNG (ic_launcher.png)
             Box(
                 modifier = Modifier
                     .size(42.dp)
@@ -542,7 +511,6 @@ fun LuxuryBottomDock(
                 )
             }
 
-            // 2. PHÍM GỌI ĐIỆN
             Box(
                 modifier = Modifier
                     .size(42.dp)
@@ -557,7 +525,6 @@ fun LuxuryBottomDock(
                 )
             }
 
-            // 3. THANH NHẠC ZING MP3 LIÊN KẾT TRỰC TIẾP TRÊN DOCK
             ZingMiniDockPlayer(
                 songTitle = musicState.title,
                 artistName = musicState.artist,
@@ -651,11 +618,7 @@ fun AppDrawerGridDialog(
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Đóng",
-                        tint = Color(0xFFFFF0B8)
-                    )
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "Đóng", tint = Color(0xFFFFF0B8))
                 }
             }
 
