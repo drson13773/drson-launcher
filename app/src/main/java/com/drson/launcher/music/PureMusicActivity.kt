@@ -39,6 +39,13 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.net.URLEncoder
 
+// Định nghĩa cấu trúc dữ liệu bài hát
+data class SongItem(
+    val id: String,
+    val title: String,
+    val artist: String
+)
+
 class PureMusicActivity : ComponentActivity() {
 
     private lateinit var hiddenPlayer: YouTubeHiddenPlayer
@@ -101,7 +108,7 @@ class PureMusicActivity : ComponentActivity() {
                     modifier = Modifier.size(1.dp)
                 )
 
-                // BỐ CỤC CHIA 2 CỘT NGANG (LANDSCAPE SPLIT)
+                // BỐ CỤC CHIA 2 CỘT NGANG (LANDSCAPE SPLIT CHO XE HƠI)
                 Row(
                     modifier = Modifier
                         .fillMaxSize()
@@ -124,7 +131,6 @@ class PureMusicActivity : ComponentActivity() {
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Header góc trái
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
@@ -146,7 +152,7 @@ class PureMusicActivity : ComponentActivity() {
                             // Đĩa than Gold xoay tròn
                             Box(
                                 modifier = Modifier
-                                    .size(140.dp)
+                                    .size(130.dp)
                                     .clip(CircleShape)
                                     .background(Color(0xFF221C14))
                                     .rotate(if (isPlayingState) rotationAngle else 0f),
@@ -154,7 +160,7 @@ class PureMusicActivity : ComponentActivity() {
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(50.dp)
+                                        .size(46.dp)
                                         .clip(CircleShape)
                                         .background(Color(0xFFD4AF37)),
                                     contentAlignment = Alignment.Center
@@ -163,17 +169,16 @@ class PureMusicActivity : ComponentActivity() {
                                         imageVector = Icons.Default.MusicNote,
                                         contentDescription = null,
                                         tint = Color.Black,
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(22.dp)
                                     )
                                 }
                             }
 
-                            // Tên bài hát & Nghệ sĩ
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = currentTitleState,
                                     color = Color(0xFFFFF0B8),
-                                    fontSize = 15.sp,
+                                    fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
@@ -181,22 +186,22 @@ class PureMusicActivity : ComponentActivity() {
                                 Text(
                                     text = currentArtistState,
                                     color = Color(0xFF8C7D68),
-                                    fontSize = 12.sp,
+                                    fontSize = 11.sp,
                                     maxLines = 1
                                 )
                             }
 
-                            // Các phím điều khiển cỡ lớn
+                            // Phím điều khiển Play / Pause
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(20.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                IconButton(onClick = { /* Previous song */ }) {
+                                IconButton(onClick = {}) {
                                     Icon(
                                         imageVector = Icons.Default.SkipPrevious,
                                         contentDescription = "Prev",
                                         tint = Color(0xFFFFF0B8),
-                                        modifier = Modifier.size(36.dp)
+                                        modifier = Modifier.size(32.dp)
                                     )
                                 }
 
@@ -205,7 +210,7 @@ class PureMusicActivity : ComponentActivity() {
                                         if (isPlayingState) hiddenPlayer.pause() else hiddenPlayer.play()
                                     },
                                     modifier = Modifier
-                                        .size(56.dp)
+                                        .size(52.dp)
                                         .clip(CircleShape)
                                         .background(Color(0xFFD4AF37))
                                 ) {
@@ -213,16 +218,16 @@ class PureMusicActivity : ComponentActivity() {
                                         imageVector = if (isPlayingState) Icons.Default.Pause else Icons.Default.PlayArrow,
                                         contentDescription = "Play/Pause",
                                         tint = Color.Black,
-                                        modifier = Modifier.size(34.dp)
+                                        modifier = Modifier.size(30.dp)
                                     )
                                 }
 
-                                IconButton(onClick = { /* Next song */ }) {
+                                IconButton(onClick = {}) {
                                     Icon(
                                         imageVector = Icons.Default.SkipNext,
                                         contentDescription = "Next",
                                         tint = Color(0xFFFFF0B8),
-                                        modifier = Modifier.size(36.dp)
+                                        modifier = Modifier.size(32.dp)
                                     )
                                 }
                             }
@@ -235,7 +240,6 @@ class PureMusicActivity : ComponentActivity() {
                             .weight(0.62f)
                             .fillMaxHeight()
                     ) {
-                        // Thanh tìm kiếm và nút đóng
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -286,7 +290,6 @@ class PureMusicActivity : ComponentActivity() {
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Danh sách bài hát dạng thẻ ngang
                         if (isSearching) {
                             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 CircularProgressIndicator(color = Color(0xFFD4AF37))
