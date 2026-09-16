@@ -17,6 +17,8 @@ import android.os.Looper
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import com.drson.launcher.model.AppItem
@@ -44,11 +46,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
         for (info in resolveInfos) {
             val pkg = info.activityInfo.packageName
-            // Bỏ qua chính launcher để tránh tự hiển thị
             if (pkg == getApplication<Application>().packageName) continue
             val label = info.loadLabel(pm).toString()
             val iconDrawable = info.loadIcon(pm)
-            val bitmap = drawableToBitmap(iconDrawable)
+            val bitmap = drawableToBitmap(iconDrawable).asImageBitmap()
             list.add(AppItem(packageName = pkg, label = label, icon = bitmap))
         }
 
@@ -85,7 +86,6 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 override fun onLocationChanged(location: Location) {
                     val speedMs = location.speed
                     val speedKm = if (speedMs > 0f) speedMs * 3.6f else 0f
-                    // Cập nhật tốc độ an toàn trên luồng chính
                     Handler(Looper.getMainLooper()).post {
                         _currentSpeed.floatValue = speedKm
                     }
