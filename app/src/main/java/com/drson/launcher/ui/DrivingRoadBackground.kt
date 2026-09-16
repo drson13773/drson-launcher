@@ -1,6 +1,5 @@
 package com.drson.launcher.ui
 
-import android.graphics.BitmapFactory
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -11,12 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import com.drson.launcher.R
 import kotlin.random.Random
 
@@ -25,73 +20,63 @@ fun DrivingRoadBackground(
     speedKmH: Float = 0f,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    // Sử dụng painter chuẩn của Compose để tối ưu bộ nhớ đệm hình ảnh
+    val carPainter = painterResource(id = R.drawable.car_mazda)
+    val tree1Painter = painterResource(id = R.drawable.bg_tree_1)
+    val tree2Painter = painterResource(id = R.drawable.bg_tree_2)
+    val moonPainter = painterResource(id = R.drawable.bg_moon)
 
-    val carBitmap = remember {
-        val resId = if (context.resources.getIdentifier("car_mazda", "drawable", context.packageName) != 0) {
-            R.drawable.car_mazda
-        } else {
-            R.drawable.car_photo
-        }
-        try { BitmapFactory.decodeResource(context.resources, resId)?.asImageBitmap() } catch (_: Exception) { null }
+    // Animation chuyển động mượt mà không dùng vòng lặp vô tận gây block UI thread
+    val infiniteTransition = rememberInfiniteTransition(label = "road_loop")
+    
+    val durationMs = if (speedKmH > 2f) {
+        (3000 / (speedKmH / 30f).coerceIn(0.5f, 5f)).toInt()
+    } else {
+        0
     }
 
-    val tree1Bitmap = remember {
-        try { BitmapFactory.decodeResource(context.resources, R.drawable.bg_tree_1)?.asImageBitmap() } catch (_: Exception) { null }
+    val roadProgress by if (durationMs > 0) {
+        infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMs, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "roadProgress"
+        )
+    } else {
+        remember { mutableFloatStateOf(0f) }
     }
 
-    val tree2Bitmap = remember {
-        try { BitmapFactory.decodeResource(context.resources, R.drawable.bg_tree_2)?.asImageBitmap() } catch (_: Exception) { null }
+    // Hiệu ứng xe nhún nhẹ khi di chuyển
+    val carBounce by if (speedKmH > 2f) {
+        infiniteTransition.animateFloat(
+            initialValue = -2.5f,
+            targetValue = 2.5f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(380, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "bounce"
+        )
+    } else {
+        remember { mutableFloatStateOf(0f) }
     }
 
-    val moonBitmap = remember {
-        try { BitmapFactory.decodeResource(context.resources, R.drawable.bg_moon)?.asImageBitmap() } catch (_: Exception) { null }
-    }
-
-    // 1. Quãng đường trôi vạch kẻ đường & cây cối theo tốc độ GPS
-    var roadProgress by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(speedKmH) {
-        if (speedKmH > 0.5f) {
-            var lastTime = 0L
-            while (true) {
-                withFrameNanos { now ->
-                    if (lastTime != 0L) {
-                        val dt = (now - lastTime) / 1_000_000_000f
-                        val factor = speedKmH / 50f
-                        roadProgress = (roadProgress + dt * factor) % 1f
-                    }
-                    lastTime = now
-                }
-            }
-        }
-    }
-
-    // 2. Xe nhún nhẹ khi di chuyển
-    val transition = rememberInfiniteTransition(label = "car_bounce")
-    val bounceAnim by transition.animateFloat(
-        initialValue = -2.5f,
-        targetValue = 2.5f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(360, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "bounce"
-    )
-    val carBounce = if (speedKmH > 1f) bounceAnim else 0f
-
-    // 3. Hiệu ứng đèn nhà nhấp nháy ngẫu nhiên
-    val blinkPhase by transition.animateFloat(
+    // Hiệu ứng đèn nhà nhấp nháy
+    val blinkPhase by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = LinearEasing),
+            animation = tween(1500, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "lights"
+        label = "blink"
     )
 
     Box(modifier = modifier.fillMaxSize()) {
-        // Nền tĩnh con đường và dãy nhà
+        // Ảnh nền tĩnh con đường và dãy nhà
         Image(
             painter = painterResource(id = R.drawable.final_no_dock),
             contentDescription = null,
@@ -102,28 +87,29 @@ fun DrivingRoadBackground(
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = size.width
             val h = size.height
+            if (w <= 0f || h <= 0f) return@Canvas
+
             val horizonY = h * 0.428f
             val roadTopWidth = w * 0.02f
             val roadBottomWidth = w * 0.92f
 
-            // A. Mặt trăng ở góc trên bên phải
-            moonBitmap?.let { moon ->
-                val moonSize = (h * 0.20f).toInt()
-                drawImage(
-                    image = moon,
-                    dstOffset = IntOffset((w * 0.72f).toInt(), (h * 0.03f).toInt()),
-                    dstSize = IntSize(moonSize, moonSize)
-                )
+            // 1. Vẽ mặt trăng góc trên phải
+            val moonSize = h * 0.20f
+            drawContext.canvas.save()
+            drawContext.canvas.translate(w * 0.72f, h * 0.03f)
+            with(moonPainter) {
+                draw(size = Size(moonSize, moonSize), alpha = 0.9f)
             }
+            drawContext.canvas.restore()
 
-            // B. Hiệu ứng các ô đèn nhà bật/tắt ngẫu nhiên
-            val windowSeed = (blinkPhase * 10).toInt()
+            // 2. Vẽ đèn nhà nhấp nháy ngẫu nhiên
+            val windowSeed = (blinkPhase * 8).toInt()
             val rnd = Random(windowSeed)
             val windowWidth = w * 0.009f
             val windowHeight = h * 0.012f
-            for (i in 0 until 18) {
+            for (i in 0 until 16) {
                 if (rnd.nextBoolean()) {
-                    val wx = w * (0.05f + (i * 0.05f))
+                    val wx = w * (0.05f + (i * 0.055f))
                     val wy = h * (0.34f + (i % 3) * 0.025f)
                     drawRect(
                         color = Color(0xFFFFD574).copy(alpha = 0.85f),
@@ -133,7 +119,7 @@ fun DrivingRoadBackground(
                 }
             }
 
-            // C. Vạch tim đường màu Vàng Gold trôi theo tốc độ GPS
+            // 3. Vạch tim đường màu vàng trôi theo tốc độ
             val numDashes = 7
             for (i in 0 until numDashes) {
                 val p = (i.toFloat() + roadProgress) % numDashes / numDashes.toFloat()
@@ -151,51 +137,46 @@ fun DrivingRoadBackground(
                 }
             }
 
-            // D. Cây cối hai bên đường trôi lùi theo tốc độ
-            val numTrees = 5
+            // 4. Hàng cây hai bên đường trôi lùi
+            val numTrees = 4
             for (i in 0 until numTrees) {
                 val tProgress = (i.toFloat() + roadProgress) % numTrees / numTrees.toFloat()
                 if (tProgress in 0.06f..0.98f) {
                     val scale = tProgress * tProgress
                     val treeY = horizonY + (h - horizonY) * scale
-                    val treeImg = if (i % 2 == 0) tree1Bitmap else tree2Bitmap
+                    val treePainter = if (i % 2 == 0) tree1Painter else tree2Painter
+                    val treeW = h * 0.26f * scale
+                    val treeH = h * 0.38f * scale
 
-                    treeImg?.let { tree ->
-                        val treeW = (h * 0.28f * scale).toInt()
-                        val treeH = (h * 0.40f * scale).toInt()
+                    if (treeW > 10f && treeH > 10f) {
+                        val leftX = (w / 2f) - (roadTopWidth / 2f + (roadBottomWidth - roadTopWidth) / 2f * scale) - treeW * 0.9f
+                        val rightX = (w / 2f) + (roadTopWidth / 2f + (roadBottomWidth - roadTopWidth) / 2f * scale) - treeW * 0.1f
 
-                        if (treeW > 8 && treeH > 8) {
-                            val leftX = (w / 2f) - (roadTopWidth / 2f + (roadBottomWidth - roadTopWidth) / 2f * scale) - treeW * 0.9f
-                            val rightX = (w / 2f) + (roadTopWidth / 2f + (roadBottomWidth - roadTopWidth) / 2f * scale) - treeW * 0.1f
+                        // Cây trái
+                        drawContext.canvas.save()
+                        drawContext.canvas.translate(leftX, treeY - treeH)
+                        with(treePainter) { draw(size = Size(treeW, treeH)) }
+                        drawContext.canvas.restore()
 
-                            drawImage(
-                                image = tree,
-                                dstOffset = IntOffset(leftX.toInt(), (treeY - treeH).toInt()),
-                                dstSize = IntSize(treeW, treeH)
-                            )
-                            drawImage(
-                                image = tree,
-                                dstOffset = IntOffset(rightX.toInt(), (treeY - treeH).toInt()),
-                                dstSize = IntSize(treeW, treeH)
-                            )
-                        }
+                        // Cây phải
+                        drawContext.canvas.save()
+                        drawContext.canvas.translate(rightX, treeY - treeH)
+                        with(treePainter) { draw(size = Size(treeW, treeH)) }
+                        drawContext.canvas.restore()
                     }
                 }
             }
 
-            // E. Xe Mazda CX-5 ở trung tâm mặt đường
-            carBitmap?.let { car ->
-                val carWidth = (h * 0.58f).toInt()
-                val carHeight = (carWidth * (car.height.toFloat() / car.width.toFloat())).toInt()
-                val carX = (w / 2f - carWidth / 2f).toInt()
-                val carY = (h * 0.63f - carHeight / 2f + carBounce).toInt()
+            // 5. Xe Mazda CX-5 ở giữa tâm đường
+            val carW = h * 0.58f
+            val carH = carW * 0.62f
+            val carX = (w / 2f - carW / 2f)
+            val carY = (h * 0.63f - carH / 2f + carBounce)
 
-                drawImage(
-                    image = car,
-                    dstOffset = IntOffset(carX, carY),
-                    dstSize = IntSize(carWidth, carHeight)
-                )
-            }
+            drawContext.canvas.save()
+            drawContext.canvas.translate(carX, carY)
+            with(carPainter) { draw(size = Size(carW, carH)) }
+            drawContext.canvas.restore()
         }
     }
 }
