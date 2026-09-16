@@ -16,14 +16,17 @@ fun DrivingRoadBackground(
     speedKmH: Float = 0f,
     modifier: Modifier = Modifier
 ) {
+    // Chỉ tạo hiệu ứng nhún/chuyển động khi tốc độ thực tế > 1 km/h (bằng 0 thì xe đứng yên hoàn toàn)
+    val isMoving = speedKmH > 1.0f
+    
     val infiniteTransition = rememberInfiniteTransition(label = "road_loop")
 
-    val carBounce by if (speedKmH > 2f) {
+    val carBounce by if (isMoving) {
         infiniteTransition.animateFloat(
-            initialValue = -4f,
-            targetValue = 4f,
+            initialValue = -3f,
+            targetValue = 3f,
             animationSpec = infiniteRepeatable(
-                animation = tween(350, easing = FastOutSlowInEasing),
+                animation = tween(400, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
             ),
             label = "bounce"
@@ -33,26 +36,15 @@ fun DrivingRoadBackground(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        // 1. Ảnh nền tĩnh con đường và dãy nhà
+        // 1. Hình nền mới bg_rice_field.png (Đã có sẵn trăng và cảnh vật, không vẽ đè)
         Image(
-            painter = painterResource(id = R.drawable.final_no_dock),
+            painter = painterResource(id = R.drawable.bg_rice_field),
             contentDescription = null,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.FillBounds
         )
 
-        // 2. Mặt trăng góc trên phải
-        Image(
-            painter = painterResource(id = R.drawable.bg_moon),
-            contentDescription = null,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 24.dp, end = 32.dp)
-                .size(75.dp),
-            contentScale = ContentScale.Fit
-        )
-
-        // 3. Xe Mazda CX-5 ở vị trí trung tâm phía dưới
+        // 2. Xe Mazda CX-5 ở vị trí trung tâm phía dưới (Dừng khi tốc độ = 0, nhún nhẹ khi xe chạy)
         Box(
             modifier = Modifier
                 .fillMaxSize()
