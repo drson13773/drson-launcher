@@ -105,7 +105,7 @@ class MainActivity : ComponentActivity() {
             var selectedSlotForAdd by remember { mutableStateOf<Int?>(null) }
             var selectedAppForOption by remember { mutableStateOf<Pair<Int, AppItem>?>(null) }
 
-            // Quản lý 8 vị trí ô tiện ích lưu trữ cục bộ
+            // Lưu trữ vị trí 8 ô tiện ích vào SharedPreferences
             val context = LocalContext.current
             val prefs = remember { context.getSharedPreferences("launcher_slots", Context.MODE_PRIVATE) }
             val pinnedPackages = remember {
@@ -120,7 +120,7 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    // BẮT CỬ CHỈ VUỐT ĐA HƯỚNG
+                    // BẮT CỬ CHỈ VUỐT
                     .pointerInput(Unit) {
                         detectDragGestures(
                             onDragEnd = {},
@@ -129,7 +129,7 @@ class MainActivity : ComponentActivity() {
                                 val screenWidth = size.width
                                 val (dx, dy) = dragAmount
 
-                                // 1. Vuốt ngang giữa màn hình -> Mở App Drawer
+                                // 1. Vuốt ngang giữa màn hình -> Mở trang danh sách app 6 cột
                                 if (abs(dx) > abs(dy) && abs(dx) > 28f) {
                                     showAppDrawer = true
                                     change.consume()
@@ -137,10 +137,10 @@ class MainActivity : ComponentActivity() {
                                 // 2. Vuốt từ trên xuống
                                 else if (dy > 30f && position.y < size.height * 0.4f) {
                                     if (position.x > screenWidth / 2f) {
-                                        // Vuốt góc trên - phải -> Trung tâm điều khiển
+                                        // Vuốt trên-phải xuống -> Mở Trung tâm điều khiển
                                         showControlCenter = true
                                     } else {
-                                        // Vuốt góc trên - trái -> Thông báo hệ thống
+                                        // Vuốt trên-trái xuống -> Mở Thông báo hệ thống
                                         openSystemNotificationShade()
                                     }
                                     change.consume()
@@ -153,13 +153,13 @@ class MainActivity : ComponentActivity() {
                 val screenH = maxHeight
                 val speed by viewModel.currentSpeed
 
-                // 1. NỀN GỐC, TIM ĐƯỜNG TRÔI, CÂY CỐI, XE MAZDA VÀ ĐÈN NHÀ NHẤP NHÁY
+                // 1. NỀN GỐC, TIM ĐƯỜNG TRÔI, DÃY NHÀ NHÁY ĐÈN, CÂY TRÔI THEO GPS, XE MAZDA
                 DrivingRoadBackground(
                     speedKmH = speed,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 2. GÓC TRÊN TRÁI: LOGO THƯƠNG HIỆU VÀ ĐỒNG HỒ THỜI GIAN
+                // 2. PHÍA TRÊN TRÁI: LOGO VÀ ĐỒNG HỒ THỜI GIAN
                 TopBrandAndClock(
                     onLogoClick = {
                         startActivity(
@@ -172,7 +172,7 @@ class MainActivity : ComponentActivity() {
                         .padding(start = screenW * 0.025f, top = screenH * 0.025f)
                 )
 
-                // 3. KHOẢNG TRỐNG BÊN TRÁI ĐƯỜNG: ĐỒNG HỒ TỐC ĐỘ GPS
+                // 3. KHOẢNG TRỐNG BÊN TRÁI CON ĐƯỜNG VỚI DÃY NHÀ: ĐỒNG HỒ TỐC ĐỘ GPS
                 val speedometerSize = screenH * 0.28f
                 CircularLuxurySpeedometer(
                     speedKmH = speed,
@@ -182,7 +182,7 @@ class MainActivity : ComponentActivity() {
                         .padding(start = screenW * 0.035f)
                 )
 
-                // 4. LƯỚI Ô TIỆN ÍCH QUANH XE (ẨN MẶC ĐỊNH, GIỮ LÂU ĐỂ NỔI Ô CHỜ)
+                // 4. HỆ THỐNG Ô TIỆN ÍCH QUANH XE (ẨN MẶC ĐỊNH, GIỮ LÂU NỔI Ô CHỜ GHIM APP)
                 HomeScreenWidgetGrid(
                     pinnedPackages = pinnedPackages,
                     viewModel = viewModel,
@@ -202,7 +202,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 5. THANH DOCK ĐÁY: NÚT MENU Ở ĐẦU BÊN TRÁI
+                // 5. THANH DOCK TỰ CO GIÃN VỚI NÚT MENU BÊN TRÁI CÙNG
                 LuxuryBottomDock(
                     onAppDrawerClick = { showAppDrawer = true },
                     onPhoneClick = { launchDialer() },
@@ -258,7 +258,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // TRANG DANH SÁCH ỨNG DỤNG LƯỚI 6 CỘT
+                // TRANG DANH SÁCH ỨNG DỤNG 6 CỘT TÍNH TOÁN KÍCH THƯỚC ĐỘNG
                 if (showAppDrawer) {
                     AppDrawerGridDialog(
                         apps = viewModel.apps,
@@ -402,7 +402,7 @@ fun HomeScreenWidgetGrid(
                 onLongClick = onBackgroundLongClick
             )
     ) {
-        // Hàng 1: Phía trên mui xe (3 vị trí 0, 1, 2)
+        // Hàng 1: Phía trên xe (3 vị trí 0, 1, 2)
         Row(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -414,7 +414,7 @@ fun HomeScreenWidgetGrid(
             WidgetSlotItem(2, pinnedPackages.getOrNull(2), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
         }
 
-        // Hàng 2: Hai bên sườn xe (Vị trí 3, 4 ở bên trái và 5, 6 ở bên phải, chừa khoảng trống giữa cho xe Mazda)
+        // Hàng 2: Hai bên sườn xe (Vị trí 3, 4 bên trái và 5, 6 bên phải, chừa khoảng giữa không đè lên xe Mazda)
         Row(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
@@ -471,7 +471,7 @@ private fun WidgetSlotItem(
             Text(text = app.label, color = Color(0xFFC7B299), fontSize = 11.sp, maxLines = 1)
         }
     } else if (isEditMode) {
-        // Chỉ nổi ô nét đứt kèm dấu cộng khi nhấn giữ màn hình
+        // Nổi ô nét đứt kèm dấu cộng khi nhấn giữ màn hình
         Box(
             modifier = Modifier
                 .size(54.dp)
@@ -506,7 +506,7 @@ fun LuxuryBottomDock(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. NÚT MENU Ở ĐẦU BÊN TRÁI CÙNG (ic_launcher.png)
+            // 1. NÚT MENU ĐỨNG ĐẦU TIÊN BÊN TRÁI (ic_launcher.png)
             Box(
                 modifier = Modifier
                     .size(44.dp)
@@ -523,7 +523,7 @@ fun LuxuryBottomDock(
 
             Spacer(modifier = Modifier.width(14.dp))
 
-            // 2. PHÍM TẮT GỌI ĐIỆN (icon_phone_gold.png)
+            // 2. PHÍM TẮT GỌI ĐIỆN THOẠI (icon_phone_gold.png)
             Box(
                 modifier = Modifier
                     .size(44.dp)
@@ -626,6 +626,7 @@ fun AppDrawerGridDialog(
             .fillMaxSize()
             .background(Color(0xF2080706))
     ) {
+        // Ảnh nền danh sách ứng dụng
         Image(
             painter = painterResource(id = R.drawable.wallpaper_left_small),
             contentDescription = null,
@@ -637,8 +638,9 @@ fun AppDrawerGridDialog(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(horizontal = 24.dp, vertical = 14.dp)
         ) {
+            // Tiêu đề và nút đóng
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -647,48 +649,71 @@ fun AppDrawerGridDialog(
                 Text(
                     text = "TẤT CẢ ỨNG DỤNG",
                     color = Color(0xFFD4AF37),
-                    fontSize = 18.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(imageVector = Icons.Default.Close, contentDescription = "Đóng", tint = Color(0xFFFFF0B8))
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Đóng",
+                        tint = Color(0xFFFFF0B8)
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(6),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(8.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            // Tính toán kích thước tự co giãn: 6 cột, khoảng cách = 1/2 kích thước icon
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
             ) {
-                items(apps) { app ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable { onAppClick(app) }
-                            .padding(4.dp)
-                    ) {
-                        Box(
+                val availableWidth = maxWidth
+                // 6 cột icon + 5 khoảng cách (0.5 icon) = 8.5 đơn vị
+                val iconBoxSize = availableWidth / 8.5f
+                val spacing = iconBoxSize / 2f
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(6),
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(spacing),
+                    horizontalArrangement = Arrangement.spacedBy(spacing)
+                ) {
+                    items(apps) { app ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .size(54.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color(0xFF242018)),
-                            contentAlignment = Alignment.Center
+                                .width(iconBoxSize)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { onAppClick(app) }
                         ) {
-                            Image(bitmap = app.icon, contentDescription = app.label, modifier = Modifier.size(42.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(iconBoxSize)
+                                    .clip(RoundedCornerShape(iconBoxSize * 0.24f))
+                                    .background(Color(0xFF221E18))
+                                    .padding(iconBoxSize * 0.14f),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Image(
+                                    bitmap = app.icon,
+                                    contentDescription = app.label,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(5.dp))
+
+                            Text(
+                                text = app.label,
+                                color = Color(0xFFFFF0B8),
+                                fontSize = 11.sp,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1
+                            )
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = app.label,
-                            color = Color(0xFFFFF0B8),
-                            fontSize = 12.sp,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1
-                        )
                     }
                 }
             }
