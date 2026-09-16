@@ -15,11 +15,9 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -35,10 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -99,48 +95,52 @@ class MainActivity : ComponentActivity() {
             var showAppDrawer by remember { mutableStateOf(false) }
             var showControlCenter by remember { mutableStateOf(false) }
 
-            Box(
+            // BOX TỰ CO DÃN TỶ LỆ THEO MỌI LOẠI MÀN HÌNH XE Ô TÔ
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    // BẮT CỬ CHỈ VUỐT: Vuốt từ trên xuống -> Control Center; Vuốt từ dưới lên -> App Drawer
                     .pointerInput(Unit) {
                         detectVerticalDragGestures { _, dragAmount ->
-                            if (dragAmount > 40f) {
+                            if (dragAmount > 45f) {
                                 showControlCenter = true
-                            } else if (dragAmount < -40f) {
+                            } else if (dragAmount < -45f) {
                                 showAppDrawer = true
                             }
                         }
                     }
             ) {
+                val screenW = maxWidth
+                val screenH = maxHeight
                 val speed by viewModel.currentSpeed
 
-                // 1. NỀN ĐƯỜNG 3D VÀ XE MAZDA CX-5
+                // 1. NỀN ĐƯỜNG 3D VÀ XE MAZDA CX-5 TỰ SCALE THEO CHIỀU CAO
                 DrivingRoadBackground(
                     speedKmH = speed,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 2. LOGO DR SƠN VÀ ĐỒNG HỒ
+                // 2. LOGO VÀ ĐỒNG HỒ THỜI GIAN (GÓC TRÊN TRÁI)
                 TopBrandAndClock(
                     onLogoClick = {
                         startActivity(Intent(this@MainActivity, PureMusicActivity::class.java))
                     },
                     modifier = Modifier
                         .align(Alignment.TopStart)
-                        .padding(start = 24.dp, top = 16.dp)
+                        .padding(start = screenW * 0.03f, top = screenH * 0.04f)
                 )
 
-                // 3. ĐỒNG HỒ TỐC ĐỘ GPS
+                // 3. ĐỒNG HỒ TỐC ĐỘ GPS (CHIẾM ~28% CHIỀU CAO MÀN HÌNH)
+                val speedometerSize = screenH * 0.28f
                 CircularLuxurySpeedometer(
                     speedKmH = speed,
                     modifier = Modifier
+                        .size(speedometerSize)
                         .align(Alignment.BottomStart)
-                        .padding(start = 28.dp, bottom = 80.dp)
+                        .padding(start = screenW * 0.03f, bottom = screenH * 0.14f)
                 )
 
-                // 4. THANH DOCK TỰ CO DÃN ÔM KHÍT CÁC ỨNG DỤNG
+                // 4. THANH DOCK CÂN ĐỐI TỰ ÔM KHÍT Ở ĐÁY
                 LuxuryBottomDock(
                     onMenuClick = { showAppDrawer = true },
                     onPhoneClick = { launchDialer() },
@@ -150,10 +150,10 @@ class MainActivity : ComponentActivity() {
                     onVietmapClick = { launchAppByKeywords(listOf("vietmap", "live.vietmap", "navigation", "navitel", "maps"), "Vietmap") },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 12.dp)
+                        .padding(bottom = screenH * 0.025f)
                 )
 
-                // TRANG DANH SÁCH TẤT CẢ ỨNG DỤNG (LƯỚI 6 CỘT)
+                // TRANG DANH SÁCH ỨNG DỤNG LƯỚI 6 CỘT
                 if (showAppDrawer) {
                     AppDrawerGridDialog(
                         apps = viewModel.apps,
@@ -165,7 +165,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // TRUNG TÂM ĐIỀU KHIỂN (VUỐT XUỐNG HOẶC MỞ NHANH)
+                // TRUNG TÂM ĐIỀU KHIỂN
                 ControlCenterSheet(
                     isVisible = showControlCenter,
                     onDismiss = { showControlCenter = false }
@@ -305,27 +305,21 @@ fun LuxuryBottomDock(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Nút Menu mở App Drawer
             DockIconButton(iconRes = R.drawable.ic_launcher, onClick = onMenuClick)
             Spacer(modifier = Modifier.width(10.dp))
 
-            // 2. Nút Điện thoại
             DockVectorButton(icon = Icons.Default.Call, tint = Color(0xFFD4AF37), onClick = onPhoneClick)
             Spacer(modifier = Modifier.width(10.dp))
 
-            // 3. Nút Camera 360 (Icon Gold)
             DockIconButton(iconRes = R.drawable.icon_camera_gold, onClick = onCameraClick)
             Spacer(modifier = Modifier.width(10.dp))
 
-            // 4. Nút Dr Sơn Music (Icon YouTube Gold)
             DockIconButton(iconRes = R.drawable.ic_drson_music, onClick = onMusicClick)
             Spacer(modifier = Modifier.width(10.dp))
 
-            // 5. Nút Zing MP3
             DockVectorButton(icon = Icons.Default.PlayArrow, tint = Color(0xFFFFF0B8), onClick = onZingClick)
             Spacer(modifier = Modifier.width(10.dp))
 
-            // 6. Nút Vietmap
             DockVectorButton(icon = Icons.Default.Map, tint = Color(0xFFD4AF37), onClick = onVietmapClick)
         }
     }
@@ -403,7 +397,6 @@ fun AppDrawerGridDialog(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // LƯỚI 6 CỘT CHUẨN MÀN HÌNH XE HƠI
             LazyVerticalGrid(
                 columns = GridCells.Fixed(6),
                 modifier = Modifier.fillMaxSize(),
