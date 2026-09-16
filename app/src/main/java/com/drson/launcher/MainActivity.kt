@@ -32,29 +32,39 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
+        // Khởi tạo ViewModel an toàn, tách biệt dữ liệu khỏi giao diện
+        try {
+            viewModel = ViewModelProvider(this)[HomeViewModel::class.java]
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
+        // Đóng gói toàn bộ giao diện trong setContent với cấu trúc nhẹ nhàng
         setContent {
-            val speed by viewModel.currentSpeed
+            val speed = remember { derivedStateOf { viewModel.currentSpeed.value } }.value
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
             ) {
-                // 1. Nền đường (bg_rice_field.png) và xe chạy đồng bộ theo tốc độ
+                // 1. Nền đường, xe chạy và hiệu ứng chuyển động theo tốc độ
                 DrivingRoadBackground(
                     speedKmH = speed,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 2. Logo gốc (đã có sẵn Dr. Sơn & dao mổ) và đồng hồ thời gian font mềm mại ở góc trên trái
+                // 2. Logo thương hiệu gốc (có sẵn Dr. Sơn & dao mổ) và đồng hồ thời gian font mềm mại
                 TopBrandAndClock(
                     onLogoClick = {
-                        startActivity(
-                            Intent(this@MainActivity, PureMusicActivity::class.java)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
+                        try {
+                            startActivity(
+                                Intent(this@MainActivity, PureMusicActivity::class.java)
+                                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            )
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
                     },
                     modifier = Modifier.padding(start = 24.dp, top = 20.dp)
                 )
@@ -68,16 +78,21 @@ fun TopBrandAndClock(
     onLogoClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var timeStr by remember { mutableStateOf("") }
+    var timeStr by remember { mutableStateOf("00:00") }
     var dateStr by remember { mutableStateOf("") }
 
+    // Sử dụng LaunchedEffect chạy ở luồng nền cho đồng hồ để không block UI
     LaunchedEffect(Unit) {
         val tFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
         val dFormat = SimpleDateFormat("EEEE, dd 'thg' M", Locale("vi", "VN"))
         while (true) {
-            val now = Calendar.getInstance().time
-            timeStr = tFormat.format(now)
-            dateStr = dFormat.format(now)
+            try {
+                val now = Calendar.getInstance().time
+                timeStr = tFormat.format(now)
+                dateStr = dFormat.format(now)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
             delay(1000)
         }
     }
@@ -86,7 +101,7 @@ fun TopBrandAndClock(
         modifier = modifier.clickable { onLogoClick() },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Logo gốc đúng chuẩn, không vẽ thêm chữ bên ngoài
+        // Logo gốc chuẩn xác, không vẽ đè chữ
         Image(
             painter = painterResource(id = R.drawable.icon_menu_brand),
             contentDescription = "Brand Logo",
@@ -95,7 +110,7 @@ fun TopBrandAndClock(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Đồng hồ thời gian với font mềm mại, thanh thoát
+        // Đồng hồ thời gian font mềm mại, thanh thoát
         Column {
             Text(
                 text = timeStr,
