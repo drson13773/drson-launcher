@@ -32,7 +32,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -106,20 +105,22 @@ class MainActivity : ComponentActivity() {
             var selectedSlotForAdd by remember { mutableStateOf<Int?>(null) }
             var selectedAppForOption by remember { mutableStateOf<Pair<Int, AppItem>?>(null) }
 
-            // Quản lý 8 vị trí ô tiện ích lưu vào SharedPreferences
+            // Quản lý 8 vị trí ô tiện ích lưu trữ cục bộ
             val context = LocalContext.current
             val prefs = remember { context.getSharedPreferences("launcher_slots", Context.MODE_PRIVATE) }
-            val pinnedPackages = remember { mutableStateListOf<String?>().apply {
-                for (i in 0 until 8) {
-                    add(prefs.getString("slot_$i", null))
+            val pinnedPackages = remember {
+                mutableStateListOf<String?>().apply {
+                    for (i in 0 until 8) {
+                        add(prefs.getString("slot_$i", null))
+                    }
                 }
-            }}
+            }
 
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    // XỬ LÝ TOÀN BỘ CỬ CHỈ VUỐT
+                    // BẮT CỬ CHỈ VUỐT ĐA HƯỚNG
                     .pointerInput(Unit) {
                         detectDragGestures(
                             onDragEnd = {},
@@ -136,10 +137,10 @@ class MainActivity : ComponentActivity() {
                                 // 2. Vuốt từ trên xuống
                                 else if (dy > 30f && position.y < size.height * 0.4f) {
                                     if (position.x > screenWidth / 2f) {
-                                        // Vuốt trên-phải xuống -> Trung tâm điều khiển
+                                        // Vuốt góc trên - phải -> Trung tâm điều khiển
                                         showControlCenter = true
                                     } else {
-                                        // Vuốt trên-trái xuống -> Thông báo hệ thống
+                                        // Vuốt góc trên - trái -> Thông báo hệ thống
                                         openSystemNotificationShade()
                                     }
                                     change.consume()
@@ -152,16 +153,19 @@ class MainActivity : ComponentActivity() {
                 val screenH = maxHeight
                 val speed by viewModel.currentSpeed
 
-                // 1. NỀN GỐC, VẠCH ĐƯỜNG TRÔI, CÂY CỐI, XE MAZDA
+                // 1. NỀN GỐC, TIM ĐƯỜNG TRÔI, CÂY CỐI, XE MAZDA VÀ ĐÈN NHÀ NHẤP NHÁY
                 DrivingRoadBackground(
                     speedKmH = speed,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 2. PHÍA TRÊN TRÁI: LOGO VÀ ĐỒNG HỒ THỜI GIAN
+                // 2. GÓC TRÊN TRÁI: LOGO THƯƠNG HIỆU VÀ ĐỒNG HỒ THỜI GIAN
                 TopBrandAndClock(
                     onLogoClick = {
-                        startActivity(Intent(this@MainActivity, PureMusicActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        startActivity(
+                            Intent(this@MainActivity, PureMusicActivity::class.java)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
                     },
                     modifier = Modifier
                         .align(Alignment.TopStart)
@@ -178,7 +182,7 @@ class MainActivity : ComponentActivity() {
                         .padding(start = screenW * 0.035f)
                 )
 
-                // 4. LƯỚI Ô TIỆN ÍCH QUANH XE (Ẩn mặc định, giữ lâu nổi ô chờ ghim)
+                // 4. LƯỚI Ô TIỆN ÍCH QUANH XE (ẨN MẶC ĐỊNH, GIỮ LÂU ĐỂ NỔI Ô CHỜ)
                 HomeScreenWidgetGrid(
                     pinnedPackages = pinnedPackages,
                     viewModel = viewModel,
@@ -198,19 +202,22 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 5. THANH DOCK DƯỚI ĐÁY TỰ CO GIÃN
+                // 5. THANH DOCK ĐÁY: NÚT MENU Ở ĐẦU BÊN TRÁI
                 LuxuryBottomDock(
+                    onAppDrawerClick = { showAppDrawer = true },
                     onPhoneClick = { launchDialer() },
                     onMusicClick = {
-                        startActivity(Intent(this@MainActivity, PureMusicActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                        startActivity(
+                            Intent(this@MainActivity, PureMusicActivity::class.java)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
                     },
-                    onAppDrawerClick = { showAppDrawer = true },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 12.dp)
                 )
 
-                // DIALOG CHỌN APP KHI BẤM Ô DẤU CỘNG
+                // DIALOG CHỌN APP KHI BẤM DẤU CỘNG
                 selectedSlotForAdd?.let { slotIndex ->
                     AppPickerDialog(
                         apps = viewModel.apps,
@@ -251,7 +258,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // TRANG DANH SÁCH TẤT CẢ ỨNG DỤNG (6 CỘT)
+                // TRANG DANH SÁCH ỨNG DỤNG LƯỚI 6 CỘT
                 if (showAppDrawer) {
                     AppDrawerGridDialog(
                         apps = viewModel.apps,
@@ -395,7 +402,7 @@ fun HomeScreenWidgetGrid(
                 onLongClick = onBackgroundLongClick
             )
     ) {
-        // Hàng 1: Phía trên xe (3 vị trí 0, 1, 2)
+        // Hàng 1: Phía trên mui xe (3 vị trí 0, 1, 2)
         Row(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -407,7 +414,7 @@ fun HomeScreenWidgetGrid(
             WidgetSlotItem(2, pinnedPackages.getOrNull(2), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
         }
 
-        // Hàng 2: Hai bên sườn xe (Vị trí 3, 4 ở bên trái và 5, 6 ở bên phải, chừa trống giữa cho xe)
+        // Hàng 2: Hai bên sườn xe (Vị trí 3, 4 ở bên trái và 5, 6 ở bên phải, chừa khoảng trống giữa cho xe Mazda)
         Row(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
@@ -420,7 +427,7 @@ fun HomeScreenWidgetGrid(
                 WidgetSlotItem(3, pinnedPackages.getOrNull(3), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
                 WidgetSlotItem(4, pinnedPackages.getOrNull(4), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
             }
-            Spacer(modifier = Modifier.width(180.dp)) // Tránh che xe Mazda
+            Spacer(modifier = Modifier.width(180.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 WidgetSlotItem(5, pinnedPackages.getOrNull(5), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
                 WidgetSlotItem(6, pinnedPackages.getOrNull(6), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
@@ -464,7 +471,7 @@ private fun WidgetSlotItem(
             Text(text = app.label, color = Color(0xFFC7B299), fontSize = 11.sp, maxLines = 1)
         }
     } else if (isEditMode) {
-        // Chỉ hiện ô dấu cộng khi nhấn giữ vào màn hình
+        // Chỉ nổi ô nét đứt kèm dấu cộng khi nhấn giữ màn hình
         Box(
             modifier = Modifier
                 .size(54.dp)
@@ -477,16 +484,16 @@ private fun WidgetSlotItem(
             Icon(imageVector = Icons.Default.Add, contentDescription = "Thêm app", tint = Color(0xFFD4AF37))
         }
     } else {
-        // Bình thường ẩn hoàn toàn ô trống
+        // Mặc định ẩn hoàn toàn ô trống
         Spacer(modifier = Modifier.size(54.dp))
     }
 }
 
 @Composable
 fun LuxuryBottomDock(
+    onAppDrawerClick: () -> Unit,
     onPhoneClick: () -> Unit,
     onMusicClick: () -> Unit,
-    onAppDrawerClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -499,7 +506,24 @@ fun LuxuryBottomDock(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // 1. Phím tắt Gọi điện (icon_phone_gold.png)
+            // 1. NÚT MENU Ở ĐẦU BÊN TRÁI CÙNG (ic_launcher.png)
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .clickable { onAppDrawerClick() },
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher),
+                    contentDescription = "Menu",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            // 2. PHÍM TẮT GỌI ĐIỆN (icon_phone_gold.png)
             Box(
                 modifier = Modifier
                     .size(44.dp)
@@ -516,7 +540,7 @@ fun LuxuryBottomDock(
 
             Spacer(modifier = Modifier.width(14.dp))
 
-            // 2. Trình phát nhạc nhỏ Dr Sơn Music (ic_drson_music.xml)
+            // 3. TRÌNH PHÁT NHẠC THU NHỎ DR SƠN MUSIC (ic_drson_music.xml)
             Card(
                 shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0x66332D24)),
@@ -533,27 +557,19 @@ fun LuxuryBottomDock(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text(text = "Dr Sơn Music", color = Color(0xFFFFF0B8), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text(text = "Nhạc không quảng cáo", color = Color(0xFFB89E72), fontSize = 9.sp)
+                        Text(
+                            text = "Dr Sơn Music",
+                            color = Color(0xFFFFF0B8),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Nhạc không quảng cáo",
+                            color = Color(0xFFB89E72),
+                            fontSize = 9.sp
+                        )
                     }
                 }
-            }
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            // 3. Nút mở App Drawer 6 cột (ic_launcher.png)
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .clickable { onAppDrawerClick() },
-                contentAlignment = Alignment.Center
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_launcher),
-                    contentDescription = "Menu",
-                    modifier = Modifier.fillMaxSize()
-                )
             }
         }
     }
