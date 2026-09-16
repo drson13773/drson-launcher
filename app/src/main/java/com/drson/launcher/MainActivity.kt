@@ -57,6 +57,7 @@ import com.drson.launcher.ui.CircularLuxurySpeedometer
 import com.drson.launcher.ui.ControlCenterSheet
 import com.drson.launcher.ui.DrivingRoadBackground
 import com.drson.launcher.ui.HomeViewModel
+import com.drson.launcher.ui.ZingMiniDockPlayer
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
@@ -105,7 +106,7 @@ class MainActivity : ComponentActivity() {
             var selectedSlotForAdd by remember { mutableStateOf<Int?>(null) }
             var selectedAppForOption by remember { mutableStateOf<Pair<Int, AppItem>?>(null) }
 
-            // Lưu trữ vị trí 8 ô tiện ích vào SharedPreferences
+            // Quản lý 8 vị trí ô tiện ích lưu trữ cục bộ
             val context = LocalContext.current
             val prefs = remember { context.getSharedPreferences("launcher_slots", Context.MODE_PRIVATE) }
             val pinnedPackages = remember {
@@ -120,7 +121,7 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    // BẮT CỬ CHỈ VUỐT
+                    // BẮT CỬ CHỈ VUỐT ĐA HƯỚNG
                     .pointerInput(Unit) {
                         detectDragGestures(
                             onDragEnd = {},
@@ -129,7 +130,7 @@ class MainActivity : ComponentActivity() {
                                 val screenWidth = size.width
                                 val (dx, dy) = dragAmount
 
-                                // 1. Vuốt ngang giữa màn hình -> Mở trang danh sách app 6 cột
+                                // 1. Vuốt ngang giữa màn hình -> Mở App Drawer
                                 if (abs(dx) > abs(dy) && abs(dx) > 28f) {
                                     showAppDrawer = true
                                     change.consume()
@@ -137,10 +138,10 @@ class MainActivity : ComponentActivity() {
                                 // 2. Vuốt từ trên xuống
                                 else if (dy > 30f && position.y < size.height * 0.4f) {
                                     if (position.x > screenWidth / 2f) {
-                                        // Vuốt trên-phải xuống -> Mở Trung tâm điều khiển
+                                        // Vuốt góc trên - phải -> Trung tâm điều khiển
                                         showControlCenter = true
                                     } else {
-                                        // Vuốt trên-trái xuống -> Mở Thông báo hệ thống
+                                        // Vuốt góc trên - trái -> Thông báo hệ thống
                                         openSystemNotificationShade()
                                     }
                                     change.consume()
@@ -153,13 +154,13 @@ class MainActivity : ComponentActivity() {
                 val screenH = maxHeight
                 val speed by viewModel.currentSpeed
 
-                // 1. NỀN GỐC, TIM ĐƯỜNG TRÔI, DÃY NHÀ NHÁY ĐÈN, CÂY TRÔI THEO GPS, XE MAZDA
+                // 1. NỀN GỐC, TIM ĐƯỜNG TRÔI, CÂY CỐI, XE MAZDA
                 DrivingRoadBackground(
                     speedKmH = speed,
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 2. PHÍA TRÊN TRÁI: LOGO VÀ ĐỒNG HỒ THỜI GIAN
+                // 2. GÓC TRÊN TRÁI: LOGO VÀ ĐỒNG HỒ THỜI GIAN
                 TopBrandAndClock(
                     onLogoClick = {
                         startActivity(
@@ -172,7 +173,7 @@ class MainActivity : ComponentActivity() {
                         .padding(start = screenW * 0.025f, top = screenH * 0.025f)
                 )
 
-                // 3. KHOẢNG TRỐNG BÊN TRÁI CON ĐƯỜNG VỚI DÃY NHÀ: ĐỒNG HỒ TỐC ĐỘ GPS
+                // 3. KHOẢNG TRỐNG BÊN TRÁI ĐƯỜNG: ĐỒNG HỒ TỐC ĐỘ GPS
                 val speedometerSize = screenH * 0.28f
                 CircularLuxurySpeedometer(
                     speedKmH = speed,
@@ -182,7 +183,7 @@ class MainActivity : ComponentActivity() {
                         .padding(start = screenW * 0.035f)
                 )
 
-                // 4. HỆ THỐNG Ô TIỆN ÍCH QUANH XE (ẨN MẶC ĐỊNH, GIỮ LÂU NỔI Ô CHỜ GHIM APP)
+                // 4. HỆ THỐNG Ô TIỆN ÍCH QUANH XE
                 HomeScreenWidgetGrid(
                     pinnedPackages = pinnedPackages,
                     viewModel = viewModel,
@@ -202,16 +203,11 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize()
                 )
 
-                // 5. THANH DOCK TỰ CO GIÃN VỚI NÚT MENU BÊN TRÁI CÙNG
+                // 5. THANH DOCK TỰ CO GIÃN TÍCH HỢP NÚT MENU, GỌI ĐIỆN VÀ ZING MINI PLAYER
                 LuxuryBottomDock(
                     onAppDrawerClick = { showAppDrawer = true },
                     onPhoneClick = { launchDialer() },
-                    onMusicClick = {
-                        startActivity(
-                            Intent(this@MainActivity, PureMusicActivity::class.java)
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                    },
+                    onOpenZing = { launchZingMp3() },
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 12.dp)
@@ -258,7 +254,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // TRANG DANH SÁCH ỨNG DỤNG 6 CỘT TÍNH TOÁN KÍCH THƯỚC ĐỘNG
+                // TRANG DANH SÁCH ỨNG DỤNG LƯỚI 6 CỘT
                 if (showAppDrawer) {
                     AppDrawerGridDialog(
                         apps = viewModel.apps,
@@ -296,6 +292,16 @@ class MainActivity : ComponentActivity() {
             startActivity(Intent(Intent.ACTION_DIAL).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK })
         } catch (_: Exception) {
             Toast.makeText(this, "Không tìm thấy ứng dụng gọi điện", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun launchZingMp3() {
+        val intent = packageManager.getLaunchIntentForPackage("com.zing.mp3")
+        if (intent != null) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+        } else {
+            Toast.makeText(this, "Chưa cài đặt ứng dụng Zing MP3", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -414,7 +420,7 @@ fun HomeScreenWidgetGrid(
             WidgetSlotItem(2, pinnedPackages.getOrNull(2), viewModel, isEditMode, onEmptySlotClick, onAppClick, onAppLongClick)
         }
 
-        // Hàng 2: Hai bên sườn xe (Vị trí 3, 4 bên trái và 5, 6 bên phải, chừa khoảng giữa không đè lên xe Mazda)
+        // Hàng 2: Hai bên sườn xe
         Row(
             modifier = Modifier
                 .fillMaxWidth(0.85f)
@@ -471,7 +477,6 @@ private fun WidgetSlotItem(
             Text(text = app.label, color = Color(0xFFC7B299), fontSize = 11.sp, maxLines = 1)
         }
     } else if (isEditMode) {
-        // Nổi ô nét đứt kèm dấu cộng khi nhấn giữ màn hình
         Box(
             modifier = Modifier
                 .size(54.dp)
@@ -484,7 +489,6 @@ private fun WidgetSlotItem(
             Icon(imageVector = Icons.Default.Add, contentDescription = "Thêm app", tint = Color(0xFFD4AF37))
         }
     } else {
-        // Mặc định ẩn hoàn toàn ô trống
         Spacer(modifier = Modifier.size(54.dp))
     }
 }
@@ -493,7 +497,7 @@ private fun WidgetSlotItem(
 fun LuxuryBottomDock(
     onAppDrawerClick: () -> Unit,
     onPhoneClick: () -> Unit,
-    onMusicClick: () -> Unit,
+    onOpenZing: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -503,13 +507,14 @@ fun LuxuryBottomDock(
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // 1. NÚT MENU ĐỨNG ĐẦU TIÊN BÊN TRÁI (ic_launcher.png)
+            // 1. NÚT MENU BÊN TRÁI CÙNG (ic_launcher.png)
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(42.dp)
                     .clip(CircleShape)
                     .clickable { onAppDrawerClick() },
                 contentAlignment = Alignment.Center
@@ -521,56 +526,35 @@ fun LuxuryBottomDock(
                 )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
-
-            // 2. PHÍM TẮT GỌI ĐIỆN THOẠI (icon_phone_gold.png)
+            // 2. PHÍM GỌI ĐIỆN
             Box(
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(42.dp)
                     .clip(CircleShape)
                     .clickable { onPhoneClick() },
                 contentAlignment = Alignment.Center
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.icon_phone_gold),
-                    contentDescription = "Gọi điện",
+                    contentDescription = "Phone",
                     modifier = Modifier.fillMaxSize()
                 )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
-
-            // 3. TRÌNH PHÁT NHẠC THU NHỎ DR SƠN MUSIC (ic_drson_music.xml)
-            Card(
-                shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0x66332D24)),
-                modifier = Modifier.clickable { onMusicClick() }
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_drson_music),
-                        contentDescription = "Music Icon",
-                        modifier = Modifier.size(30.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            text = "Dr Sơn Music",
-                            color = Color(0xFFFFF0B8),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Nhạc không quảng cáo",
-                            color = Color(0xFFB89E72),
-                            fontSize = 9.sp
-                        )
-                    }
-                }
-            }
+            // 3. THANH NHẠC ZING MP3 NẰM TRONG DOCK
+            ZingMiniDockPlayer(
+                songTitle = "Zing MP3 Player",
+                artistName = "Sẵn sàng phát nhạc",
+                isPlaying = false,
+                currentProgress = 0f,
+                volume = 0.5f,
+                onPlayPauseClick = {},
+                onNextClick = {},
+                onPrevClick = {},
+                onSeekChanged = {},
+                onVolumeChanged = {},
+                onOpenZingClick = onOpenZing
+            )
         }
     }
 }
@@ -626,7 +610,6 @@ fun AppDrawerGridDialog(
             .fillMaxSize()
             .background(Color(0xF2080706))
     ) {
-        // Ảnh nền danh sách ứng dụng
         Image(
             painter = painterResource(id = R.drawable.wallpaper_left_small),
             contentDescription = null,
@@ -640,7 +623,6 @@ fun AppDrawerGridDialog(
                 .fillMaxSize()
                 .padding(horizontal = 24.dp, vertical = 14.dp)
         ) {
-            // Tiêu đề và nút đóng
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -663,14 +645,12 @@ fun AppDrawerGridDialog(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Tính toán kích thước tự co giãn: 6 cột, khoảng cách = 1/2 kích thước icon
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
             ) {
                 val availableWidth = maxWidth
-                // 6 cột icon + 5 khoảng cách (0.5 icon) = 8.5 đơn vị
                 val iconBoxSize = availableWidth / 8.5f
                 val spacing = iconBoxSize / 2f
 
